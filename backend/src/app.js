@@ -12,14 +12,17 @@ const uploadRoutes = require('./modules/upload/upload.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((item) => item.trim()).filter(Boolean)
+  : '*';
 
 app.use(helmet());
-app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: allowedOrigins === '*' ? false : true }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
 app.get('/health', (_, res) => {
   res.status(200).json({ success: true, message: 'SmartLife API healthy' });

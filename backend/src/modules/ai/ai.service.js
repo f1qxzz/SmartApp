@@ -42,37 +42,85 @@ async function collectFinanceSummary(userId) {
 }
 
 async function askAI({ userId, message }) {
-  if (!process.env.OPENAI_API_KEY) {
-    const error = new Error('OPENAI_API_KEY is not configured');
-    error.statusCode = 500;
-    throw error;
-  }
-
   const financeSummary = await collectFinanceSummary(userId);
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const response = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    temperature: 0.4,
-    max_tokens: 500,
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a helpful financial assistant for the SmartLife app. You analyze user spending and provide advice based on their transaction data.',
-      },
-      {
-        role: 'user',
-        content: buildPrompt(financeSummary, message),
-      },
-    ],
-  });
-
-  const outputText = response.choices[0]?.message?.content || '';
-  if (!outputText.trim()) {
-    return 'Maaf, saya belum bisa memproses jawaban saat ini. Coba lagi beberapa saat.';
+  if (!process.env.OPENAI_API_KEY) {
+    return buildFallbackAnswer({
+      financeSummary,
+      reason: 'OPENAI_API_KEY belum dikonfigurasi',
+    });
   }
 
-  return outputText.trim();
+  try {
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.4,
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful financial assistant for the SmartLife app. You analyze user spending and provide advice based on their transaction data.',
+        },
+        {
+          role: 'user',
+          content: buildPrompt(financeSummary, message),
+        },
+      ],
+    });
+
+    const outputText = response.choices[0]?.message?.content || '';
+    if (!outputText.trim()) {
+      return buildFallbackAnswer({
+        financeSummary,
+        reason: 'OpenAI mengembalikan respons kosong',
+      });
+    }
+
+    return outputText.trim();
+  } catch (error) {
+    const reason = error?.status === 429
+      ? 'Kuota OpenAI habis / limit tercapai'
+      : 'OpenAI sedang tidak tersedia';
+
+    return buildFallbackAnswer({
+      financeSummary,
+      reason,
+    });
+  }
+}
+
+function buildFallbackAnswer({ financeSummary, reason }) {
+  const total = Number(financeSummary.total || 0);
+  const topCategory = financeSummary.topCategories[0];
+  const average = financeSummary.transactionCount > 0
+    ? total / financeSummary.transactionCount
+    : 0;
+
+  const lines = [
+    `OpenAI sementara tidak tersedia (${reason}).`,
+    'Berikut analisis cepat dari data real transaksi kamu:',
+    `- Total pengeluaran: Rp ${Math.round(total).toLocaleString('id-ID')}`,
+    `- Jumlah transaksi: ${financeSummary.transactionCount}`,
+    `- Rata-rata per transaksi: Rp ${Math.round(average).toLocaleString('id-ID')}`,
+  ];
+
+  if (topCategory) {
+    lines.push(
+      `- Kategori tertinggi: ${topCategory.category} (Rp ${Math.round(topCategory.amount).toLocaleString('id-ID')})`
+    );
+  }
+
+  lines.push(
+    '',
+    'Saran aksi:',
+    '1. Tetapkan batas harian untuk kategori terbesar.',
+    '2. Evaluasi 3 transaksi terakhir yang bukan kebutuhan utama.',
+    '3. Sisihkan tabungan di awal bulan agar disiplin.'
+  );
+
+  return lines.join('\n');
 }
 
 module.exports = {

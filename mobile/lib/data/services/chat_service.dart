@@ -43,13 +43,13 @@ class ChatService {
       return rawList.map((item) {
         final map = Map<String, dynamic>.from(item as Map);
         return ChatConversationEntity(
-          contactId: (map['_id'] ?? '').toString(),
+          contactId: (map['_id'] ?? map['id'] ?? '').toString(),
           name: (map['name'] ?? '').toString(),
           email: (map['email'] ?? '').toString(),
           avatar: (map['avatar'] ?? '').toString(),
-          isOnline: false,
+          isOnline: map['isOnline'] == true,
           lastMessage: '',
-          lastTimestamp: DateTime.now(),
+          lastTimestamp: DateTime.fromMillisecondsSinceEpoch(0),
           unreadCount: 0,
         );
       }).toList();

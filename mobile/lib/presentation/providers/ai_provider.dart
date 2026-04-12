@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smartlife_app/domain/entities/ai_message_entity.dart';
 import 'package:smartlife_app/domain/usecases/ai_usecases.dart';
 import 'package:smartlife_app/presentation/providers/app_providers.dart';
+import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 
 class AiState {
   final List<AiMessageEntity> messages;
@@ -103,6 +104,18 @@ class AiNotifier extends StateNotifier<AiState> {
   }
 }
 
-final aiProvider = StateNotifierProvider<AiNotifier, AiState>(
-  (ref) => AiNotifier(ref.read(aiUseCasesProvider)),
-);
+final aiProvider = StateNotifierProvider<AiNotifier, AiState>((ref) {
+  final notifier = AiNotifier(ref.read(aiUseCasesProvider));
+
+  ref.listen<AuthState>(authProvider, (previous, next) {
+    if (!next.isAuthenticated) {
+      notifier.reset();
+      return;
+    }
+    if (previous?.user?.id != next.user?.id) {
+      notifier.reset();
+    }
+  });
+
+  return notifier;
+});

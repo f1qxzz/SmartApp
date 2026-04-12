@@ -401,6 +401,9 @@ class _ChatTile extends StatelessWidget {
   }
 
   String _formatTime(DateTime dt) {
+    if (dt.year < 2000) {
+      return '';
+    }
     final now = DateTime.now();
     final diff = now.difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes}m';

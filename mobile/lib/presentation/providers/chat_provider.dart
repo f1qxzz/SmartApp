@@ -89,11 +89,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
         _useCases.getConversations(),
         _useCases.getContacts(),
       ]);
+      final conversations = results[0] as List<ChatConversationEntity>;
+      final contacts = results[1] as List<ChatConversationEntity>;
 
       state = state.copyWith(
         isLoading: false,
-        conversations: results[0] as List<ChatConversationEntity>,
-        contacts: results[1] as List<ChatConversationEntity>,
+        conversations: conversations,
+        contacts: _mergeContactsWithConversationState(
+          conversations: conversations,
+          contacts: contacts,
+        ),
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, errorMessage: error.toString());
@@ -157,10 +162,42 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> _refreshConversationsSilent() async {
     try {
       final conversations = await _useCases.getConversations();
-      state = state.copyWith(conversations: conversations);
+      state = state.copyWith(
+        conversations: conversations,
+        contacts: _mergeContactsWithConversationState(
+          conversations: conversations,
+          contacts: state.contacts,
+        ),
+      );
     } catch (_) {
       // ignore silent refresh failures
     }
+  }
+
+  List<ChatConversationEntity> _mergeContactsWithConversationState({
+    required List<ChatConversationEntity> conversations,
+    required List<ChatConversationEntity> contacts,
+  }) {
+    final map = <String, ChatConversationEntity>{
+      for (final item in conversations) item.contactId: item,
+    };
+
+    return contacts.map((contact) {
+      final existing = map[contact.contactId];
+      if (existing == null) {
+        return contact;
+      }
+      return ChatConversationEntity(
+        contactId: contact.contactId,
+        name: contact.name,
+        email: contact.email,
+        avatar: contact.avatar,
+        isOnline: existing.isOnline,
+        lastMessage: existing.lastMessage,
+        lastTimestamp: existing.lastTimestamp,
+        unreadCount: existing.unreadCount,
+      );
+    }).toList();
   }
 
   void _appendMessage(ChatMessageEntity message) {

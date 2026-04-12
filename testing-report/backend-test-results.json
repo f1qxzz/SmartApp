@@ -1,0 +1,120 @@
+﻿{
+    "suite":  "smartlife-backend-and-api",
+    "executed_at":  "2026-04-11T19:42:16.5788845+07:00",
+    "results":  [
+                    {
+                        "name":  "Health Check",
+                        "status":  "PASS",
+                        "duration_ms":  130.36,
+                        "detail":  "message=SmartLife API healthy"
+                    },
+                    {
+                        "name":  "Auth Register User1",
+                        "status":  "PASS",
+                        "duration_ms":  280.75,
+                        "detail":  "user=qa_u1_1775911329059@example.com"
+                    },
+                    {
+                        "name":  "Auth Register User2",
+                        "status":  "PASS",
+                        "duration_ms":  259.57,
+                        "detail":  "user=qa_u2_1775911329059@example.com"
+                    },
+                    {
+                        "name":  "Auth Login User1",
+                        "status":  "PASS",
+                        "duration_ms":  140.61,
+                        "detail":  "tokenLength=176"
+                    },
+                    {
+                        "name":  "Auth Me",
+                        "status":  "PASS",
+                        "duration_ms":  73.5,
+                        "detail":  "email=qa_u1_1775911329059@example.com"
+                    },
+                    {
+                        "name":  "Finance Create #1",
+                        "status":  "PASS",
+                        "duration_ms":  158.2,
+                        "detail":  "id=69da41a2084f2de6d2ac5804"
+                    },
+                    {
+                        "name":  "Finance Create #2",
+                        "status":  "PASS",
+                        "duration_ms":  148.58,
+                        "detail":  "id=69da41a2084f2de6d2ac5807"
+                    },
+                    {
+                        "name":  "Finance List",
+                        "status":  "PASS",
+                        "duration_ms":  148.64,
+                        "detail":  "count=2"
+                    },
+                    {
+                        "name":  "Finance Stats",
+                        "status":  "PASS",
+                        "duration_ms":  637.96,
+                        "detail":  "monthly=130000"
+                    },
+                    {
+                        "name":  "Finance Update",
+                        "status":  "PASS",
+                        "duration_ms":  227.27,
+                        "detail":  "amount=90000"
+                    },
+                    {
+                        "name":  "Finance Delete",
+                        "status":  "PASS",
+                        "duration_ms":  154.53,
+                        "detail":  "deleted=true"
+                    },
+                    {
+                        "name":  "Chat Send Message",
+                        "status":  "PASS",
+                        "duration_ms":  284.96,
+                        "detail":  "messageId=69da41a3084f2de6d2ac5816"
+                    },
+                    {
+                        "name":  "Chat Conversation List",
+                        "status":  "PASS",
+                        "duration_ms":  153.05,
+                        "detail":  "count=1"
+                    },
+                    {
+                        "name":  "Chat Message List",
+                        "status":  "PASS",
+                        "duration_ms":  258.89,
+                        "detail":  "count=1"
+                    },
+                    {
+                        "name":  "Chat Mark Read",
+                        "status":  "PASS",
+                        "duration_ms":  456.42,
+                        "detail":  "read=true"
+                    },
+                    {
+                        "name":  "Upload File",
+                        "status":  "PASS",
+                        "duration_ms":  181.04,
+                        "detail":  "{\"success\":true,\"data\":{\"url\":\"/uploads/1775911332786-903923755.txt\"}}"
+                    },
+                    {
+                        "name":  "AI Chat",
+                        "status":  "PASS",
+                        "duration_ms":  3505.52,
+                        "detail":  "answerLength=427"
+                    },
+                    {
+                        "name":  "Unauthorized Finance Access",
+                        "status":  "PASS",
+                        "duration_ms":  54.62,
+                        "detail":  "401 unauthorized returned"
+                    },
+                    {
+                        "name":  "Invalid Login Handling",
+                        "status":  "PASS",
+                        "duration_ms":  130.45,
+                        "detail":  "401 invalid login returned"
+                    }
+                ]
+}

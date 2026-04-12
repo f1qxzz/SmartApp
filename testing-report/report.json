@@ -1,0 +1,226 @@
+﻿{
+    "summary":  {
+                    "total_pages":  17,
+                    "bugs_found":  3,
+                    "status":  "PERLU_PERBAIKAN",
+                    "qa_scope":  "Mobile runtime + API integration",
+                    "mobile_runtime_available":  false,
+                    "backend_test":  {
+                                         "total_cases":  19,
+                                         "pass":  19,
+                                         "fail":  0,
+                                         "avg_response_ms":  388.68,
+                                         "max_response_ms":  3505.52
+                                     }
+                },
+    "pages":  [
+                  {
+                      "name":  "Splash Screen",
+                      "screenshot":  "screenshots/splash.png",
+                      "status":  "Tidak",
+                      "description":  "Verifikasi tampilan awal aplikasi, branding, dan transisi ke autentikasi.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Login",
+                      "screenshot":  "screenshots/login.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi field email/password, tombol masuk, dan respons autentikasi.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Register",
+                      "screenshot":  "screenshots/register.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi form pendaftaran, rule input, dan pembuatan akun.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Home",
+                      "screenshot":  "screenshots/home.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi landing screen setelah login serta ringkasan informasi utama.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Dashboard",
+                      "screenshot":  "screenshots/dashboard.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi chart, ringkasan pengeluaran, dan statistik periodik.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Navigasi Chat",
+                      "screenshot":  "screenshots/nav-chat.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi perpindahan tab ke menu chat melalui bottom navigation.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Navigasi Finance",
+                      "screenshot":  "screenshots/nav-finance.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi perpindahan tab ke menu finance melalui bottom navigation.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Navigasi Dashboard",
+                      "screenshot":  "screenshots/nav-dashboard.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi perpindahan tab ke menu dashboard melalui bottom navigation.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Navigasi AI",
+                      "screenshot":  "screenshots/nav-ai.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi perpindahan tab ke menu AI melalui bottom navigation.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Chat List",
+                      "screenshot":  "screenshots/chat.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi daftar percakapan, pencarian chat, unread badge, dan avatar.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Chat Detail",
+                      "screenshot":  "screenshots/chat-detail.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi kirim pesan text/gambar, typing indicator, read status, scroll behavior.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Finance",
+                      "screenshot":  "screenshots/finance.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi daftar transaksi, filter kategori, export CSV, dan pull-to-refresh.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Finance Form Input",
+                      "screenshot":  "screenshots/finance-form.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi form tambah transaksi (amount, category, description, submit).",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "AI Assistant",
+                      "screenshot":  "screenshots/ai.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi input pertanyaan, respons AI, loading bubble, dan error feedback.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini.",
+                                   "OpenAI API pada saat pengujian mengembalikan insufficient_quota (429), sistem menggunakan fallback response."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif.",
+                                          "Tambahkan mekanisme observability kuota dan notifikasi admin saat quota rendah."
+                                      ]
+                  },
+                  {
+                      "name":  "Profile",
+                      "screenshot":  "screenshots/profile.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi halaman profile, data user, dan aksi profil.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini.",
+                                   "Menu/halaman Profile tidak ditemukan pada implementasi navigasi saat ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif.",
+                                          "Implementasikan halaman Profile dan tautkan ke navigasi utama."
+                                      ]
+                  },
+                  {
+                      "name":  "Loading State",
+                      "screenshot":  "screenshots/loading-state.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi indikator loading pada fetch data, submit form, dan transisi API.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  },
+                  {
+                      "name":  "Error State",
+                      "screenshot":  "screenshots/error-state.png",
+                      "status":  "Tidak",
+                      "description":  "Validasi snackbar/error widget untuk gagal login, token expired, dan network timeout.",
+                      "bugs":  [
+                                   "Pengujian runtime mobile tidak dapat dijalankan karena Flutter SDK/ADB tidak tersedia pada environment QA ini."
+                               ],
+                      "suggestions":  [
+                                          "Jalankan ulang test pada device/emulator dengan Flutter SDK + Android SDK/iOS simulator aktif."
+                                      ]
+                  }
+              ]
+}

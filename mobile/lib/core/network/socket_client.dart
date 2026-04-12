@@ -32,10 +32,11 @@ class SocketClient {
 
   Stream<dynamic> on(String event) {
     final controller = StreamController<dynamic>.broadcast();
-    _socket?.on(event, controller.add);
+    void listener(dynamic data) => controller.add(data);
+    _socket?.on(event, listener);
 
     controller.onCancel = () {
-      _socket?.off(event, controller.add);
+      _socket?.off(event, listener);
     };
 
     return controller.stream;

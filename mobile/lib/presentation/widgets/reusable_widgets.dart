@@ -212,6 +212,7 @@ class _InputFieldState extends State<InputField> {
 
 class ChatBubble extends StatelessWidget {
   final String text;
+  final String imageUrl;
   final bool isMe;
   final DateTime timestamp;
   final bool isRead;
@@ -220,6 +221,7 @@ class ChatBubble extends StatelessWidget {
   const ChatBubble({
     super.key,
     required this.text,
+    this.imageUrl = '',
     required this.isMe,
     required this.timestamp,
     this.isRead = false,
@@ -273,15 +275,59 @@ class ChatBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Text(
-                    text,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: isMe
-                          ? Colors.white
-                          : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (imageUrl.trim().isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: text.trim().isNotEmpty ? 10 : 0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              imageUrl,
+                              width: 210,
+                              height: 170,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 210,
+                                height: 170,
+                                color: isMe
+                                    ? Colors.white.withOpacity(0.2)
+                                    : (isDark ? AppColors.backgroundDark : AppColors.surfaceLight),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 22,
+                                  color: isMe
+                                      ? Colors.white
+                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (text.trim().isNotEmpty)
+                        Text(
+                          text,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: isMe
+                                ? Colors.white
+                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                          ),
+                        ),
+                      if (text.trim().isEmpty && imageUrl.trim().isEmpty)
+                        Text(
+                          'Pesan kosong',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: isMe
+                                ? Colors.white70
+                                : (isDark ? AppColors.textSecondaryDark : AppColors.textTertiary),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),

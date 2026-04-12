@@ -6,6 +6,7 @@ import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/domain/entities/finance_stats_entity.dart';
 import 'package:smartlife_app/domain/usecases/finance_usecases.dart';
 import 'package:smartlife_app/presentation/providers/app_providers.dart';
+import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 
 class FinanceState {
   final List<FinanceEntryEntity> entries;
@@ -27,6 +28,24 @@ class FinanceState {
   double get totalSpent => entries.fold<double>(0, (sum, item) => sum + item.amount);
   double get budget => EnvConfig.monthlyBudget;
   bool get isOverBudget => totalSpent > budget;
+  List<FinanceEntryEntity> get filteredEntries {
+    final String category = selectedCategory.trim();
+    final String searchQuery = search.trim().toLowerCase();
+
+    return entries.where((entry) {
+      final bool categoryMatch = category.isEmpty || category == 'Semua' || entry.category == category;
+      if (!categoryMatch) {
+        return false;
+      }
+
+      if (searchQuery.isEmpty) {
+        return true;
+      }
+
+      return entry.description.toLowerCase().contains(searchQuery) ||
+          entry.category.toLowerCase().contains(searchQuery);
+    }).toList();
+  }
 
   FinanceState copyWith({
     List<FinanceEntryEntity>? entries,
@@ -61,10 +80,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     }
 
     try {
-      final entries = await _useCases.getEntries(
-        category: state.selectedCategory,
-        search: state.search,
-      );
+      final entries = await _useCases.getEntries();
       final stats = await _useCases.stats();
       state = state.copyWith(entries: entries, stats: stats, isLoading: false);
     } catch (error) {
@@ -120,12 +136,10 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
 
   Future<void> setCategory(String category) async {
     state = state.copyWith(selectedCategory: category);
-    await load();
   }
 
   Future<void> setSearch(String search) async {
     state = state.copyWith(search: search);
-    await load();
   }
 
   String exportCsv() {
@@ -135,8 +149,24 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     ];
     return const ListToCsvConverter().convert(rows);
   }
+
+  void reset() {
+    state = const FinanceState();
+  }
 }
 
 final financeProvider = StateNotifierProvider<FinanceNotifier, FinanceState>(
-  (ref) => FinanceNotifier(ref.read(financeUseCasesProvider)),
+  (ref) {
+    final notifier = FinanceNotifier(ref.read(financeUseCasesProvider));
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        notifier.reset();
+        return;
+      }
+      notifier.load();
+    });
+
+    return notifier;
+  },
 );

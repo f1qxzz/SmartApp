@@ -30,7 +30,7 @@ class ChatConversationEntity {
       isOnline: (contact['isOnline'] ?? false) == true,
       lastMessage: (json['lastMessage'] ?? '').toString(),
       lastTimestamp: DateTime.tryParse((json['lastTimestamp'] ?? '').toString()) ?? DateTime.now(),
-      unreadCount: (json['unreadCount'] ?? 0) as int,
+      unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
     );
   }
 }

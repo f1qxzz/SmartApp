@@ -5,7 +5,13 @@ const { isUserOnline } = require('../../sockets/store');
 
 async function listContacts(userId) {
   const users = await User.find({ _id: { $ne: userId } }).select('name email avatar').sort({ name: 1 });
-  return users;
+  return users.map((user) => ({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    isOnline: isUserOnline(String(user._id)),
+  }));
 }
 
 async function listMessagesBetweenUsers(userId, receiverId) {

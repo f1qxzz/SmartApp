@@ -19,14 +19,22 @@ class FinanceScreen extends ConsumerStatefulWidget {
 }
 
 class _FinanceScreenState extends ConsumerState<FinanceScreen> {
-  final List<String> _filters = <String>[
-    'Semua',
-    'Makanan',
-    'Transport',
-    'Belanja',
-    'Kesehatan',
-    'Tagihan',
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  final List<(String id, String label)> _filters = <(String, String)>[
+    ('Semua', 'Semua'),
+    ('food', 'Makanan'),
+    ('transport', 'Transport'),
+    ('shopping', 'Belanja'),
+    ('health', 'Kesehatan'),
+    ('bills', 'Tagihan'),
   ];
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   FinanceCategory _getCategory(String id) {
     return financeCategories.firstWhere(
@@ -39,7 +47,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final financeState = ref.watch(financeProvider);
-    final List<FinanceEntryEntity> filtered = List<FinanceEntryEntity>.from(financeState.entries);
+    final List<FinanceEntryEntity> filtered = List<FinanceEntryEntity>.from(financeState.filteredEntries);
     final double totalSpent = financeState.totalSpent;
 
     filtered.sort(
@@ -167,16 +175,48 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    TextField(
+                      controller: _searchCtrl,
+                      onChanged: (value) {
+                        ref.read(financeProvider.notifier).setSearch(value);
+                      },
+                      style: GoogleFonts.inter(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Cari transaksi...',
+                        hintStyle: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
+                        ),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        suffixIcon: financeState.search.trim().isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  ref.read(financeProvider.notifier).setSearch('');
+                                },
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                              ),
+                        filled: true,
+                        fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     SizedBox(
                       height: 36,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: _filters.length,
                         itemBuilder: (_, int i) {
-                          final String currentFilter = _filters[i];
-                          final bool isActive = financeState.selectedCategory == currentFilter;
+                          final currentFilter = _filters[i];
+                          final bool isActive = financeState.selectedCategory == currentFilter.$1;
                           return GestureDetector(
-                            onTap: () => ref.read(financeProvider.notifier).setCategory(currentFilter),
+                            onTap: () => ref.read(financeProvider.notifier).setCategory(currentFilter.$1),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               margin: const EdgeInsets.only(right: 8),
@@ -194,7 +234,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                currentFilter,
+                                currentFilter.$2,
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,

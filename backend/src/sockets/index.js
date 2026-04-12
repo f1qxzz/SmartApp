@@ -62,16 +62,22 @@ function initSocketServer(server) {
     });
 
     socket.on('chat:send', async ({ receiverId, text, image }) => {
-      if (!receiverId || (!text && !image)) return;
+      try {
+        if (!receiverId || (!text && !image)) return;
 
-      const message = await chatService.sendMessage({
-        senderId: userId,
-        receiverId,
-        text,
-        image,
-      });
+        const message = await chatService.sendMessage({
+          senderId: userId,
+          receiverId,
+          text,
+          image,
+        });
 
-      emitNewMessage(message);
+        emitNewMessage(message);
+      } catch (error) {
+        socket.emit('chat:error', {
+          message: 'Failed to send message',
+        });
+      }
     });
 
     socket.on('disconnect', () => {

@@ -52,6 +52,12 @@ class AppFormatters {
     return '${sign}Rp $grouped';
   }
 
+  static String timeOnly(DateTime date) {
+    final String hour = date.hour.toString().padLeft(2, '0');
+    final String minute = date.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   static String _groupThousands(String digits) {
     if (digits.length <= 3) {
       return digits;

@@ -4,7 +4,7 @@ const multer = require('multer');
 const express = require('express');
 const authMiddleware = require('../../middleware/auth.middleware');
 
-const uploadDir = path.resolve(process.cwd(), 'uploads');
+const uploadDir = path.resolve(__dirname, '../../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

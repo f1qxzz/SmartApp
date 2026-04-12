@@ -39,6 +39,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   @override
   void dispose() {
+    ref.read(chatProvider.notifier).setTyping(
+          toUserId: widget.contact.contactId,
+          isTyping: false,
+        );
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -53,6 +57,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final List<ChatMessageEntity> messages =
         ref.read(chatProvider.notifier).messagesOf(widget.contact.contactId);
     final bool isTyping = ref.read(chatProvider.notifier).isTypingFrom(widget.contact.contactId);
+
+    ref.listen<ChatState>(chatProvider, (previous, next) {
+      if (!mounted) {
+        return;
+      }
+      if (next.errorMessage != null &&
+          next.errorMessage!.isNotEmpty &&
+          previous?.errorMessage != next.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.errorMessage!)),
+        );
+      }
+    });
 
     return Scaffold(
       body: Column(
@@ -305,10 +322,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           isTyping: false,
         );
 
-    await ref.read(chatProvider.notifier).sendMessage(
-          receiverId: widget.contact.contactId,
-          text: text,
-        );
+    try {
+      await ref.read(chatProvider.notifier).sendMessage(
+            receiverId: widget.contact.contactId,
+            text: text,
+          );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengirim pesan')),
+      );
+      return;
+    }
     _scrollToBottom();
   }
 
@@ -328,6 +355,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             imageFile: File(picked.path),
           );
       _scrollToBottom();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengirim gambar')),
+      );
     } finally {
       if (mounted) {
         setState(() => _sendingImage = false);
