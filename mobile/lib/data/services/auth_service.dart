@@ -43,14 +43,19 @@ class AuthService {
   }
 
   Future<(UserEntity, String)> login({
-    required String email,
+    required String identifier,
     required String password,
+    required bool rememberMe,
   }) async {
     try {
-      debugPrint('[AUTH][API] POST /auth/login email=$email');
+      debugPrint('[AUTH][API] POST /auth/login identifier=$identifier');
       final response = await _dioClient.instance.post(
         '/auth/login',
-        data: {'email': email, 'password': password},
+        data: {
+          'identifier': identifier,
+          'password': password,
+          'rememberMe': rememberMe,
+        },
       );
 
       return _parseAuthResponse(response);
@@ -61,15 +66,21 @@ class AuthService {
   }
 
   Future<(UserEntity, String)> register({
-    required String name,
+    required String username,
     required String email,
     required String password,
+    required bool rememberMe,
   }) async {
     try {
-      debugPrint('[AUTH][API] POST /auth/register email=$email');
+      debugPrint('[AUTH][API] POST /auth/register username=$username');
       final response = await _dioClient.instance.post(
         '/auth/register',
-        data: {'name': name, 'email': email, 'password': password},
+        data: {
+          'username': username,
+          'email': email,
+          'password': password,
+          'rememberMe': rememberMe,
+        },
       );
 
       return _parseAuthResponse(response);
@@ -82,6 +93,7 @@ class AuthService {
   Future<(UserEntity, String)> socialLogin({
     required String provider,
     required String idToken,
+    required bool rememberMe,
   }) async {
     try {
       final normalizedProvider = provider.toLowerCase().trim();
@@ -92,7 +104,10 @@ class AuthService {
       debugPrint('[AUTH][API] POST /auth/google');
       final response = await _dioClient.instance.post(
         '/auth/google',
-        data: {'idToken': idToken},
+        data: {
+          'idToken': idToken,
+          'rememberMe': rememberMe,
+        },
       );
 
       return _parseAuthResponse(response);
@@ -147,6 +162,23 @@ class AuthService {
       return UserEntity.fromJson(_asMap(userRaw));
     } on DioException catch (error) {
       debugPrint('[AUTH][API] /auth/me failed: $error');
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<(UserEntity, String)> restoreSession() async {
+    try {
+      final response = await _dioClient.instance.get('/auth/me');
+      return _parseAuthResponse(response);
+    } catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _dioClient.instance.post('/auth/logout');
+    } catch (error) {
       throw ApiException.fromDio(error);
     }
   }

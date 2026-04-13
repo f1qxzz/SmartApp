@@ -2,24 +2,28 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(
   {
+    chatId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chat',
+      required: true,
+      index: true,
+    },
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       index: true,
     },
-    receiverId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+    text: {
+      type: String,
       required: true,
-      index: true,
+      trim: true,
+      maxlength: 2000,
     },
-    text: { type: String, default: '', trim: true },
-    image: { type: String, default: '' },
-    readStatus: { type: Boolean, default: false },
-    timestamp: { type: Date, default: Date.now, index: true },
   },
   { timestamps: true }
 );
+
+messageSchema.index({ chatId: 1, createdAt: 1 });
 
 module.exports = mongoose.model('Message', messageSchema);

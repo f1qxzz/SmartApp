@@ -24,47 +24,49 @@ class ChatService {
 
   Future<List<ChatConversationEntity>> getConversations() async {
     try {
-      final response = await _dioClient.instance.get('/api/chat');
+      final response = await _dioClient.instance.get('/chats');
       final rawList = (response.data['data'] as List?) ?? <dynamic>[];
-      final data = rawList
-          .map((item) => ChatConversationEntity.fromJson(Map<String, dynamic>.from(item as Map)))
+      return rawList
+          .map((item) => ChatConversationEntity.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ))
           .toList();
-      return data;
     } catch (error) {
       throw ApiException.fromDio(error);
     }
   }
 
-  Future<List<ChatConversationEntity>> getContacts() async {
+  Future<List<ChatConversationEntity>> searchUsers(String keyword) async {
     try {
-      final response = await _dioClient.instance.get('/api/chat/users');
+      final response = await _dioClient.instance.get(
+        '/users/search',
+        queryParameters: {
+          'username': keyword.trim(),
+        },
+      );
+
       final rawList = (response.data['data'] as List?) ?? <dynamic>[];
-
-      return rawList.map((item) {
-        final map = Map<String, dynamic>.from(item as Map);
-        return ChatConversationEntity(
-          contactId: (map['_id'] ?? map['id'] ?? '').toString(),
-          name: (map['name'] ?? '').toString(),
-          email: (map['email'] ?? '').toString(),
-          avatar: (map['avatar'] ?? '').toString(),
-          isOnline: map['isOnline'] == true,
-          lastMessage: '',
-          lastTimestamp: DateTime.fromMillisecondsSinceEpoch(0),
-          unreadCount: 0,
-        );
-      }).toList();
+      return rawList
+          .map((item) => ChatConversationEntity.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ))
+          .toList();
     } catch (error) {
       throw ApiException.fromDio(error);
     }
   }
 
-  Future<List<ChatMessageEntity>> getMessages(String contactId) async {
+  Future<List<ChatMessageEntity>> getMessages(String chatId) async {
     try {
-      final response = await _dioClient.instance.get('/api/chat', queryParameters: {'with': contactId});
+      final response = await _dioClient.instance.get('/messages/$chatId');
       final rawList = (response.data['data'] as List?) ?? <dynamic>[];
 
       return rawList
-          .map((item) => _parseMessage(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) => ChatMessageEntity.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
           .toList();
     } catch (error) {
       throw ApiException.fromDio(error);
@@ -72,27 +74,23 @@ class ChatService {
   }
 
   Future<ChatMessageEntity> sendMessage({
-    required String receiverId,
-    String text = '',
-    String image = '',
+    required String text,
+    String? receiverId,
+    String? chatId,
   }) async {
     try {
-      final response = await _dioClient.instance.post('/api/chat', data: {
-        'receiverId': receiverId,
-        'text': text,
-        'image': image,
-      });
+      final response = await _dioClient.instance.post(
+        '/messages/send',
+        data: {
+          'text': text,
+          if (receiverId != null && receiverId.trim().isNotEmpty)
+            'receiverId': receiverId,
+          if (chatId != null && chatId.trim().isNotEmpty) 'chatId': chatId,
+        },
+      );
 
       final data = Map<String, dynamic>.from(response.data['data'] as Map);
-      return _parseMessage(data);
-    } catch (error) {
-      throw ApiException.fromDio(error);
-    }
-  }
-
-  Future<void> markAsRead(String contactId) async {
-    try {
-      await _dioClient.instance.patch('/api/chat/read/$contactId');
+      return ChatMessageEntity.fromJson(data);
     } catch (error) {
       throw ApiException.fromDio(error);
     }
@@ -104,7 +102,8 @@ class ChatService {
         'file': await MultipartFile.fromFile(file.path),
       });
 
-      final response = await _dioClient.instance.post('/api/upload', data: formData);
+      final response =
+          await _dioClient.instance.post('/api/upload', data: formData);
       final path = (response.data['data']['url'] ?? '').toString();
       return UrlHelper.toAbsolute(EnvConfig.apiBaseUrl, path);
     } catch (error) {
@@ -125,16 +124,16 @@ class ChatService {
   }
 
   void emitTyping({required String toUserId, required bool isTyping}) {
-    _socketClient.emit('chat:typing', {
+    _socketClient.emit('typing', {
       'toUserId': toUserId,
       'isTyping': isTyping,
     });
   }
 
   Stream<ChatMessageEntity> onNewMessage() {
-    _newMessageStream ??= _socketClient.on('chat:new').map((event) {
+    _newMessageStream ??= _socketClient.on('receive_message').map((event) {
       final map = Map<String, dynamic>.from(event as Map);
-      return _parseMessage(map);
+      return ChatMessageEntity.fromJson(map);
     }).asBroadcastStream();
 
     return _newMessageStream!;
@@ -142,7 +141,7 @@ class ChatService {
 
   Stream<Map<String, dynamic>> onTyping() {
     _typingStream ??= _socketClient
-        .on('chat:typing')
+        .on('typing_status')
         .map((event) => Map<String, dynamic>.from(event as Map))
         .asBroadcastStream();
 
@@ -165,11 +164,5 @@ class ChatService {
         .asBroadcastStream();
 
     return _readStream!;
-  }
-
-  ChatMessageEntity _parseMessage(Map<String, dynamic> map) {
-    final parsed = ChatMessageEntity.fromJson(map);
-    final normalizedImage = UrlHelper.toAbsolute(EnvConfig.apiBaseUrl, parsed.image);
-    return parsed.copyWith(image: normalizedImage);
   }
 }

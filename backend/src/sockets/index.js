@@ -2,17 +2,18 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../modules/auth/user.model');
 const chatService = require('../modules/chat/chat.service');
-const {
-  setIO,
-  addUserSocket,
-  removeUserSocket,
-  getSocketsByUser,
-} = require('./store');
-const {
-  emitNewMessage,
-  emitTyping,
-  broadcastOnlineStatus,
-} = require('./events');
+const { setIO, addUserSocket, removeUserSocket, getSocketsByUser } = require('./store');
+const { emitReceiveMessage, emitTyping, broadcastOnlineStatus } = require('./events');
+
+function resolveToken(socket) {
+  const authToken = socket.handshake.auth?.token;
+  const queryToken = socket.handshake.query?.token;
+  return String(authToken || queryToken || '').trim();
+}
+
+function toUserId(value) {
+  return String(value || '');
+}
 
 function initSocketServer(server) {
   const io = new Server(server, {
@@ -26,14 +27,19 @@ function initSocketServer(server) {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      const token = resolveToken(socket);
       if (!token) {
         return next(new Error('Unauthorized'));
       }
 
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(payload.userId).select('_id name email avatar');
-      if (!user) {
+      const user = await User.findById(payload.userId).select('_id username avatar isSystem');
+
+      if (!user || user.isSystem) {
+        return next(new Error('Unauthorized'));
+      }
+
+      if (Number(payload.tv || 0) !== Number(user.tokenVersion || 0)) {
         return next(new Error('Unauthorized'));
       }
 
@@ -45,14 +51,37 @@ function initSocketServer(server) {
   });
 
   io.on('connection', (socket) => {
-    const userId = String(socket.user._id);
+    const userId = toUserId(socket.user?._id);
     addUserSocket(userId, socket.id);
+    socket.join(userId);
 
     if (getSocketsByUser(userId).length === 1) {
       broadcastOnlineStatus(userId, true);
     }
 
-    socket.on('chat:typing', ({ toUserId, isTyping }) => {
+    const handleSendMessage = async (payload = {}) => {
+      try {
+        const message = await chatService.sendMessage({
+          senderId: userId,
+          receiverId: payload.receiverId,
+          chatId: payload.chatId,
+          text: payload.text,
+        });
+
+        emitReceiveMessage(message);
+      } catch (error) {
+        socket.emit('chat_error', {
+          message: error.message || 'Gagal mengirim pesan',
+        });
+      }
+    };
+
+    socket.on('send_message', handleSendMessage);
+
+    // Backward compatibility
+    socket.on('chat:send', handleSendMessage);
+
+    socket.on('typing', ({ toUserId, isTyping }) => {
       if (!toUserId) return;
       emitTyping({
         fromUserId: userId,
@@ -61,23 +90,13 @@ function initSocketServer(server) {
       });
     });
 
-    socket.on('chat:send', async ({ receiverId, text, image }) => {
-      try {
-        if (!receiverId || (!text && !image)) return;
-
-        const message = await chatService.sendMessage({
-          senderId: userId,
-          receiverId,
-          text,
-          image,
-        });
-
-        emitNewMessage(message);
-      } catch (error) {
-        socket.emit('chat:error', {
-          message: 'Failed to send message',
-        });
-      }
+    socket.on('chat:typing', ({ toUserId, isTyping }) => {
+      if (!toUserId) return;
+      emitTyping({
+        fromUserId: userId,
+        toUserId,
+        isTyping,
+      });
     });
 
     socket.on('disconnect', () => {

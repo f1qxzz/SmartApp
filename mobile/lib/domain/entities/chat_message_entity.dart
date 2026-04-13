@@ -1,59 +1,61 @@
 class ChatMessageEntity {
   final String id;
+  final String chatId;
   final String senderId;
-  final String receiverId;
+  final String senderUsername;
+  final String senderAvatar;
   final String text;
-  final String image;
-  final DateTime timestamp;
-  final bool readStatus;
+  final DateTime createdAt;
 
   const ChatMessageEntity({
     required this.id,
+    required this.chatId,
     required this.senderId,
-    required this.receiverId,
+    required this.senderUsername,
+    required this.senderAvatar,
     required this.text,
-    required this.image,
-    required this.timestamp,
-    required this.readStatus,
+    required this.createdAt,
   });
 
   factory ChatMessageEntity.fromJson(Map<String, dynamic> json) {
-    String _extractId(dynamic value) {
-      if (value is Map<String, dynamic>) {
-        return (value['_id'] ?? value['id'] ?? '').toString();
-      }
-      return (value ?? '').toString();
-    }
+    final senderRaw = json['senderId'];
+    final sender = senderRaw is Map<String, dynamic>
+        ? senderRaw
+        : senderRaw is Map
+            ? Map<String, dynamic>.from(senderRaw)
+            : <String, dynamic>{'_id': senderRaw};
 
     return ChatMessageEntity(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
-      senderId: _extractId(json['senderId']),
-      receiverId: _extractId(json['receiverId']),
+      chatId: (json['chatId'] ?? '').toString(),
+      senderId: (sender['_id'] ?? sender['id'] ?? '').toString(),
+      senderUsername: (sender['username'] ?? sender['name'] ?? '').toString(),
+      senderAvatar: (sender['avatar'] ?? '').toString(),
       text: (json['text'] ?? '').toString(),
-      image: (json['image'] ?? '').toString(),
-      timestamp: DateTime.tryParse((json['timestamp'] ?? json['createdAt'] ?? '').toString()) ??
+      createdAt: DateTime.tryParse(
+            (json['createdAt'] ?? json['timestamp'] ?? '').toString(),
+          ) ??
           DateTime.now(),
-      readStatus: (json['readStatus'] ?? false) == true,
     );
   }
 
   ChatMessageEntity copyWith({
     String? id,
+    String? chatId,
     String? senderId,
-    String? receiverId,
+    String? senderUsername,
+    String? senderAvatar,
     String? text,
-    String? image,
-    DateTime? timestamp,
-    bool? readStatus,
+    DateTime? createdAt,
   }) {
     return ChatMessageEntity(
       id: id ?? this.id,
+      chatId: chatId ?? this.chatId,
       senderId: senderId ?? this.senderId,
-      receiverId: receiverId ?? this.receiverId,
+      senderUsername: senderUsername ?? this.senderUsername,
+      senderAvatar: senderAvatar ?? this.senderAvatar,
       text: text ?? this.text,
-      image: image ?? this.image,
-      timestamp: timestamp ?? this.timestamp,
-      readStatus: readStatus ?? this.readStatus,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

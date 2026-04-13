@@ -1,4 +1,5 @@
 import 'package:smartlife_app/core/storage/hive_service.dart';
+import 'package:smartlife_app/core/storage/session_auth_cache.dart';
 import 'package:smartlife_app/data/services/auth_service.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/domain/repositories/auth_repository.dart';
@@ -10,27 +11,41 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<(UserEntity user, String token)> login(
-      {required String email, required String password}) {
-    return _authService.login(email: email, password: password);
+      {required String identifier,
+      required String password,
+      required bool rememberMe}) {
+    return _authService.login(
+      identifier: identifier,
+      password: password,
+      rememberMe: rememberMe,
+    );
   }
 
   @override
   Future<(UserEntity user, String token)> register({
-    required String name,
+    required String username,
     required String email,
     required String password,
+    required bool rememberMe,
   }) {
-    return _authService.register(name: name, email: email, password: password);
+    return _authService.register(
+      username: username,
+      email: email,
+      password: password,
+      rememberMe: rememberMe,
+    );
   }
 
   @override
   Future<(UserEntity user, String token)> socialLogin({
     required String provider,
     required String idToken,
+    required bool rememberMe,
   }) {
     return _authService.socialLogin(
       provider: provider,
       idToken: idToken,
+      rememberMe: rememberMe,
     );
   }
 
@@ -53,13 +68,30 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> cacheAuth(UserEntity user, String token) async {
-    await HiveService.saveToken(token);
-    await HiveService.saveUser(user.toJson());
+  Future<void> cacheAuth(UserEntity user, String token,
+      {required bool rememberMe}) async {
+    SessionAuthCache.setAuth(token: token, user: user);
+    await HiveService.saveRememberMe(rememberMe);
+    if (rememberMe) {
+      await HiveService.saveToken(token);
+      await HiveService.saveUser(user.toJson());
+      return;
+    }
+
+    await HiveService.clearToken();
+    await HiveService.clearUser();
   }
 
   @override
   Future<UserEntity?> getCachedUser() async {
+    if (SessionAuthCache.user != null) {
+      return SessionAuthCache.user;
+    }
+
+    if (!HiveService.rememberMe) {
+      return null;
+    }
+
     final raw = HiveService.user;
     if (raw == null) {
       return null;
@@ -69,16 +101,32 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<String?> getCachedToken() async {
+    if (SessionAuthCache.token != null) {
+      return SessionAuthCache.token;
+    }
+    if (!HiveService.rememberMe) {
+      return null;
+    }
     return HiveService.token;
   }
 
   @override
-  Future<void> logout() {
-    return HiveService.clearAuth();
+  Future<void> logout() async {
+    try {
+      await _authService.logout();
+    } finally {
+      SessionAuthCache.clear();
+      await HiveService.clearAuth();
+    }
   }
 
   @override
   Future<UserEntity> getProfile() {
     return _authService.me();
+  }
+
+  @override
+  Future<(UserEntity user, String token)> restoreSession() {
+    return _authService.restoreSession();
   }
 }

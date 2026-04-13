@@ -27,7 +27,7 @@ class HiveService {
   static Map<String, dynamic>? get user {
     final value = authBox.get(HiveBoxes.user);
     if (value is Map) {
-      return Map<String, dynamic>.from(value as Map<dynamic, dynamic>);
+      return Map<String, dynamic>.from(value);
     }
     return null;
   }
@@ -41,6 +41,17 @@ class HiveService {
   }
 
   static Future<void> clearAuth() async {
-    await Future.wait([clearToken(), clearUser()]);
+    await Future.wait([clearToken(), clearUser(), clearRememberMe()]);
+  }
+
+  static bool get rememberMe =>
+      (authBox.get(HiveBoxes.rememberMe) as bool?) ?? false;
+
+  static Future<void> saveRememberMe(bool value) async {
+    await authBox.put(HiveBoxes.rememberMe, value);
+  }
+
+  static Future<void> clearRememberMe() async {
+    await authBox.delete(HiveBoxes.rememberMe);
   }
 }

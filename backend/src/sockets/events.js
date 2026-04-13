@@ -1,13 +1,10 @@
-const { getIO, getSocketsByUser } = require('./store');
+const { getIO } = require('./store');
 
 function emitToUser(userId, event, payload) {
   const io = getIO();
   if (!io) return;
 
-  const sockets = getSocketsByUser(String(userId));
-  sockets.forEach((socketId) => {
-    io.to(socketId).emit(event, payload);
-  });
+  io.to(String(userId)).emit(event, payload);
 }
 
 function broadcastOnlineStatus(userId, online) {
@@ -16,12 +13,26 @@ function broadcastOnlineStatus(userId, online) {
   io.emit('presence:update', { userId: String(userId), online });
 }
 
-function emitNewMessage(message) {
-  emitToUser(message.senderId._id || message.senderId, 'chat:new', message);
-  emitToUser(message.receiverId._id || message.receiverId, 'chat:new', message);
+function emitReceiveMessage(message) {
+  const senderId = String(message.senderId._id || message.senderId || '');
+  const receiverId = String(message.receiverId || '');
+
+  if (senderId) {
+    emitToUser(senderId, 'receive_message', message);
+    emitToUser(senderId, 'chat:new', message);
+  }
+
+  if (receiverId && receiverId !== senderId) {
+    emitToUser(receiverId, 'receive_message', message);
+    emitToUser(receiverId, 'chat:new', message);
+  }
 }
 
 function emitTyping({ fromUserId, toUserId, isTyping }) {
+  emitToUser(toUserId, 'typing_status', {
+    fromUserId: String(fromUserId),
+    isTyping: Boolean(isTyping),
+  });
   emitToUser(toUserId, 'chat:typing', {
     fromUserId: String(fromUserId),
     isTyping: Boolean(isTyping),
@@ -37,7 +48,7 @@ function emitConversationRead({ userId, withUserId }) {
 
 module.exports = {
   emitToUser,
-  emitNewMessage,
+  emitReceiveMessage,
   emitTyping,
   emitConversationRead,
   broadcastOnlineStatus,

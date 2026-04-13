@@ -24,7 +24,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(chatProvider.notifier).refreshAll();
+      ref.read(chatProvider.notifier).refreshChats();
     });
   }
 
@@ -38,17 +38,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final chatState = ref.watch(chatProvider);
+    final bool isSearchActive = _searchQuery.trim().isNotEmpty;
 
-    final List<ChatConversationEntity> combined = _combineConversationsAndContacts(
-      chatState.conversations,
-      chatState.contacts,
-    );
-
-    final List<ChatConversationEntity> filtered = combined.where((item) {
-      final query = _searchQuery.toLowerCase();
-      return item.name.toLowerCase().contains(query) ||
-          item.lastMessage.toLowerCase().contains(query);
-    }).toList();
+    final List<ChatConversationEntity> items =
+        isSearchActive ? chatState.searchResults : chatState.chats;
 
     return Scaffold(
       body: SafeArea(
@@ -63,21 +56,24 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                         ? TextField(
                             controller: _searchCtrl,
                             autofocus: true,
-                            onChanged: (value) => setState(() => _searchQuery = value),
+                            onChanged: _onSearchChanged,
                             style: GoogleFonts.inter(fontSize: 15),
                             decoration: const InputDecoration(
-                              hintText: 'Cari chat...',
+                              hintText: 'Cari username...',
                               prefixIcon: Icon(Icons.search_rounded, size: 20),
-                              contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                           )
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('Messages', style: AppTextStyles.heading2(context)),
+                              Text('Messages',
+                                  style: AppTextStyles.heading2(context)),
                               Text(
-                                '${combined.where((c) => c.unreadCount > 0).length} pesan belum dibaca',
+                                '${chatState.chats.length} chat tersedia',
                                 style: AppTextStyles.caption(context),
                               ),
                             ],
@@ -86,21 +82,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   Row(
                     children: <Widget>[
                       _AppBarIcon(
-                        icon: _isSearching ? Icons.close_rounded : Icons.search_rounded,
-                        onTap: () {
-                          setState(() {
-                            _isSearching = !_isSearching;
-                            if (!_isSearching) {
-                              _searchCtrl.clear();
-                              _searchQuery = '';
-                            }
-                          });
-                        },
+                        icon: _isSearching
+                            ? Icons.close_rounded
+                            : Icons.search_rounded,
+                        onTap: _toggleSearch,
                       ),
                       const SizedBox(width: 8),
                       _AppBarIcon(
                         icon: Icons.refresh_rounded,
-                        onTap: () => ref.read(chatProvider.notifier).refreshAll(),
+                        onTap: () =>
+                            ref.read(chatProvider.notifier).refreshChats(),
                       ),
                     ],
                   ),
@@ -110,18 +101,19 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             const SizedBox(height: 16),
             SizedBox(
               height: 90,
-              child: ListView.builder(
+              child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: chatState.contacts.length,
-                itemBuilder: (_, int i) {
-                  final contact = chatState.contacts[i];
-                  return _StoryItem(
-                    name: contact.name.split(' ').first,
-                    avatarUrl: contact.avatar,
-                    isOnline: contact.isOnline,
-                  );
-                },
+                children: chatState.chats
+                    .where((chat) => chat.isOnline)
+                    .map(
+                      (chat) => _StoryItem(
+                        username: chat.username,
+                        avatarUrl: chat.avatar,
+                        isOnline: chat.isOnline,
+                      ),
+                    )
+                    .toList(),
               ),
             ),
             Padding(
@@ -131,30 +123,33 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               ),
             ),
             Expanded(
-              child: chatState.isLoading && filtered.isEmpty
+              child: chatState.isLoading && items.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : filtered.isEmpty
+                  : items.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Text(
-                              'Tidak ada chat yang cocok dengan pencarian kamu.',
+                              isSearchActive
+                                  ? 'User tidak ditemukan.'
+                                  : 'Belum ada pesan',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.body(context),
                             ),
                           ),
                         )
                       : RefreshIndicator(
-                          onRefresh: () => ref.read(chatProvider.notifier).refreshAll(),
+                          onRefresh: () =>
+                              ref.read(chatProvider.notifier).refreshChats(),
                           child: ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filtered.length,
+                            itemCount: items.length,
                             itemBuilder: (_, int i) {
-                              final contact = filtered[i];
-                              return _ChatTile(contact: contact)
+                              final item = items[i];
+                              return _ChatTile(item: item)
                                   .animate()
                                   .fadeIn(delay: (50 * i).ms, duration: 300.ms)
-                                  .slideX(begin: 0.1, end: 0);
+                                  .slideX(begin: 0.08, end: 0);
                             },
                           ),
                         ),
@@ -165,24 +160,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     );
   }
 
-  List<ChatConversationEntity> _combineConversationsAndContacts(
-    List<ChatConversationEntity> conversations,
-    List<ChatConversationEntity> contacts,
-  ) {
-    final byId = <String, ChatConversationEntity>{
-      for (final item in conversations) item.contactId: item,
-    };
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchCtrl.clear();
+        _searchQuery = '';
+        ref.read(chatProvider.notifier).searchUsers('');
+      }
+    });
+  }
 
-    for (final contact in contacts) {
-      byId.putIfAbsent(
-        contact.contactId,
-        () => contact,
-      );
-    }
-
-    final result = byId.values.toList()
-      ..sort((a, b) => b.lastTimestamp.compareTo(a.lastTimestamp));
-    return result;
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    ref.read(chatProvider.notifier).searchUsers(value);
   }
 }
 
@@ -215,12 +206,12 @@ class _AppBarIcon extends StatelessWidget {
 }
 
 class _StoryItem extends StatelessWidget {
-  final String name;
+  final String username;
   final String avatarUrl;
   final bool isOnline;
 
   const _StoryItem({
-    required this.name,
+    required this.username,
     required this.avatarUrl,
     this.isOnline = false,
   });
@@ -236,7 +227,9 @@ class _StoryItem extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: isOnline ? Border.all(color: AppColors.secondary, width: 2.5) : null,
+              border: isOnline
+                  ? Border.all(color: AppColors.secondary, width: 2.5)
+                  : null,
             ),
             child: avatarUrl.isEmpty
                 ? const CircleAvatar(child: Icon(Icons.person))
@@ -244,10 +237,11 @@ class _StoryItem extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           SizedBox(
-            width: 60,
+            width: 70,
             child: Text(
-              name,
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
+              username,
+              style:
+                  GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
@@ -260,9 +254,9 @@ class _StoryItem extends StatelessWidget {
 }
 
 class _ChatTile extends StatelessWidget {
-  final ChatConversationEntity contact;
+  final ChatConversationEntity item;
 
-  const _ChatTile({required this.contact});
+  const _ChatTile({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +265,7 @@ class _ChatTile extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => ChatDetailScreen(contact: contact),
+          pageBuilder: (_, __, ___) => ChatDetailScreen(contact: item),
           transitionsBuilder: (_, anim, __, child) => SlideTransition(
             position: Tween<Offset>(
               begin: const Offset(1, 0),
@@ -286,7 +280,7 @@ class _ChatTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: contact.unreadCount > 0
+          color: item.unreadCount > 0
               ? AppColors.primary.withOpacity(0.05)
               : Colors.transparent,
         ),
@@ -296,10 +290,11 @@ class _ChatTile extends StatelessWidget {
               children: <Widget>[
                 CircleAvatar(
                   radius: 26,
-                  backgroundImage: contact.avatar.isEmpty ? null : NetworkImage(contact.avatar),
-                  child: contact.avatar.isEmpty ? const Icon(Icons.person) : null,
+                  backgroundImage:
+                      item.avatar.isEmpty ? null : NetworkImage(item.avatar),
+                  child: item.avatar.isEmpty ? const Icon(Icons.person) : null,
                 ),
-                if (contact.isOnline)
+                if (item.isOnline)
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -310,7 +305,8 @@ class _ChatTile extends StatelessWidget {
                         color: AppColors.secondary,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isDark ? AppColors.backgroundDark : Colors.white,
+                          color:
+                              isDark ? AppColors.backgroundDark : Colors.white,
                           width: 2,
                         ),
                       ),
@@ -327,19 +323,22 @@ class _ChatTile extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       Text(
-                        contact.name,
+                        item.username,
                         style: GoogleFonts.poppins(
                           fontSize: 15,
-                          fontWeight:
-                              contact.unreadCount > 0 ? FontWeight.w700 : FontWeight.w600,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                          fontWeight: item.unreadCount > 0
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                         ),
                       ),
                       Text(
-                        _formatTime(contact.lastTimestamp),
+                        _formatTime(item.updatedAt),
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: contact.unreadCount > 0
+                          color: item.unreadCount > 0
                               ? AppColors.primary
                               : (isDark
                                   ? AppColors.textSecondaryDark
@@ -353,35 +352,37 @@ class _ChatTile extends StatelessWidget {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          contact.lastMessage.isEmpty
+                          item.lastMessage.isEmpty
                               ? 'Belum ada pesan'
-                              : contact.lastMessage,
+                              : item.lastMessage,
                           style: GoogleFonts.inter(
                             fontSize: 13,
-                            color: contact.unreadCount > 0
+                            color: item.unreadCount > 0
                                 ? (isDark
                                     ? AppColors.textPrimaryDark
                                     : AppColors.textPrimary)
                                 : (isDark
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textTertiary),
-                            fontWeight:
-                                contact.unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: item.unreadCount > 0
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (contact.unreadCount > 0)
+                      if (item.unreadCount > 0)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
                             gradient: AppColors.gradientPrimary,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${contact.unreadCount}',
+                            '${item.unreadCount}',
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               color: Colors.white,

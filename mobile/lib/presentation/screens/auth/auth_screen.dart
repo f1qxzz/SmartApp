@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -19,12 +20,13 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   static final RegExp _emailRegex =
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+  static final RegExp _usernameRegex = RegExp(r'^[a-z0-9._]{3,30}$');
 
   bool _isLogin = true;
   bool _obscurePass = true;
+  final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   ProviderSubscription<AuthState>? _authSubscription;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -46,9 +48,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   void dispose() {
     _authSubscription?.close();
+    _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _nameCtrl.dispose();
     super.dispose();
   }
 
@@ -73,18 +75,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     final successMessage = state.successMessage;
-    if (successMessage != null &&
-        successMessage.isNotEmpty &&
-        state.status == AuthStatus.unauthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(successMessage),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+    if (successMessage != null && successMessage.isNotEmpty) {
+      if (state.status == AuthStatus.authenticated) {
+        // Show success snackbar for login
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
       ref.read(authProvider.notifier).clearSuccessMessage();
     }
   }
@@ -100,16 +113,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     if (_isLogin) {
       await ref.read(authProvider.notifier).login(
-            email: _emailCtrl.text.trim(),
+            identifier: _usernameCtrl.text.trim().toLowerCase(),
             password: _passCtrl.text,
+            rememberMe: ref.read(authProvider).rememberMe,
           );
       return;
     }
 
     await ref.read(authProvider.notifier).register(
-          name: _nameCtrl.text.trim(),
+          username: _usernameCtrl.text.trim().toLowerCase(),
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text,
+          rememberMe: ref.read(authProvider).rememberMe,
         );
   }
 
@@ -162,7 +177,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref.read(authProvider.notifier).socialLogin(
             provider: 'google',
             idToken: idToken,
+            rememberMe: ref.read(authProvider).rememberMe,
           );
+    } on PlatformException catch (error) {
+      debugPrint('[AUTH][GOOGLE] sign-in failed: $error');
+      if (!mounted) {
+        return;
+      }
+
+      String message = 'Google Sign-In gagal (${error.code}).';
+      if (error.code == 'sign_in_failed') {
+        message =
+            'Google Sign-In gagal. Pastikan SHA-1/SHA-256 sudah didaftarkan di Firebase, OAuth client aktif, dan google-services.json terbaru sudah terpasang.';
+      } else if (error.code == 'network_error') {
+        message = 'Koneksi internet bermasalah. Coba lagi.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (error) {
       debugPrint('[AUTH][GOOGLE] sign-in failed: $error');
       if (!mounted) {
@@ -252,6 +288,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState.status == AuthStatus.loading;
+    final rememberMe = authState.rememberMe;
 
     return Scaffold(
       body: Stack(
@@ -415,45 +452,59 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          if (!_isLogin) ...[
-                            InputField(
-                              hint: 'Nama lengkap',
-                              controller: _nameCtrl,
-                              validator: (String? value) {
-                                final String name = value?.trim() ?? '';
-                                if (name.isEmpty) {
-                                  return 'Nama wajib diisi';
-                                }
-                                if (name.length < 3) {
-                                  return 'Nama minimal 3 karakter';
-                                }
-                                return null;
-                              },
-                              prefixIcon: const Icon(
-                                  Icons.person_outline_rounded,
-                                  color: AppColors.primary,
-                                  size: 20),
-                            ),
-                            const SizedBox(height: 14),
-                          ],
                           InputField(
-                            hint: 'Email address',
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
+                            hint: _isLogin ? 'Username atau Email' : 'Username',
+                            controller: _usernameCtrl,
+                            keyboardType: _isLogin
+                                ? TextInputType.emailAddress
+                                : TextInputType.text,
                             validator: (String? value) {
-                              final String email = value?.trim() ?? '';
-                              if (email.isEmpty) {
-                                return 'Email wajib diisi';
+                              final String input =
+                                  value?.trim().toLowerCase() ?? '';
+                              if (input.isEmpty) {
+                                return _isLogin
+                                    ? 'Username atau email wajib diisi'
+                                    : 'Username wajib diisi';
                               }
-                              if (!_emailRegex.hasMatch(email)) {
-                                return 'Format email tidak valid';
+                              if (input.length < 3) {
+                                return _isLogin
+                                    ? 'Minimal 3 karakter'
+                                    : 'Username minimal 3 karakter';
+                              }
+                              if (!_isLogin &&
+                                  !_usernameRegex.hasMatch(input)) {
+                                return 'Username 3-30 karakter (a-z, 0-9, . _)';
                               }
                               return null;
                             },
-                            prefixIcon: const Icon(Icons.email_outlined,
-                                color: AppColors.primary, size: 20),
+                            prefixIcon: Icon(
+                                _isLogin
+                                    ? Icons.person_outline_rounded
+                                    : Icons.alternate_email_rounded,
+                                color: AppColors.primary,
+                                size: 20),
                           ),
                           const SizedBox(height: 14),
+                          if (!_isLogin) ...[
+                            InputField(
+                              hint: 'Email address',
+                              controller: _emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (String? value) {
+                                final String email = value?.trim() ?? '';
+                                if (email.isEmpty) {
+                                  return 'Email wajib diisi';
+                                }
+                                if (!_emailRegex.hasMatch(email)) {
+                                  return 'Format email tidak valid';
+                                }
+                                return null;
+                              },
+                              prefixIcon: const Icon(Icons.email_outlined,
+                                  color: AppColors.primary, size: 20),
+                            ),
+                            const SizedBox(height: 14),
+                          ],
                           InputField(
                             hint: 'Password',
                             controller: _passCtrl,
@@ -481,6 +532,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               onPressed: () =>
                                   setState(() => _obscurePass = !_obscurePass),
                             ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: <Widget>[
+                              Checkbox(
+                                value: rememberMe,
+                                onChanged: (value) {
+                                  ref
+                                      .read(authProvider.notifier)
+                                      .setRememberMe(value ?? true);
+                                },
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'Remember me',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           if (_isLogin) ...[
                             Align(

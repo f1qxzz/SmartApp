@@ -13,12 +13,40 @@ const uploadRoutes = require('./modules/upload/upload.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((item) => item.trim()).filter(Boolean)
-  : '*';
+const defaultClientOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+];
+
+const configuredOrigins = String(process.env.CLIENT_URL || '')
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([...defaultClientOrigins, ...configuredOrigins]);
+const allowAnyOrigin = configuredOrigins.length === 0 && process.env.NODE_ENV !== 'production';
 
 app.use(helmet());
-app.use(cors({ origin: allowedOrigins, credentials: allowedOrigins === '*' ? false : true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowAnyOrigin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan('dev'));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -30,9 +58,10 @@ app.get('/health', (_, res) => {
 });
 
 app.post('/login', authController.login);
+app.post('/register', authController.register);
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/', chatRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/upload', uploadRoutes);

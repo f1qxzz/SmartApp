@@ -5,10 +5,13 @@ import 'package:smartlife_app/domain/entities/chat_message_entity.dart';
 
 abstract class ChatRepository {
   Future<List<ChatConversationEntity>> getConversations();
-  Future<List<ChatConversationEntity>> getContacts();
-  Future<List<ChatMessageEntity>> getMessages(String contactId);
-  Future<ChatMessageEntity> sendMessage({required String receiverId, String text, String image = ''});
-  Future<void> markAsRead(String contactId);
+  Future<List<ChatConversationEntity>> searchUsers(String keyword);
+  Future<List<ChatMessageEntity>> getMessages(String chatId);
+  Future<ChatMessageEntity> sendMessage({
+    required String text,
+    String? receiverId,
+    String? chatId,
+  });
   Future<String> uploadImage(File file);
 
   void connectSocket(String token);

@@ -1,57 +1,53 @@
 const asyncHandler = require('../../middleware/asyncHandler');
 const chatService = require('./chat.service');
-const { emitNewMessage, emitConversationRead } = require('../../sockets/events');
+const { emitReceiveMessage } = require('../../sockets/events');
 
-const getChat = asyncHandler(async (req, res) => {
-  const withUserId = req.query.with;
-
-  if (withUserId) {
-    const messages = await chatService.listMessagesBetweenUsers(req.user._id, withUserId);
-    return res.status(200).json({ success: true, data: messages });
-  }
-
-  const conversations = await chatService.listConversations(req.user._id);
-  return res.status(200).json({ success: true, data: conversations });
+const searchUsers = asyncHandler(async (req, res) => {
+  const keyword = req.query.username || '';
+  const users = await chatService.searchUsers(req.user._id, keyword);
+  return res.status(200).json({
+    success: true,
+    data: users,
+  });
 });
 
-const getContacts = asyncHandler(async (req, res) => {
-  const contacts = await chatService.listContacts(req.user._id);
-  return res.status(200).json({ success: true, data: contacts });
+const getChats = asyncHandler(async (req, res) => {
+  const chats = await chatService.getChats(req.user._id);
+  return res.status(200).json({
+    success: true,
+    data: chats,
+  });
 });
 
-const postChat = asyncHandler(async (req, res) => {
-  const { receiverId, text, image } = req.body;
+const getMessages = asyncHandler(async (req, res) => {
+  const messages = await chatService.getMessages(req.user._id, req.params.chatId);
+  return res.status(200).json({
+    success: true,
+    data: messages,
+  });
+});
 
-  if (!receiverId || (!text && !image)) {
-    return res.status(400).json({
-      success: false,
-      message: 'receiverId and text/image are required',
-    });
-  }
+const sendMessage = asyncHandler(async (req, res) => {
+  const { receiverId, chatId, text } = req.body;
 
   const message = await chatService.sendMessage({
     senderId: req.user._id,
     receiverId,
+    chatId,
     text,
-    image,
   });
 
-  emitNewMessage(message);
+  emitReceiveMessage(message);
 
-  return res.status(201).json({ success: true, data: message });
-});
-
-const markRead = asyncHandler(async (req, res) => {
-  const withUserId = req.params.withUserId;
-  await chatService.markConversationAsRead(req.user._id, withUserId);
-  emitConversationRead({ userId: String(req.user._id), withUserId });
-
-  return res.status(200).json({ success: true, message: 'Conversation marked as read' });
+  return res.status(201).json({
+    success: true,
+    data: message,
+  });
 });
 
 module.exports = {
-  getChat,
-  getContacts,
-  postChat,
-  markRead,
+  searchUsers,
+  getChats,
+  getMessages,
+  sendMessage,
 };

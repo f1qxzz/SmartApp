@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -201,7 +200,8 @@ class _InputFieldState extends State<InputField> {
                     child: widget.prefixIcon,
                   )
                 : null,
-            prefixIconConstraints: const BoxConstraints(minWidth: 52, minHeight: 52),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 52, minHeight: 52),
             suffixIcon: widget.suffixIcon,
           ),
         ),
@@ -235,13 +235,15 @@ class ChatBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
           if (!isMe) ...<Widget>[
             CircleAvatar(
               radius: 16,
-              backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+              backgroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl!) : null,
               backgroundColor: AppColors.primary.withOpacity(0.2),
               child: avatarUrl == null
                   ? const Icon(Icons.person, size: 16, color: AppColors.primary)
@@ -251,16 +253,22 @@ class ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: <Widget>[
                 Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.7,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     gradient: isMe ? AppColors.gradientPrimary : null,
-                    color: isMe ? null : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
+                    color: isMe
+                        ? null
+                        : (isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.surfaceLight),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
@@ -269,7 +277,8 @@ class ChatBubble extends StatelessWidget {
                     ),
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color: (isMe ? AppColors.primary : Colors.black).withOpacity(0.1),
+                        color: (isMe ? AppColors.primary : Colors.black)
+                            .withOpacity(0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -280,7 +289,8 @@ class ChatBubble extends StatelessWidget {
                     children: <Widget>[
                       if (imageUrl.trim().isNotEmpty)
                         Padding(
-                          padding: EdgeInsets.only(bottom: text.trim().isNotEmpty ? 10 : 0),
+                          padding: EdgeInsets.only(
+                              bottom: text.trim().isNotEmpty ? 10 : 0),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(
@@ -293,14 +303,18 @@ class ChatBubble extends StatelessWidget {
                                 height: 170,
                                 color: isMe
                                     ? Colors.white.withOpacity(0.2)
-                                    : (isDark ? AppColors.backgroundDark : AppColors.surfaceLight),
+                                    : (isDark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.surfaceLight),
                                 alignment: Alignment.center,
                                 child: Icon(
                                   Icons.broken_image_outlined,
                                   size: 22,
                                   color: isMe
                                       ? Colors.white
-                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+                                      : (isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondary),
                                 ),
                               ),
                             ),
@@ -314,7 +328,9 @@ class ChatBubble extends StatelessWidget {
                             height: 1.5,
                             color: isMe
                                 ? Colors.white
-                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                                : (isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary),
                           ),
                         ),
                       if (text.trim().isEmpty && imageUrl.trim().isEmpty)
@@ -324,7 +340,9 @@ class ChatBubble extends StatelessWidget {
                             fontSize: 12,
                             color: isMe
                                 ? Colors.white70
-                                : (isDark ? AppColors.textSecondaryDark : AppColors.textTertiary),
+                                : (isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textTertiary),
                           ),
                         ),
                     ],
@@ -338,7 +356,9 @@ class ChatBubble extends StatelessWidget {
                       _formatTime(timestamp),
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textTertiary,
                       ),
                     ),
                     if (isMe) ...<Widget>[
@@ -346,7 +366,9 @@ class ChatBubble extends StatelessWidget {
                       Icon(
                         isRead ? Icons.done_all : Icons.done,
                         size: 14,
-                        color: isRead ? AppColors.secondary : AppColors.textTertiary,
+                        color: isRead
+                            ? AppColors.secondary
+                            : AppColors.textTertiary,
                       ),
                     ],
                   ],
@@ -369,6 +391,7 @@ class ChatBubble extends StatelessWidget {
 
 class FinanceCard extends StatelessWidget {
   final String id;
+  final String title;
   final String category;
   final String description;
   final double amount;
@@ -376,10 +399,12 @@ class FinanceCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback? onDelete;
+  final VoidCallback? onTap;
 
   const FinanceCard({
     super.key,
     required this.id,
+    required this.title,
     required this.category,
     required this.description,
     required this.amount,
@@ -387,6 +412,7 @@ class FinanceCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.onDelete,
+    this.onTap,
   });
 
   @override
@@ -403,69 +429,92 @@ class FinanceCard extends StatelessWidget {
           color: AppColors.error.withOpacity(0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 24),
+        child: const Icon(Icons.delete_outline_rounded,
+            color: AppColors.error, size: 24),
       ),
       onDismissed: (_) => onDelete?.call(),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.cardDark : AppColors.cardLight,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    description,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            ],
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${category} - ${_formatDate(date)}',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
+                    if (description.trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 3),
+                    Text(
+                      '${category} - ${_formatDate(date)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textTertiary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Text(
-              '-${AppFormatters.currency(amount)}',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.error,
+              Text(
+                '-${AppFormatters.currency(amount)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.error,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -536,7 +585,8 @@ class BalanceCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -599,7 +649,7 @@ class BalanceCard extends StatelessWidget {
           Row(
             children: <Widget>[
               _StatItem(
-                label: 'Pemasukan',
+                label: 'Budget',
                 value: AppFormatters.compactCurrency(income),
                 icon: Icons.arrow_downward_rounded,
                 color: AppColors.secondary,
@@ -689,7 +739,8 @@ class LoadingSkeleton extends StatelessWidget {
 
     return Shimmer.fromColors(
       baseColor: isDark ? const Color(0xFF2D3147) : const Color(0xFFE5E7EB),
-      highlightColor: isDark ? const Color(0xFF3D4160) : const Color(0xFFF3F4F6),
+      highlightColor:
+          isDark ? const Color(0xFF3D4160) : const Color(0xFFF3F4F6),
       child: Container(
         width: width,
         height: height,
@@ -798,10 +849,14 @@ class GlassCard extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.07) : Colors.white.withOpacity(0.85),
+        color: isDark
+            ? Colors.white.withOpacity(0.07)
+            : Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.6),
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.white.withOpacity(0.6),
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(

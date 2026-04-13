@@ -11,21 +11,29 @@ class ChatRepositoryImpl implements ChatRepository {
   final ChatService _chatService;
 
   @override
-  Future<List<ChatConversationEntity>> getConversations() => _chatService.getConversations();
+  Future<List<ChatConversationEntity>> getConversations() =>
+      _chatService.getConversations();
 
   @override
-  Future<List<ChatConversationEntity>> getContacts() => _chatService.getContacts();
+  Future<List<ChatConversationEntity>> searchUsers(String keyword) =>
+      _chatService.searchUsers(keyword);
 
   @override
-  Future<List<ChatMessageEntity>> getMessages(String contactId) => _chatService.getMessages(contactId);
+  Future<List<ChatMessageEntity>> getMessages(String chatId) =>
+      _chatService.getMessages(chatId);
 
   @override
-  Future<ChatMessageEntity> sendMessage({required String receiverId, String text = '', String image = ''}) {
-    return _chatService.sendMessage(receiverId: receiverId, text: text, image: image);
+  Future<ChatMessageEntity> sendMessage({
+    required String text,
+    String? receiverId,
+    String? chatId,
+  }) {
+    return _chatService.sendMessage(
+      text: text,
+      receiverId: receiverId,
+      chatId: chatId,
+    );
   }
-
-  @override
-  Future<void> markAsRead(String contactId) => _chatService.markAsRead(contactId);
 
   @override
   Future<String> uploadImage(File file) => _chatService.uploadImage(file);

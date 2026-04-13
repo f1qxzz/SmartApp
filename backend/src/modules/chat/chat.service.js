@@ -1,151 +1,223 @@
 const mongoose = require('mongoose');
+const Chat = require('./chat.model');
 const Message = require('./message.model');
 const User = require('../auth/user.model');
 const { isUserOnline } = require('../../sockets/store');
 
-async function listContacts(userId) {
-  const users = await User.find({ _id: { $ne: userId } }).select('name email avatar').sort({ name: 1 });
-  return users.map((user) => ({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
+function createHttpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function toObjectId(value) {
+  if (value instanceof mongoose.Types.ObjectId) {
+    return value;
+  }
+  return new mongoose.Types.ObjectId(value);
+}
+
+function normalizeKeyword(value) {
+  return String(value || '').trim();
+}
+
+function toChatUser(user) {
+  return {
+    id: String(user._id),
+    username: user.username,
+    avatar: user.avatar || '',
     isOnline: isUserOnline(String(user._id)),
-  }));
+  };
 }
 
-async function listMessagesBetweenUsers(userId, receiverId) {
-  return Message.find({
-    $or: [
-      { senderId: userId, receiverId },
-      { senderId: receiverId, receiverId: userId },
-    ],
+function toConversation(chat, currentUserId) {
+  const otherUser = (chat.participants || []).find(
+    (participant) => String(participant._id) !== String(currentUserId)
+  );
+
+  return {
+    chatId: String(chat._id),
+    otherUser: otherUser ? toChatUser(otherUser) : null,
+    lastMessage: chat.lastMessage || '',
+    updatedAt: chat.updatedAt,
+    unreadCount: 0,
+  };
+}
+
+function toMessagePayload(message, receiverId) {
+  return {
+    _id: String(message._id),
+    chatId: String(message.chatId),
+    senderId: {
+      _id: String(message.senderId._id || message.senderId),
+      username: message.senderId.username || '',
+      avatar: message.senderId.avatar || '',
+    },
+    receiverId: String(receiverId),
+    text: message.text,
+    createdAt: message.createdAt,
+  };
+}
+
+async function findUserOrThrow(userId) {
+  const user = await User.findOne({
+    _id: userId,
+    isSystem: { $ne: true },
+    username: { $exists: true, $ne: '' },
+  }).select('_id username avatar');
+
+  if (!user) {
+    throw createHttpError(404, 'User tidak ditemukan');
+  }
+
+  return user;
+}
+
+async function searchUsers(currentUserId, keyword) {
+  const normalizedKeyword = normalizeKeyword(keyword);
+
+  const query = {
+    _id: { $ne: toObjectId(currentUserId) },
+    isSystem: { $ne: true },
+    username: { $exists: true, $ne: '' },
+  };
+
+  if (normalizedKeyword) {
+    query.username = { $regex: normalizedKeyword, $options: 'i' };
+  }
+
+  const users = await User.find(query)
+    .select('_id username avatar')
+    .sort({ username: 1 })
+    .limit(20);
+
+  return users.map((user) => toChatUser(user));
+}
+
+async function getChats(currentUserId) {
+  const chats = await Chat.find({
+    participants: toObjectId(currentUserId),
   })
-    .sort({ timestamp: 1 })
-    .populate('senderId', 'name email avatar')
-    .populate('receiverId', 'name email avatar');
+    .populate({
+      path: 'participants',
+      select: '_id username avatar isSystem',
+      match: {
+        isSystem: { $ne: true },
+        username: { $exists: true, $ne: '' },
+      },
+    })
+    .sort({ updatedAt: -1 });
+
+  return chats
+    .map((chat) => toConversation(chat, currentUserId))
+    .filter((chat) => chat.otherUser);
 }
 
-async function listConversations(userId) {
-  const objectId = new mongoose.Types.ObjectId(userId);
+async function ensureChatBetweenUsers(userId, otherUserId) {
+  if (String(userId) === String(otherUserId)) {
+    throw createHttpError(400, 'Tidak bisa chat dengan akun sendiri');
+  }
 
-  const conversations = await Message.aggregate([
-    {
-      $match: {
-        $or: [{ senderId: objectId }, { receiverId: objectId }],
-      },
-    },
-    {
-      $project: {
-        senderId: 1,
-        receiverId: 1,
-        text: 1,
-        image: 1,
-        readStatus: 1,
-        timestamp: 1,
-        contactId: {
-          $cond: [{ $eq: ['$senderId', objectId] }, '$receiverId', '$senderId'],
-        },
-      },
-    },
-    { $sort: { timestamp: -1 } },
-    {
-      $group: {
-        _id: '$contactId',
-        lastMessage: { $first: '$text' },
-        lastImage: { $first: '$image' },
-        lastTimestamp: { $first: '$timestamp' },
-      },
-    },
-    {
-      $lookup: {
-        from: 'messages',
-        let: { contactId: '$_id' },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ['$senderId', '$$contactId'] },
-                  { $eq: ['$receiverId', objectId] },
-                  { $eq: ['$readStatus', false] },
-                ],
-              },
-            },
-          },
-          { $count: 'count' },
-        ],
-        as: 'unreadMeta',
-      },
-    },
-    {
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'contact',
-      },
-    },
-    { $unwind: '$contact' },
-    {
-      $project: {
-        _id: 0,
-        contact: {
-          id: '$contact._id',
-          name: '$contact.name',
-          email: '$contact.email',
-          avatar: '$contact.avatar',
-        },
-        lastMessage: {
-          $cond: [{ $gt: [{ $strLenCP: '$lastMessage' }, 0] }, '$lastMessage', '[Image]'],
-        },
-        lastTimestamp: '$lastTimestamp',
-        unreadCount: {
-          $ifNull: [{ $arrayElemAt: ['$unreadMeta.count', 0] }, 0],
-        },
-      },
-    },
-    { $sort: { lastTimestamp: -1 } },
-  ]);
+  await findUserOrThrow(otherUserId);
 
-  return conversations.map((item) => ({
-    ...item,
-    contact: {
-      ...item.contact,
-      isOnline: isUserOnline(String(item.contact.id)),
-    },
-  }));
-}
+  const participants = [toObjectId(userId), toObjectId(otherUserId)];
 
-async function sendMessage(payload) {
-  const message = await Message.create({
-    senderId: payload.senderId,
-    receiverId: payload.receiverId,
-    text: payload.text || '',
-    image: payload.image || '',
-    timestamp: payload.timestamp || new Date(),
+  let chat = await Chat.findOne({
+    participants: { $all: participants },
+    $expr: { $eq: [{ $size: '$participants' }, 2] },
   });
 
-  return Message.findById(message._id)
-    .populate('senderId', 'name email avatar')
-    .populate('receiverId', 'name email avatar');
+  if (!chat) {
+    chat = await Chat.create({
+      participants,
+      lastMessage: '',
+    });
+  }
+
+  return chat;
 }
 
-async function markConversationAsRead(userId, withUserId) {
-  await Message.updateMany(
-    {
-      senderId: withUserId,
-      receiverId: userId,
-      readStatus: false,
+async function getChatById(currentUserId, chatId) {
+  if (!mongoose.Types.ObjectId.isValid(chatId)) {
+    throw createHttpError(400, 'chatId tidak valid');
+  }
+
+  const chat = await Chat.findOne({
+    _id: toObjectId(chatId),
+    participants: toObjectId(currentUserId),
+  });
+
+  if (!chat) {
+    throw createHttpError(404, 'Chat tidak ditemukan atau tidak memiliki akses');
+  }
+
+  return chat;
+}
+
+async function getMessages(currentUserId, chatId) {
+  await getChatById(currentUserId, chatId);
+
+  const messages = await Message.find({ chatId: toObjectId(chatId) })
+    .populate('senderId', '_id username avatar')
+    .sort({ createdAt: 1 });
+
+  return messages.map((message) => ({
+    _id: String(message._id),
+    chatId: String(message.chatId),
+    senderId: {
+      _id: String(message.senderId._id || ''),
+      username: message.senderId.username || '',
+      avatar: message.senderId.avatar || '',
     },
-    { $set: { readStatus: true } }
+    text: message.text,
+    createdAt: message.createdAt,
+  }));
+}
+
+async function sendMessage({ senderId, receiverId, chatId, text }) {
+  const normalizedText = String(text || '').trim();
+  if (!normalizedText) {
+    throw createHttpError(400, 'Pesan tidak boleh kosong');
+  }
+
+  let chat = null;
+  let targetUserId = receiverId ? String(receiverId) : '';
+
+  if (chatId) {
+    chat = await getChatById(senderId, chatId);
+    const participants = chat.participants.map((participant) => String(participant));
+    targetUserId = participants.find((participantId) => participantId !== String(senderId)) || '';
+  } else if (receiverId) {
+    chat = await ensureChatBetweenUsers(senderId, receiverId);
+  } else {
+    throw createHttpError(400, 'chatId atau receiverId wajib diisi');
+  }
+
+  if (!targetUserId) {
+    throw createHttpError(400, 'Target user chat tidak ditemukan');
+  }
+
+  const createdMessage = await Message.create({
+    chatId: chat._id,
+    senderId: toObjectId(senderId),
+    text: normalizedText,
+  });
+
+  chat.lastMessage = normalizedText;
+  chat.updatedAt = createdMessage.createdAt;
+  await chat.save();
+
+  const message = await Message.findById(createdMessage._id).populate(
+    'senderId',
+    '_id username avatar'
   );
+
+  return toMessagePayload(message, targetUserId);
 }
 
 module.exports = {
-  listContacts,
-  listMessagesBetweenUsers,
-  listConversations,
+  searchUsers,
+  getChats,
+  getMessages,
   sendMessage,
-  markConversationAsRead,
 };

@@ -1,7 +1,6 @@
-import 'package:csv/csv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:smartlife_app/core/config/env_config.dart';
+import 'package:smartlife_app/core/utils/export_helper.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/domain/entities/finance_stats_entity.dart';
 import 'package:smartlife_app/domain/usecases/finance_usecases.dart';
@@ -15,6 +14,8 @@ class FinanceState {
   final String? errorMessage;
   final String selectedCategory;
   final String search;
+  final double monthlyBudget;
+  final bool isExporting;
 
   const FinanceState({
     this.entries = const [],
@@ -23,17 +24,25 @@ class FinanceState {
     this.errorMessage,
     this.selectedCategory = 'Semua',
     this.search = '',
+    this.monthlyBudget = 0,
+    this.isExporting = false,
   });
 
-  double get totalSpent => entries.fold<double>(0, (sum, item) => sum + item.amount);
-  double get budget => EnvConfig.monthlyBudget;
-  bool get isOverBudget => totalSpent > budget;
+  double get totalSpent =>
+      entries.fold<double>(0, (sum, item) => sum + item.amount);
+  double get budget => monthlyBudget;
+  double get remainingBudget => (budget - totalSpent).clamp(0, double.infinity);
+  double get percentageUsed =>
+      budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 100);
+  bool get isOverBudget => budget > 0 && totalSpent > budget;
+
   List<FinanceEntryEntity> get filteredEntries {
     final String category = selectedCategory.trim();
     final String searchQuery = search.trim().toLowerCase();
 
     return entries.where((entry) {
-      final bool categoryMatch = category.isEmpty || category == 'Semua' || entry.category == category;
+      final bool categoryMatch =
+          category.isEmpty || category == 'Semua' || entry.category == category;
       if (!categoryMatch) {
         return false;
       }
@@ -42,7 +51,8 @@ class FinanceState {
         return true;
       }
 
-      return entry.description.toLowerCase().contains(searchQuery) ||
+      return entry.title.toLowerCase().contains(searchQuery) ||
+          entry.description.toLowerCase().contains(searchQuery) ||
           entry.category.toLowerCase().contains(searchQuery);
     }).toList();
   }
@@ -54,6 +64,8 @@ class FinanceState {
     String? errorMessage,
     String? selectedCategory,
     String? search,
+    double? monthlyBudget,
+    bool? isExporting,
     bool clearError = false,
   }) {
     return FinanceState(
@@ -63,6 +75,8 @@ class FinanceState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       selectedCategory: selectedCategory ?? this.selectedCategory,
       search: search ?? this.search,
+      monthlyBudget: monthlyBudget ?? this.monthlyBudget,
+      isExporting: isExporting ?? this.isExporting,
     );
   }
 }
@@ -80,9 +94,22 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     }
 
     try {
-      final entries = await _useCases.getEntries();
-      final stats = await _useCases.stats();
-      state = state.copyWith(entries: entries, stats: stats, isLoading: false);
+      final results = await Future.wait<dynamic>([
+        _useCases.getEntries(),
+        _useCases.stats(),
+        _useCases.getBudget(),
+      ]);
+
+      final entries = results[0] as List<FinanceEntryEntity>;
+      final stats = results[1] as FinanceStatsEntity;
+      final budget = results[2] as double;
+
+      state = state.copyWith(
+        entries: entries,
+        stats: stats,
+        monthlyBudget: budget,
+        isLoading: false,
+      );
     } catch (error) {
       state = state.copyWith(
         isLoading: false,
@@ -92,16 +119,18 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
   }
 
   Future<void> create({
+    required String title,
     required double amount,
     required String category,
-    required String description,
+    String description = '',
     DateTime? date,
   }) async {
     final entry = FinanceEntryEntity(
       id: '',
+      title: title.trim(),
       amount: amount,
       category: category,
-      description: description,
+      description: description.trim(),
       date: date ?? DateTime.now(),
     );
 
@@ -134,6 +163,17 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     }
   }
 
+  Future<void> setBudget(double monthlyBudget) async {
+    try {
+      final budget = await _useCases.setBudget(monthlyBudget);
+      state = state.copyWith(monthlyBudget: budget);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
   Future<void> setCategory(String category) async {
     state = state.copyWith(selectedCategory: category);
   }
@@ -142,12 +182,24 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     state = state.copyWith(search: search);
   }
 
-  String exportCsv() {
-    final rows = <List<dynamic>>[
-      ['Amount', 'Category', 'Description', 'Date'],
-      ...state.entries.map((e) => [e.amount, e.category, e.description, e.date.toIso8601String()]),
-    ];
-    return const ListToCsvConverter().convert(rows);
+  Future<String> exportCsv({DateTime? from, DateTime? to}) async {
+    state = state.copyWith(isExporting: true, clearError: true);
+    try {
+      final csv = await _useCases.exportCsv(from: from, to: to);
+      final now = DateTime.now();
+      final fileName =
+          'smartlife-export-${now.year}-${now.month.toString().padLeft(2, '0')}.csv';
+      final savedPath =
+          await saveCsvExport(csvContent: csv, fileName: fileName);
+      state = state.copyWith(isExporting: false);
+      return savedPath;
+    } catch (error) {
+      state = state.copyWith(
+        isExporting: false,
+        errorMessage: error.toString(),
+      );
+      rethrow;
+    }
   }
 
   void reset() {

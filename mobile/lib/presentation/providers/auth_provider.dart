@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/domain/usecases/auth_usecases.dart';
 import 'package:smartlife_app/presentation/providers/app_providers.dart';
@@ -18,6 +19,7 @@ class AuthState {
   final String? token;
   final String? errorMessage;
   final String? successMessage;
+  final bool rememberMe;
 
   const AuthState({
     required this.status,
@@ -25,6 +27,7 @@ class AuthState {
     this.token,
     this.errorMessage,
     this.successMessage,
+    this.rememberMe = true,
   });
 
   bool get isAuthenticated =>
@@ -36,6 +39,7 @@ class AuthState {
     String? token,
     String? errorMessage,
     String? successMessage,
+    bool? rememberMe,
     bool clearError = false,
     bool clearSuccess = false,
   }) {
@@ -46,19 +50,26 @@ class AuthState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       successMessage:
           clearSuccess ? null : (successMessage ?? this.successMessage),
+      rememberMe: rememberMe ?? this.rememberMe,
     );
   }
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._useCases)
-      : super(const AuthState(status: AuthStatus.initial)) {
+      : super(
+          AuthState(
+            status: AuthStatus.initial,
+            rememberMe: HiveService.rememberMe,
+          ),
+        ) {
     initialize();
   }
 
   final AuthUseCases _useCases;
   static final RegExp _emailRegex =
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+  static final RegExp _usernameRegex = RegExp(r'^[a-z0-9._]{3,30}$');
 
   void _setClientError(String message) {
     state = AuthState(
@@ -78,17 +89,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final cachedUser = await _useCases.getCachedUser();
 
     if (token == null || token.isEmpty || cachedUser == null) {
-      state = const AuthState(status: AuthStatus.unauthenticated);
-      return;
+      try {
+        final restored = await _useCases.restoreSession();
+        final bool rememberMe = state.rememberMe;
+        await _useCases.cacheAuth(
+          restored.$1,
+          restored.$2,
+          rememberMe: rememberMe,
+        );
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: restored.$1,
+          token: restored.$2,
+          rememberMe: rememberMe,
+        );
+        return;
+      } catch (_) {
+        state = const AuthState(status: AuthStatus.unauthenticated);
+        return;
+      }
     }
 
     try {
       final profile = await _useCases.getProfile();
-      await _useCases.cacheAuth(profile, token);
+      await _useCases.cacheAuth(
+        profile,
+        token,
+        rememberMe: state.rememberMe,
+      );
       state = AuthState(
         status: AuthStatus.authenticated,
         user: profile,
         token: token,
+        rememberMe: state.rememberMe,
       );
     } catch (_) {
       await _useCases.logout();
@@ -96,21 +129,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> login({required String email, required String password}) async {
+  Future<void> login(
+      {required String identifier,
+      required String password,
+      required bool rememberMe}) async {
     state = state.copyWith(
       status: AuthStatus.loading,
       clearError: true,
       clearSuccess: true,
     );
 
-    final normalizedEmail = email.trim();
-    if (normalizedEmail.isEmpty || password.isEmpty) {
-      _setClientError('Email dan password wajib diisi.');
+    final normalizedIdentifier = identifier.trim().toLowerCase();
+    if (normalizedIdentifier.isEmpty || password.isEmpty) {
+      _setClientError('Username/email dan password wajib diisi.');
       return;
     }
 
-    if (!_emailRegex.hasMatch(normalizedEmail)) {
-      _setClientError('Format email tidak valid.');
+    if (normalizedIdentifier.length < 3) {
+      _setClientError('Username/email minimal 3 karakter.');
       return;
     }
 
@@ -121,16 +157,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final result = await _useCases.login(
-        email: normalizedEmail,
+        identifier: normalizedIdentifier,
         password: password,
+        rememberMe: rememberMe,
       );
-      await _useCases.cacheAuth(result.$1, result.$2);
+      await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] login success: ${result.$1.email}');
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
         token: result.$2,
         successMessage: 'Login berhasil. Selamat datang kembali!',
+        rememberMe: rememberMe,
       );
     } catch (error) {
       debugPrint('[AUTH] login failed: $error');
@@ -142,9 +180,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> register({
-    required String name,
+    required String username,
     required String email,
     required String password,
+    required bool rememberMe,
   }) async {
     state = state.copyWith(
       status: AuthStatus.loading,
@@ -152,16 +191,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       clearSuccess: true,
     );
 
-    final normalizedName = name.trim();
+    final normalizedUsername = username.trim().toLowerCase();
     final normalizedEmail = email.trim();
 
-    if (normalizedName.isEmpty || normalizedEmail.isEmpty || password.isEmpty) {
-      _setClientError('Nama, email, dan password wajib diisi.');
+    if (normalizedUsername.isEmpty ||
+        normalizedEmail.isEmpty ||
+        password.isEmpty) {
+      _setClientError('Username, email, dan password wajib diisi.');
       return;
     }
 
-    if (normalizedName.length < 2) {
-      _setClientError('Nama minimal 2 karakter.');
+    if (!_usernameRegex.hasMatch(normalizedUsername)) {
+      _setClientError(
+        'Username harus 3-30 karakter (huruf kecil, angka, titik, underscore).',
+      );
       return;
     }
 
@@ -177,17 +220,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final result = await _useCases.register(
-        name: normalizedName,
+        username: normalizedUsername,
         email: normalizedEmail,
         password: password,
+        rememberMe: rememberMe,
       );
-      await _useCases.cacheAuth(result.$1, result.$2);
+      await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] register success: ${result.$1.email}');
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
         token: result.$2,
         successMessage: 'Register berhasil. Selamat datang di SmartLife!',
+        rememberMe: rememberMe,
       );
     } catch (error) {
       debugPrint('[AUTH] register failed: $error');
@@ -201,6 +246,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> socialLogin({
     required String provider,
     required String idToken,
+    required bool rememberMe,
   }) async {
     state = state.copyWith(
       status: AuthStatus.loading,
@@ -218,14 +264,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final result = await _useCases.socialLogin(
         provider: normalizedProvider,
         idToken: idToken,
+        rememberMe: rememberMe,
       );
-      await _useCases.cacheAuth(result.$1, result.$2);
+      await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] social login success: ${result.$1.email}');
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
         token: result.$2,
         successMessage: 'Berhasil masuk dengan Google.',
+        rememberMe: rememberMe,
       );
     } catch (error) {
       debugPrint('[AUTH] social login failed: $error');
@@ -274,6 +322,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _useCases.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void setRememberMe(bool value) {
+    state = state.copyWith(rememberMe: value);
   }
 
   void clearSuccessMessage() {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:smartlife_app/core/config/env_config.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
+import 'package:smartlife_app/core/storage/session_auth_cache.dart';
 
 class DioClient {
   DioClient() {
@@ -20,7 +21,7 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final token = HiveService.token;
+          final token = SessionAuthCache.token ?? HiveService.token;
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -36,6 +37,18 @@ class DioClient {
         },
       ),
     );
+
+    if (kIsWeb) {
+      final dynamic adapter = _dio.httpClientAdapter;
+      try {
+        adapter.withCredentials = true;
+      } catch (_) {
+        debugPrint(
+          '[API] Browser adapter tidak mendukung withCredentials. '
+          'Cookie auth mungkin tidak terkirim lintas origin.',
+        );
+      }
+    }
   }
 
   late final Dio _dio;

@@ -7,22 +7,36 @@ class AuthUseCases {
   final AuthRepository _repository;
 
   Future<(UserEntity, String)> login(
-      {required String email, required String password}) {
-    return _repository.login(email: email, password: password);
+      {required String identifier, required String password, required bool rememberMe}) {
+    return _repository.login(
+      identifier: identifier,
+      password: password,
+      rememberMe: rememberMe,
+    );
   }
 
   Future<(UserEntity, String)> register(
-      {required String name, required String email, required String password}) {
-    return _repository.register(name: name, email: email, password: password);
+      {required String username,
+      required String email,
+      required String password,
+      required bool rememberMe}) {
+    return _repository.register(
+      username: username,
+      email: email,
+      password: password,
+      rememberMe: rememberMe,
+    );
   }
 
   Future<(UserEntity, String)> socialLogin({
     required String provider,
     required String idToken,
+    required bool rememberMe,
   }) {
     return _repository.socialLogin(
       provider: provider,
       idToken: idToken,
+      rememberMe: rememberMe,
     );
   }
 
@@ -42,8 +56,8 @@ class AuthUseCases {
     );
   }
 
-  Future<void> cacheAuth(UserEntity user, String token) =>
-      _repository.cacheAuth(user, token);
+  Future<void> cacheAuth(UserEntity user, String token, {required bool rememberMe}) =>
+      _repository.cacheAuth(user, token, rememberMe: rememberMe);
 
   Future<UserEntity?> getCachedUser() => _repository.getCachedUser();
 
@@ -52,4 +66,6 @@ class AuthUseCases {
   Future<UserEntity> getProfile() => _repository.getProfile();
 
   Future<void> logout() => _repository.logout();
+
+  Future<(UserEntity, String)> restoreSession() => _repository.restoreSession();
 }

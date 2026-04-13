@@ -1,5 +1,6 @@
 class FinanceEntryEntity {
   final String id;
+  final String title;
   final double amount;
   final String category;
   final String description;
@@ -7,6 +8,7 @@ class FinanceEntryEntity {
 
   const FinanceEntryEntity({
     required this.id,
+    required this.title,
     required this.amount,
     required this.category,
     required this.description,
@@ -16,6 +18,7 @@ class FinanceEntryEntity {
   factory FinanceEntryEntity.fromJson(Map<String, dynamic> json) {
     return FinanceEntryEntity(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
+      title: (json['title'] ?? json['description'] ?? '').toString(),
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       category: (json['category'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
@@ -24,6 +27,7 @@ class FinanceEntryEntity {
   }
 
   Map<String, dynamic> toRequest() => {
+        'title': title,
         'amount': amount,
         'category': category,
         'description': description,

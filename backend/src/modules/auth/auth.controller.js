@@ -1,6 +1,9 @@
 const asyncHandler = require('../../middleware/asyncHandler');
 const authService = require('./auth.service');
 
+const AUTH_COOKIE_NAME = 'smartlife_token';
+const COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 function sendError(res, statusCode, message) {
   return res.status(statusCode).json({
     success: false,
@@ -8,7 +11,28 @@ function sendError(res, statusCode, message) {
   });
 }
 
-function sendAuthSuccess(res, statusCode, message, authPayload) {
+function setAuthCookie(res, token, rememberMe) {
+  const shouldRemember = rememberMe === true;
+  res.cookie(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    ...(shouldRemember ? { maxAge: COOKIE_MAX_AGE_MS } : {}),
+  });
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
+function sendAuthSuccess(res, statusCode, message, authPayload, rememberMe = false) {
+  setAuthCookie(res, authPayload.token, rememberMe);
   return res.status(statusCode).json({
     success: true,
     message,
@@ -18,29 +42,30 @@ function sendAuthSuccess(res, statusCode, message, authPayload) {
 }
 
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { username, email, password, rememberMe } = req.body;
 
-  if (!name || !email || !password) {
-    return sendError(res, 400, 'Nama, email, dan password wajib diisi');
+  if (!username || !email || !password) {
+    return sendError(res, 400, 'Username, email, dan password wajib diisi');
   }
 
-  const data = await authService.register({ name, email, password });
-  return sendAuthSuccess(res, 201, 'Register berhasil', data);
+  const data = await authService.register({ username, email, password });
+  return sendAuthSuccess(res, 201, 'Register berhasil', data, rememberMe === true);
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, username, password, rememberMe } = req.body;
+  const loginIdentifier = identifier || username;
 
-  if (!email || !password) {
-    return sendError(res, 400, 'Email dan password wajib diisi');
+  if (!loginIdentifier || !password) {
+    return sendError(res, 400, 'Username/email dan password wajib diisi');
   }
 
-  const data = await authService.login({ email, password });
-  return sendAuthSuccess(res, 200, 'Login berhasil', data);
+  const data = await authService.login({ identifier: loginIdentifier, password });
+  return sendAuthSuccess(res, 200, 'Login berhasil', data, rememberMe === true);
 });
 
 const socialLogin = asyncHandler(async (req, res) => {
-  const { provider, providerId, email, name, avatar, idToken } = req.body;
+  const { provider, providerId, email, name, avatar, idToken, rememberMe } = req.body;
 
   if (!provider || !idToken) {
     return sendError(res, 400, 'Provider dan idToken wajib diisi');
@@ -55,18 +80,18 @@ const socialLogin = asyncHandler(async (req, res) => {
     idToken,
   });
 
-  return sendAuthSuccess(res, 200, 'Login social berhasil', data);
+  return sendAuthSuccess(res, 200, 'Login social berhasil', data, rememberMe === true);
 });
 
 const googleLogin = asyncHandler(async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, rememberMe } = req.body;
 
   if (!idToken) {
     return sendError(res, 400, 'idToken wajib diisi');
   }
 
   const data = await authService.loginWithGoogle({ idToken });
-  return sendAuthSuccess(res, 200, 'Login Google berhasil', data);
+  return sendAuthSuccess(res, 200, 'Login Google berhasil', data, rememberMe === true);
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
@@ -100,10 +125,17 @@ const resetPassword = asyncHandler(async (req, res) => {
 });
 
 const me = asyncHandler(async (req, res) => {
+  const data = await authService.issueSession(req.user._id);
+  return sendAuthSuccess(res, 200, 'Profil berhasil diambil', data, false);
+});
+
+const logout = asyncHandler(async (req, res) => {
+  await authService.logout(req.user._id);
+  clearAuthCookie(res);
+
   return res.status(200).json({
     success: true,
-    message: 'Profil berhasil diambil',
-    user: req.user,
+    message: 'Logout berhasil',
   });
 });
 
@@ -115,4 +147,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   me,
+  logout,
 };

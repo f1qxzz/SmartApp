@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,48 +11,47 @@ import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 class ChatState {
   final bool isLoading;
   final String? errorMessage;
-  final List<ChatConversationEntity> conversations;
-  final List<ChatConversationEntity> contacts;
-  final Map<String, List<ChatMessageEntity>> messagesByContact;
+  final List<ChatConversationEntity> chats;
+  final List<ChatConversationEntity> searchResults;
+  final Map<String, List<ChatMessageEntity>> messagesByChatId;
   final Map<String, bool> typingFrom;
-  final String? activeContactId;
+  final String? activeChatId;
 
   const ChatState({
     this.isLoading = false,
     this.errorMessage,
-    this.conversations = const [],
-    this.contacts = const [],
-    this.messagesByContact = const {},
+    this.chats = const [],
+    this.searchResults = const [],
+    this.messagesByChatId = const {},
     this.typingFrom = const {},
-    this.activeContactId,
+    this.activeChatId,
   });
 
   ChatState copyWith({
     bool? isLoading,
     String? errorMessage,
-    List<ChatConversationEntity>? conversations,
-    List<ChatConversationEntity>? contacts,
-    Map<String, List<ChatMessageEntity>>? messagesByContact,
+    List<ChatConversationEntity>? chats,
+    List<ChatConversationEntity>? searchResults,
+    Map<String, List<ChatMessageEntity>>? messagesByChatId,
     Map<String, bool>? typingFrom,
-    String? activeContactId,
+    String? activeChatId,
     bool clearError = false,
   }) {
     return ChatState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      conversations: conversations ?? this.conversations,
-      contacts: contacts ?? this.contacts,
-      messagesByContact: messagesByContact ?? this.messagesByContact,
+      chats: chats ?? this.chats,
+      searchResults: searchResults ?? this.searchResults,
+      messagesByChatId: messagesByChatId ?? this.messagesByChatId,
       typingFrom: typingFrom ?? this.typingFrom,
-      activeContactId: activeContactId ?? this.activeContactId,
+      activeChatId: activeChatId ?? this.activeChatId,
     );
   }
 }
 
 class ChatNotifier extends StateNotifier<ChatState> {
-  ChatNotifier(this._ref, this._useCases) : super(const ChatState());
+  ChatNotifier(this._useCases) : super(const ChatState());
 
-  final Ref _ref;
   final ChatUseCases _useCases;
 
   StreamSubscription<ChatMessageEntity>? _messageSub;
@@ -78,141 +76,143 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _useCases.connectSocket(authState.token!);
     _bindSocketStreams();
 
-    await refreshAll();
+    await refreshChats();
   }
 
-  Future<void> refreshAll() async {
+  Future<void> refreshChats() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final results = await Future.wait([
-        _useCases.getConversations(),
-        _useCases.getContacts(),
-      ]);
-      final conversations = results[0] as List<ChatConversationEntity>;
-      final contacts = results[1] as List<ChatConversationEntity>;
-
+      final chats = await _useCases.getConversations();
       state = state.copyWith(
         isLoading: false,
-        conversations: conversations,
-        contacts: _mergeContactsWithConversationState(
-          conversations: conversations,
-          contacts: contacts,
-        ),
+        chats: chats,
       );
     } catch (error) {
-      state = state.copyWith(isLoading: false, errorMessage: error.toString());
-    }
-  }
-
-  Future<void> loadMessages(String contactId) async {
-    try {
-      final messages = await _useCases.getMessages(contactId);
-      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByContact);
-      map[contactId] = messages;
-
       state = state.copyWith(
-        messagesByContact: map,
-        activeContactId: contactId,
+        isLoading: false,
+        errorMessage: error.toString(),
       );
-
-      await _useCases.markAsRead(contactId);
-      await _refreshConversationsSilent();
-    } catch (error) {
-      state = state.copyWith(errorMessage: error.toString());
     }
   }
 
-  Future<void> sendMessage({required String receiverId, required String text}) async {
-    if (text.trim().isEmpty) {
+  Future<void> searchUsers(String keyword) async {
+    final query = keyword.trim();
+    if (query.isEmpty) {
+      state = state.copyWith(searchResults: const []);
       return;
     }
 
     try {
-      final message = await _useCases.sendMessage(receiverId: receiverId, text: text.trim());
-      _appendMessage(message);
-      await _refreshConversationsSilent();
+      final users = await _useCases.searchUsers(query);
+      final chatsByUser = {
+        for (final chat in state.chats) chat.userId: chat,
+      };
+
+      final merged = users.map((user) {
+        final existing = chatsByUser[user.userId];
+        if (existing == null) {
+          return user;
+        }
+        return user.copyWith(
+          chatId: existing.chatId,
+          lastMessage: existing.lastMessage,
+          updatedAt: existing.updatedAt,
+          unreadCount: existing.unreadCount,
+        );
+      }).toList();
+
+      state = state.copyWith(searchResults: merged);
     } catch (error) {
       state = state.copyWith(errorMessage: error.toString());
-      rethrow;
     }
   }
 
-  Future<void> sendImage({required String receiverId, required File imageFile}) async {
+  Future<void> loadMessages(String chatId) async {
+    final normalizedChatId = chatId.trim();
+    if (normalizedChatId.isEmpty) {
+      return;
+    }
+
     try {
-      final imageUrl = await _useCases.uploadImage(imageFile);
-      final message = await _useCases.sendMessage(receiverId: receiverId, image: imageUrl);
-      _appendMessage(message);
-      await _refreshConversationsSilent();
+      final messages = await _useCases.getMessages(normalizedChatId);
+      final map =
+          Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      map[normalizedChatId] = messages;
+
+      state = state.copyWith(
+        messagesByChatId: map,
+        activeChatId: normalizedChatId,
+      );
     } catch (error) {
       state = state.copyWith(errorMessage: error.toString());
-      rethrow;
     }
   }
 
-  void setTyping({required String toUserId, required bool isTyping}) {
+  Future<ChatMessageEntity> sendMessage({
+    required String text,
+    String? chatId,
+    String? receiverId,
+  }) async {
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      throw Exception('Pesan tidak boleh kosong');
+    }
+
+    final message = await _useCases.sendMessage(
+      text: normalizedText,
+      chatId: chatId,
+      receiverId: receiverId,
+    );
+
+    _appendMessage(message);
+    await _refreshChatsSilent();
+    return message;
+  }
+
+  void setTyping({
+    required String toUserId,
+    required bool isTyping,
+  }) {
+    if (toUserId.trim().isEmpty) {
+      return;
+    }
     _useCases.emitTyping(toUserId: toUserId, isTyping: isTyping);
   }
 
-  bool isTypingFrom(String contactId) => state.typingFrom[contactId] == true;
+  bool isTypingFrom(String userId) => state.typingFrom[userId] == true;
 
-  List<ChatMessageEntity> messagesOf(String contactId) =>
-      state.messagesByContact[contactId] ?? const [];
+  List<ChatMessageEntity> messagesOfChat(String chatId) =>
+      state.messagesByChatId[chatId] ?? const [];
 
-  Future<void> _refreshConversationsSilent() async {
+  void setActiveChat(String? chatId) {
+    state = state.copyWith(activeChatId: chatId ?? '');
+  }
+
+  Future<void> _refreshChatsSilent() async {
     try {
-      final conversations = await _useCases.getConversations();
-      state = state.copyWith(
-        conversations: conversations,
-        contacts: _mergeContactsWithConversationState(
-          conversations: conversations,
-          contacts: state.contacts,
-        ),
-      );
+      final chats = await _useCases.getConversations();
+      state = state.copyWith(chats: chats);
     } catch (_) {
-      // ignore silent refresh failures
+      // no-op
     }
   }
 
-  List<ChatConversationEntity> _mergeContactsWithConversationState({
-    required List<ChatConversationEntity> conversations,
-    required List<ChatConversationEntity> contacts,
-  }) {
-    final map = <String, ChatConversationEntity>{
-      for (final item in conversations) item.contactId: item,
-    };
-
-    return contacts.map((contact) {
-      final existing = map[contact.contactId];
-      if (existing == null) {
-        return contact;
-      }
-      return ChatConversationEntity(
-        contactId: contact.contactId,
-        name: contact.name,
-        email: contact.email,
-        avatar: contact.avatar,
-        isOnline: existing.isOnline,
-        lastMessage: existing.lastMessage,
-        lastTimestamp: existing.lastTimestamp,
-        unreadCount: existing.unreadCount,
-      );
-    }).toList();
-  }
-
   void _appendMessage(ChatMessageEntity message) {
-    final currentUserId = _ref.read(authProvider).user?.id ?? '';
-    final contactId = message.senderId == currentUserId ? message.receiverId : message.senderId;
+    if (message.chatId.trim().isEmpty) {
+      return;
+    }
 
-    final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByContact);
-    final list = List<ChatMessageEntity>.from(map[contactId] ?? const []);
+    final map =
+        Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+    final list = List<ChatMessageEntity>.from(map[message.chatId] ?? const []);
 
     final exists = list.any((item) => item.id == message.id);
     if (!exists) {
       list.add(message);
-      list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      map[contactId] = list;
-      state = state.copyWith(messagesByContact: map);
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      map[message.chatId] = list;
+      state = state.copyWith(messagesByChatId: map);
     }
   }
 
@@ -224,38 +224,26 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     _messageSub = _useCases.onNewMessage().listen((message) async {
       _appendMessage(message);
-      await _refreshConversationsSilent();
+      await _refreshChatsSilent();
     });
 
     _typingSub = _useCases.onTyping().listen((event) {
       final fromUserId = (event['fromUserId'] ?? '').toString();
       final isTyping = event['isTyping'] == true;
+      if (fromUserId.isEmpty) {
+        return;
+      }
 
-      if (fromUserId.isEmpty) return;
-
-      final typingMap = Map<String, bool>.from(state.typingFrom);
-      typingMap[fromUserId] = isTyping;
-      state = state.copyWith(typingFrom: typingMap);
+      final typing = Map<String, bool>.from(state.typingFrom);
+      typing[fromUserId] = isTyping;
+      state = state.copyWith(typingFrom: typing);
     });
 
     _presenceSub = _useCases.onPresence().listen((_) async {
-      await _refreshConversationsSilent();
+      await _refreshChatsSilent();
     });
 
-    _readSub = _useCases.onRead().listen((event) {
-      final byUserId = (event['byUserId'] ?? '').toString();
-      if (byUserId.isEmpty) return;
-
-      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByContact);
-      final list = List<ChatMessageEntity>.from(map[byUserId] ?? const []);
-
-      final currentUserId = _ref.read(authProvider).user?.id ?? '';
-      map[byUserId] = list
-          .map((item) => item.senderId == currentUserId ? item.copyWith(readStatus: true) : item)
-          .toList();
-
-      state = state.copyWith(messagesByContact: map);
-    });
+    _readSub = _useCases.onRead().listen((_) {});
   }
 
   void disconnect() {
@@ -279,7 +267,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 }
 
 final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
-  final notifier = ChatNotifier(ref, ref.read(chatUseCasesProvider));
+  final notifier = ChatNotifier(ref.read(chatUseCasesProvider));
 
   ref.listen<AuthState>(authProvider, (previous, next) {
     notifier.onAuthChanged(next);

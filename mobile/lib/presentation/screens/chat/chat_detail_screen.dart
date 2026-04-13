@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/domain/entities/chat_conversation_entity.dart';
@@ -25,22 +22,24 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
 class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
-  final ImagePicker _picker = ImagePicker();
-  bool _sendingImage = false;
+  late String _chatId;
 
   @override
   void initState() {
     super.initState();
+    _chatId = widget.contact.chatId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(chatProvider.notifier).loadMessages(widget.contact.contactId);
-      _scrollToBottom();
+      if (_chatId.isNotEmpty) {
+        await ref.read(chatProvider.notifier).loadMessages(_chatId);
+        _scrollToBottom();
+      }
     });
   }
 
   @override
   void dispose() {
     ref.read(chatProvider.notifier).setTyping(
-          toUserId: widget.contact.contactId,
+          toUserId: widget.contact.userId,
           isTyping: false,
         );
     _msgCtrl.dispose();
@@ -54,9 +53,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final chatState = ref.watch(chatProvider);
     final authState = ref.watch(authProvider);
     final String currentUserId = authState.user?.id ?? '';
-    final List<ChatMessageEntity> messages =
-        ref.read(chatProvider.notifier).messagesOf(widget.contact.contactId);
-    final bool isTyping = ref.read(chatProvider.notifier).isTypingFrom(widget.contact.contactId);
+    final List<ChatMessageEntity> messages = _chatId.isEmpty
+        ? const []
+        : ref.read(chatProvider.notifier).messagesOfChat(_chatId);
+    final bool isTyping =
+        ref.read(chatProvider.notifier).isTypingFrom(widget.contact.userId);
 
     ref.listen<ChatState>(chatProvider, (previous, next) {
       if (!mounted) {
@@ -76,42 +77,54 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         children: <Widget>[
           _buildAppBar(isDark, isTyping),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: messages.length + (isTyping ? 1 : 0),
-              itemBuilder: (_, int i) {
-                if (i == messages.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 40),
-                    child: Row(
-                      children: <Widget>[
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundImage: widget.contact.avatar.isEmpty
-                              ? null
-                              : NetworkImage(widget.contact.avatar),
-                          child:
-                              widget.contact.avatar.isEmpty ? const Icon(Icons.person) : null,
-                        ),
-                        const SizedBox(width: 8),
-                        const TypingIndicator(),
-                      ],
-                    ).animate().fadeIn(duration: 200.ms),
-                  );
-                }
+            child: messages.isEmpty
+                ? Center(
+                    child: Text(
+                      'Belum ada pesan',
+                      style: AppTextStyles.body(context),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    itemCount: messages.length + (isTyping ? 1 : 0),
+                    itemBuilder: (_, int i) {
+                      if (i == messages.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 40),
+                          child: Row(
+                            children: <Widget>[
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundImage: widget.contact.avatar.isEmpty
+                                    ? null
+                                    : NetworkImage(widget.contact.avatar),
+                                child: widget.contact.avatar.isEmpty
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              const TypingIndicator(),
+                            ],
+                          ).animate().fadeIn(duration: 200.ms),
+                        );
+                      }
 
-                final ChatMessageEntity msg = messages[i];
-                return ChatBubble(
-                  text: msg.text,
-                  imageUrl: msg.image,
-                  isMe: msg.senderId == currentUserId,
-                  timestamp: msg.timestamp,
-                  isRead: msg.readStatus,
-                  avatarUrl: msg.senderId == currentUserId ? null : widget.contact.avatar,
-                ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.1, end: 0);
-              },
-            ),
+                      final ChatMessageEntity msg = messages[i];
+                      return ChatBubble(
+                        text: msg.text,
+                        isMe: msg.senderId == currentUserId,
+                        timestamp: msg.createdAt,
+                        avatarUrl: msg.senderId == currentUserId
+                            ? null
+                            : widget.contact.avatar,
+                      )
+                          .animate()
+                          .fadeIn(duration: 200.ms)
+                          .slideY(begin: 0.1, end: 0);
+                    },
+                  ),
           ),
           _buildInputBar(isDark, chatState),
         ],
@@ -147,9 +160,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             children: <Widget>[
               CircleAvatar(
                 radius: 20,
-                backgroundImage:
-                    widget.contact.avatar.isEmpty ? null : NetworkImage(widget.contact.avatar),
-                child: widget.contact.avatar.isEmpty ? const Icon(Icons.person) : null,
+                backgroundImage: widget.contact.avatar.isEmpty
+                    ? null
+                    : NetworkImage(widget.contact.avatar),
+                child: widget.contact.avatar.isEmpty
+                    ? const Icon(Icons.person)
+                    : null,
               ),
               if (widget.contact.isOnline)
                 Positioned(
@@ -176,11 +192,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  widget.contact.name,
+                  widget.contact.username,
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
                 Text(
@@ -193,18 +211,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     fontSize: 12,
                     color: isTyping
                         ? AppColors.secondary
-                        : (isDark ? AppColors.textSecondaryDark : AppColors.textTertiary),
+                        : (isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textTertiary),
                     fontWeight: isTyping ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
-          _ActionButton(icon: Icons.videocam_rounded, onTap: () {}),
-          const SizedBox(width: 6),
-          _ActionButton(icon: Icons.call_rounded, onTap: () {}),
-          const SizedBox(width: 6),
-          _ActionButton(icon: Icons.more_vert_rounded, onTap: () {}),
         ],
       ),
     );
@@ -230,58 +245,29 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       ),
       child: Row(
         children: <Widget>[
-          GestureDetector(
-            onTap: _sendingImage ? null : _pickAndSendImage,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _sendingImage ? Icons.hourglass_empty_rounded : Icons.attach_file_rounded,
-                size: 20,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextField(
-                      controller: _msgCtrl,
-                      onChanged: (value) {
-                        ref.read(chatProvider.notifier).setTyping(
-                              toUserId: widget.contact.contactId,
-                              isTyping: value.trim().isNotEmpty,
-                            );
-                      },
-                      onSubmitted: (_) => _sendMessage(),
-                      decoration: const InputDecoration(
-                        hintText: 'Ketik pesan...',
-                        border: InputBorder.none,
-                        filled: false,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      style: GoogleFonts.inter(fontSize: 14),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.emoji_emotions_outlined,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
+              child: TextField(
+                controller: _msgCtrl,
+                onChanged: (value) {
+                  ref.read(chatProvider.notifier).setTyping(
+                        toUserId: widget.contact.userId,
+                        isTyping: value.trim().isNotEmpty,
+                      );
+                },
+                onSubmitted: (_) => _sendMessage(),
+                decoration: const InputDecoration(
+                  hintText: 'Ketik pesan...',
+                  border: InputBorder.none,
+                  filled: false,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                style: GoogleFonts.inter(fontSize: 14),
               ),
             ),
           ),
@@ -302,7 +288,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -318,15 +305,21 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     _msgCtrl.clear();
     ref.read(chatProvider.notifier).setTyping(
-          toUserId: widget.contact.contactId,
+          toUserId: widget.contact.userId,
           isTyping: false,
         );
 
     try {
-      await ref.read(chatProvider.notifier).sendMessage(
-            receiverId: widget.contact.contactId,
+      final sent = await ref.read(chatProvider.notifier).sendMessage(
             text: text,
+            chatId: _chatId.isEmpty ? null : _chatId,
+            receiverId: widget.contact.userId,
           );
+
+      if (_chatId.isEmpty && sent.chatId.isNotEmpty) {
+        setState(() => _chatId = sent.chatId);
+        await ref.read(chatProvider.notifier).loadMessages(_chatId);
+      }
     } catch (_) {
       if (!mounted) {
         return;
@@ -339,36 +332,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     _scrollToBottom();
   }
 
-  Future<void> _pickAndSendImage() async {
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-    if (picked == null) {
-      return;
-    }
-
-    setState(() => _sendingImage = true);
-    try {
-      await ref.read(chatProvider.notifier).sendImage(
-            receiverId: widget.contact.contactId,
-            imageFile: File(picked.path),
-          );
-      _scrollToBottom();
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengirim gambar')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _sendingImage = false);
-      }
-    }
-  }
-
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (!_scrollCtrl.hasClients) return;
@@ -378,33 +341,5 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         curve: Curves.easeOut,
       );
     });
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ActionButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-        ),
-      ),
-    );
   }
 }

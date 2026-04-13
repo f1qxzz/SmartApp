@@ -7,6 +7,8 @@ module.exports = function errorHandler(err, req, res, next) {
     const duplicateField = Object.keys(err.keyPattern || {})[0];
     if (duplicateField === 'email') {
       message = 'Email sudah terdaftar';
+    } else if (duplicateField === 'username') {
+      message = 'Username sudah digunakan';
     } else {
       message = 'Data duplikat terdeteksi';
     }

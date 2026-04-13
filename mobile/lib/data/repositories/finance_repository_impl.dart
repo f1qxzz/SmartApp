@@ -9,8 +9,18 @@ class FinanceRepositoryImpl implements FinanceRepository {
   final FinanceService _financeService;
 
   @override
-  Future<List<FinanceEntryEntity>> getEntries({String? search, String? category}) {
-    return _financeService.getEntries(search: search, category: category);
+  Future<List<FinanceEntryEntity>> getEntries({
+    String? search,
+    String? category,
+    DateTime? from,
+    DateTime? to,
+  }) {
+    return _financeService.getEntries(
+      search: search,
+      category: category,
+      from: from,
+      to: to,
+    );
   }
 
   @override
@@ -26,4 +36,15 @@ class FinanceRepositoryImpl implements FinanceRepository {
 
   @override
   Future<FinanceStatsEntity> getStats() => _financeService.stats();
+
+  @override
+  Future<String> exportCsv({DateTime? from, DateTime? to}) =>
+      _financeService.exportCsv(from: from, to: to);
+
+  @override
+  Future<double> getBudget() => _financeService.getBudget();
+
+  @override
+  Future<double> setBudget(double monthlyBudget) =>
+      _financeService.setBudget(monthlyBudget);
 }

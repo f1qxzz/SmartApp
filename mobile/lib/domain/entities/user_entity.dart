@@ -1,20 +1,21 @@
 class UserEntity {
   final String id;
-  final String name;
+  final String username;
   final String email;
   final String avatar;
 
   const UserEntity({
     required this.id,
-    required this.name,
+    required this.username,
     required this.email,
     this.avatar = '',
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
+    final username = (json['username'] ?? json['name'] ?? '').toString();
     return UserEntity(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
-      name: (json['name'] ?? '').toString(),
+      username: username,
       email: (json['email'] ?? '').toString(),
       avatar: (json['avatar'] ?? '').toString(),
     );
@@ -22,7 +23,7 @@ class UserEntity {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'name': name,
+        'username': username,
         'email': email,
         'avatar': avatar,
       };

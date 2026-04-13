@@ -7,6 +7,7 @@ const User = require('./user.model');
 
 const googleClient = new OAuth2Client();
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const usernameRegex = /^[a-z0-9._]{3,30}$/;
 const isProduction = process.env.NODE_ENV === 'production';
 
 let cachedTransporter = null;
@@ -38,13 +39,75 @@ function isPlaceholder(value) {
 }
 
 function normalizeEmail(email) {
-  return (email || '').toLowerCase().trim();
+  return String(email || '').toLowerCase().trim();
+}
+
+function normalizeUsername(username) {
+  return String(username || '').toLowerCase().trim();
 }
 
 function ensureValidEmail(email) {
   if (!email || !emailRegex.test(email)) {
     throw createHttpError(400, 'Format email tidak valid');
   }
+}
+
+function ensureValidUsername(username) {
+  if (!usernameRegex.test(username)) {
+    throw createHttpError(
+      400,
+      'Username harus 3-30 karakter dan hanya boleh huruf kecil, angka, titik, atau underscore'
+    );
+  }
+}
+
+function sanitizeUsernameSeed(seed) {
+  const normalized = String(seed || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/_+/g, '_')
+    .replace(/^[_\.]+|[_\.]+$/g, '');
+
+  if (normalized.length >= 3) {
+    return normalized.slice(0, 30);
+  }
+
+  return `user${Date.now().toString().slice(-6)}`;
+}
+
+async function generateUniqueUsername(seed) {
+  const base = sanitizeUsernameSeed(seed);
+  let candidate = base;
+  let counter = 0;
+
+  while (counter < 1000) {
+    const exists = await User.exists({ username: candidate });
+    if (!exists) {
+      return candidate;
+    }
+
+    counter += 1;
+    const suffix = counter.toString();
+    const trimmedBase = base.slice(0, Math.max(3, 30 - suffix.length));
+    candidate = `${trimmedBase}${suffix}`;
+  }
+
+  throw createHttpError(500, 'Gagal membuat username unik');
+}
+
+async function ensureUserHasUsername(user) {
+  if (user.username && String(user.username).trim()) {
+    return user.username;
+  }
+
+  const seed = user.email ? user.email.split('@')[0] : user.name || 'user';
+  user.username = await generateUniqueUsername(seed);
+  if (!user.name || !String(user.name).trim()) {
+    user.name = user.username;
+  }
+  await user.save();
+  return user.username;
 }
 
 function isDuplicateKeyError(error) {
@@ -93,25 +156,48 @@ function hasValidSmtpConfig() {
   );
 }
 
-function generateToken(userId) {
+function generateToken(user) {
   const jwtSecret = String(process.env.JWT_SECRET || '').trim();
   if (!jwtSecret) {
     throw createHttpError(500, 'JWT_SECRET belum dikonfigurasi di backend environment.');
   }
 
-  return jwt.sign({ userId }, jwtSecret, { expiresIn: '7d' });
+  return jwt.sign(
+    {
+      userId: user._id.toString(),
+      tv: Number(user.tokenVersion || 0),
+    },
+    jwtSecret,
+    { expiresIn: '7d' }
+  );
 }
 
 function buildAuthResponse(user) {
   return {
-    token: generateToken(user._id.toString()),
+    token: generateToken(user),
     user: {
       id: user._id,
-      name: user.name,
+      username: user.username,
+      name: user.name || user.username,
       email: user.email,
       avatar: user.avatar,
+      monthlyBudget: Number(user.monthlyBudget || 0),
     },
   };
+}
+
+async function issueSession(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw createHttpError(404, 'User tidak ditemukan');
+  }
+
+  if (user.isSystem) {
+    throw createHttpError(401, 'Akun tidak dapat digunakan untuk login');
+  }
+
+  await ensureUserHasUsername(user);
+  return buildAuthResponse(user);
 }
 
 function getMailTransporter() {
@@ -193,7 +279,7 @@ function ensureSocialAccountCompatible(user, provider) {
   if (user.authProvider === 'local' && user.password) {
     throw createHttpError(
       409,
-      'Email ini sudah terdaftar dengan password. Silakan login dengan email & password.'
+      'Email ini sudah terdaftar dengan password. Silakan login dengan username dan password.'
     );
   }
 
@@ -206,77 +292,96 @@ function ensureSocialAccountCompatible(user, provider) {
 }
 
 async function register(payload) {
-  const { name, email, password } = payload;
-  const normalizedEmail = normalizeEmail(email);
-  const normalizedName = String(name || '').trim();
+  const username = normalizeUsername(payload.username);
+  const email = normalizeEmail(payload.email);
+  const password = String(payload.password || '');
+  const name = String(payload.name || username).trim() || username;
 
-  ensureValidEmail(normalizedEmail);
+  ensureValidUsername(username);
+  ensureValidEmail(email);
 
-  if (normalizedName.length < 2) {
-    throw createHttpError(400, 'Nama minimal 2 karakter');
-  }
-
-  if (!password || String(password).length < 6) {
+  if (password.length < 6) {
     throw createHttpError(400, 'Password minimal 6 karakter');
   }
 
-  const existingUser = await User.findOne({ email: normalizedEmail });
-  if (existingUser) {
+  const [existingUsername, existingEmail] = await Promise.all([
+    User.findOne({ username }),
+    User.findOne({ email }),
+  ]);
+
+  if (existingUsername) {
+    throw createHttpError(409, 'Username sudah digunakan');
+  }
+  if (existingEmail) {
     throw createHttpError(409, 'Email sudah terdaftar');
   }
 
-  const hashedPassword = await bcrypt.hash(String(password), 10);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   let user;
   try {
     user = await User.create({
-      name: normalizedName,
-      email: normalizedEmail,
+      username,
+      name,
+      email,
       password: hashedPassword,
       authProvider: 'local',
     });
   } catch (error) {
     if (isDuplicateKeyError(error)) {
-      throw createHttpError(409, 'Email sudah terdaftar');
+      if (error.keyPattern?.username) {
+        throw createHttpError(409, 'Username sudah digunakan');
+      }
+      if (error.keyPattern?.email) {
+        throw createHttpError(409, 'Email sudah terdaftar');
+      }
+      throw createHttpError(409, 'Data duplikat terdeteksi');
     }
     throw error;
   }
 
-  authLog('register.success', { email: normalizedEmail });
+  authLog('register.success', { username, email });
   return buildAuthResponse(user);
 }
 
 async function login(payload) {
-  const { email, password } = payload;
-  const normalizedEmail = normalizeEmail(email);
+  const identifier = String(payload.identifier || payload.username || '').trim().toLowerCase();
+  const password = String(payload.password || '');
 
-  ensureValidEmail(normalizedEmail);
-
-  if (!password || String(password).trim().length === 0) {
+  if (!identifier) {
+    throw createHttpError(400, 'Username atau email wajib diisi');
+  }
+  if (!password) {
     throw createHttpError(400, 'Password wajib diisi');
   }
 
-  const user = await User.findOne({ email: normalizedEmail });
+  const isEmail = emailRegex.test(identifier);
+  const user = isEmail
+    ? await User.findOne({ email: identifier })
+    : await User.findOne({ username: identifier });
 
   if (!user) {
-    authLog('login.failed.user-not-found', { email: normalizedEmail });
-    throw createHttpError(401, 'Email atau password salah');
+    authLog('login.failed.user-not-found', { identifier });
+    throw createHttpError(401, 'Username/email atau password salah');
   }
+
+  if (user.isSystem) {
+    throw createHttpError(401, 'Akun tidak dapat digunakan untuk login');
+  }
+
+  await ensureUserHasUsername(user);
 
   if (!user.password) {
-    throw createHttpError(
-      401,
-      'Akun ini terdaftar melalui Google. Silakan masuk dengan Google.'
-    );
+    throw createHttpError(401, 'Akun ini terdaftar melalui Google. Silakan masuk dengan Google.');
   }
 
-  const isPasswordMatch = await bcrypt.compare(String(password), user.password);
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
   if (!isPasswordMatch) {
-    authLog('login.failed.wrong-password', { email: normalizedEmail });
-    throw createHttpError(401, 'Email atau password salah');
+    authLog('login.failed.wrong-password', { identifier });
+    throw createHttpError(401, 'Username/email atau password salah');
   }
 
-  authLog('login.success', { email: normalizedEmail });
+  authLog('login.success', { identifier, username: user.username });
   return buildAuthResponse(user);
 }
 
@@ -333,16 +438,19 @@ async function loginWithGoogle(payload) {
   let user = await User.findOne({ email: googleProfile.email });
 
   if (!user) {
+    const generatedUsername = await generateUniqueUsername(googleProfile.email.split('@')[0]);
+
     try {
       user = await User.create({
-        name: googleProfile.name || googleProfile.email.split('@')[0] || 'Google User',
+        username: generatedUsername,
+        name: googleProfile.name || generatedUsername,
         email: googleProfile.email,
         avatar: googleProfile.avatar,
         authProvider: 'google',
         providerId: googleProfile.providerId,
         password: undefined,
       });
-      authLog('google.login.user-created', { email: googleProfile.email });
+      authLog('google.login.user-created', { email: googleProfile.email, username: generatedUsername });
     } catch (error) {
       if (!isDuplicateKeyError(error)) {
         throw error;
@@ -356,14 +464,15 @@ async function loginWithGoogle(payload) {
   }
 
   ensureSocialAccountCompatible(user, 'google');
+  await ensureUserHasUsername(user);
 
-  user.name = googleProfile.name || user.name;
+  user.name = googleProfile.name || user.name || user.username;
   user.avatar = googleProfile.avatar || user.avatar;
   user.providerId = googleProfile.providerId;
   user.authProvider = 'google';
   await user.save();
 
-  authLog('google.login.success', { email: googleProfile.email });
+  authLog('google.login.success', { username: user.username, email: googleProfile.email });
   return buildAuthResponse(user);
 }
 
@@ -401,7 +510,7 @@ async function forgotPassword(payload) {
   const resetLink = buildResetPasswordLink({ email, rawToken });
   const { usingMockTransport } = await sendResetPasswordEmail({
     to: user.email,
-    name: user.name,
+    name: user.name || user.username,
     resetLink,
   });
 
@@ -445,15 +554,29 @@ async function resetPassword(payload) {
     throw createHttpError(400, 'Token reset password tidak valid atau sudah kadaluarsa');
   }
 
+  await ensureUserHasUsername(user);
+
   user.password = await bcrypt.hash(newPassword, 10);
   user.authProvider = 'local';
   user.resetPasswordToken = '';
   user.resetPasswordExpires = null;
   await user.save();
 
-  authLog('reset-password.success', { email });
+  authLog('reset-password.success', { username: user.username, email });
 
   return { message: 'Password berhasil diperbarui. Silakan login kembali.' };
+}
+
+async function logout(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    return { message: 'Logout berhasil' };
+  }
+
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+  await user.save();
+
+  return { message: 'Logout berhasil' };
 }
 
 module.exports = {
@@ -463,4 +586,6 @@ module.exports = {
   socialLogin,
   forgotPassword,
   resetPassword,
+  issueSession,
+  logout,
 };

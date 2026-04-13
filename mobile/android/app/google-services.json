@@ -12,7 +12,20 @@
           "package_name": "com.example.smartlife_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "405297168241-n9gktobf2mcfsk0rt3fpftscs99tclhi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartlife_app",
+            "certificate_hash": "b828894bd077df4d2b9b5769dad69b81088426ac"
+          }
+        },
+        {
+          "client_id": "405297168241-sau56vctek8sbnqn5dgb24f32o93vns5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDrapWuQXbac_Y2k0kWGB_hmLZbC5rLI6M"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "405297168241-sau56vctek8sbnqn5dgb24f32o93vns5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

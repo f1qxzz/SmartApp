@@ -4,5 +4,6 @@ class HiveBoxes {
 
   static const token = 'token';
   static const user = 'user';
+  static const rememberMe = 'remember_me';
   static const themeMode = 'theme_mode';
 }

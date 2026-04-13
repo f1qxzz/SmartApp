@@ -7,15 +7,9 @@ const getFinance = asyncHandler(async (req, res) => {
 });
 
 const createFinance = asyncHandler(async (req, res) => {
-  const { amount, category, description, date } = req.body;
-  if (amount === undefined || !category) {
-    return res.status(400).json({
-      success: false,
-      message: 'amount and category are required',
-    });
-  }
-
+  const { title, amount, category, description, date } = req.body;
   const record = await financeService.createFinance(req.user._id, {
+    title,
     amount,
     category,
     description,
@@ -26,12 +20,7 @@ const createFinance = asyncHandler(async (req, res) => {
 });
 
 const updateFinance = asyncHandler(async (req, res) => {
-  const updated = await financeService.updateFinance(
-    req.user._id,
-    req.params.id,
-    req.body
-  );
-
+  const updated = await financeService.updateFinance(req.user._id, req.params.id, req.body);
   return res.status(200).json({ success: true, data: updated });
 });
 
@@ -41,8 +30,31 @@ const deleteFinance = asyncHandler(async (req, res) => {
 });
 
 const getFinanceStats = asyncHandler(async (req, res) => {
-  const stats = await financeService.getFinanceStats(req.user._id);
+  const stats = await financeService.getFinanceStats(req.user._id, req.user.monthlyBudget);
   return res.status(200).json({ success: true, data: stats });
+});
+
+const exportCsv = asyncHandler(async (req, res) => {
+  const csv = await financeService.exportFinanceCsv(req.user._id, req.query);
+  const now = new Date();
+  const fileName = `smartlife-transactions-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    '0'
+  )}.csv`;
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  return res.status(200).send(csv);
+});
+
+const getBudget = asyncHandler(async (req, res) => {
+  const budget = await financeService.getBudget(req.user._id);
+  return res.status(200).json({ success: true, data: budget });
+});
+
+const setBudget = asyncHandler(async (req, res) => {
+  const budget = await financeService.setBudget(req.user._id, req.body.monthlyBudget);
+  return res.status(200).json({ success: true, data: budget, message: 'Budget berhasil diperbarui' });
 });
 
 module.exports = {
@@ -51,4 +63,7 @@ module.exports = {
   updateFinance,
   deleteFinance,
   getFinanceStats,
+  exportCsv,
+  getBudget,
+  setBudget,
 };

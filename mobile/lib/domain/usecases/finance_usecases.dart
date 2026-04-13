@@ -7,8 +7,18 @@ class FinanceUseCases {
 
   final FinanceRepository _repository;
 
-  Future<List<FinanceEntryEntity>> getEntries({String? search, String? category}) {
-    return _repository.getEntries(search: search, category: category);
+  Future<List<FinanceEntryEntity>> getEntries({
+    String? search,
+    String? category,
+    DateTime? from,
+    DateTime? to,
+  }) {
+    return _repository.getEntries(
+      search: search,
+      category: category,
+      from: from,
+      to: to,
+    );
   }
 
   Future<FinanceEntryEntity> create(FinanceEntryEntity entry) => _repository.createEntry(entry);
@@ -18,4 +28,12 @@ class FinanceUseCases {
   Future<void> delete(String id) => _repository.deleteEntry(id);
 
   Future<FinanceStatsEntity> stats() => _repository.getStats();
+
+  Future<String> exportCsv({DateTime? from, DateTime? to}) =>
+      _repository.exportCsv(from: from, to: to);
+
+  Future<double> getBudget() => _repository.getBudget();
+
+  Future<double> setBudget(double monthlyBudget) =>
+      _repository.setBudget(monthlyBudget);
 }
