@@ -1,8 +1,20 @@
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
-  Future<(UserEntity user, String token)> login({required String email, required String password});
-  Future<(UserEntity user, String token)> register({required String name, required String email, required String password});
+  Future<(UserEntity user, String token)> login(
+      {required String email, required String password});
+  Future<(UserEntity user, String token)> register(
+      {required String name, required String email, required String password});
+  Future<(UserEntity user, String token)> socialLogin({
+    required String provider,
+    required String idToken,
+  });
+  Future<void> forgotPassword({required String email});
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  });
   Future<UserEntity?> getCachedUser();
   Future<String?> getCachedToken();
   Future<void> cacheAuth(UserEntity user, String token);

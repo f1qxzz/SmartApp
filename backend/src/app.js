@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const authRoutes = require('./modules/auth/auth.routes');
+const authController = require('./modules/auth/auth.controller');
 const chatRoutes = require('./modules/chat/chat.routes');
 const financeRoutes = require('./modules/finance/finance.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
@@ -28,6 +29,8 @@ app.get('/health', (_, res) => {
   res.status(200).json({ success: true, message: 'SmartLife API healthy' });
 });
 
+app.post('/login', authController.login);
+app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/finance', financeRoutes);

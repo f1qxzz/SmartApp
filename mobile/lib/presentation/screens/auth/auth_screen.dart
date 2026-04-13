@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:smartlife_app/core/config/env_config.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
@@ -15,24 +17,82 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
+  static final RegExp _emailRegex =
+      RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+
   bool _isLogin = true;
   bool _obscurePass = true;
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  ProviderSubscription<AuthState>? _authSubscription;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: <String>['email'],
+    serverClientId: EnvConfig.googleWebClientId,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = ref.listenManual<AuthState>(
+      authProvider,
+      (AuthState? previous, AuthState next) {
+        _handleAuthFeedback(next);
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _authSubscription?.close();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _nameCtrl.dispose();
     super.dispose();
   }
 
+  void _handleAuthFeedback(AuthState state) {
+    if (!mounted) {
+      return;
+    }
+
+    final errorMessage = state.errorMessage;
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      ref.read(authProvider.notifier).clearErrorMessage();
+      return;
+    }
+
+    final successMessage = state.successMessage;
+    if (successMessage != null &&
+        successMessage.isNotEmpty &&
+        state.status == AuthStatus.unauthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(successMessage),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      ref.read(authProvider.notifier).clearSuccessMessage();
+    }
+  }
+
   void _submit() async {
     final authState = ref.read(authProvider);
-    if (authState.status == AuthStatus.loading || !_formKey.currentState!.validate()) {
+    if (authState.status == AuthStatus.loading ||
+        !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -53,21 +113,145 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
   }
 
+  Future<void> _continueWithGoogle() async {
+    final authState = ref.read(authProvider);
+    if (authState.status == AuthStatus.loading) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    final googleWebClientId = EnvConfig.googleWebClientId;
+    if (googleWebClientId == null || googleWebClientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'GOOGLE_WEB_CLIENT_ID belum diisi. Cek .env mobile & Firebase OAuth setup.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      debugPrint('[AUTH][GOOGLE] start sign-in flow');
+      await _googleSignIn.signOut();
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        debugPrint('[AUTH][GOOGLE] user cancelled sign-in');
+        return;
+      }
+      final authentication = await account.authentication;
+      final idToken = authentication.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Google Sign-In gagal mendapatkan token. Pastikan SHA-1 & OAuth Client ID sudah benar.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      debugPrint('[AUTH][GOOGLE] idToken received, sending to backend');
+      await ref.read(authProvider.notifier).socialLogin(
+            provider: 'google',
+            idToken: idToken,
+          );
+    } catch (error) {
+      debugPrint('[AUTH][GOOGLE] sign-in failed: $error');
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Google Sign-In gagal: $error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final authState = ref.read(authProvider);
+    if (authState.status == AuthStatus.loading) {
+      return;
+    }
+
+    final emailController = TextEditingController(
+      text: _emailCtrl.text.trim(),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    final String? result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Lupa Password',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          ),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'Masukkan email akun kamu',
+              ),
+              validator: (value) {
+                final email = value?.trim() ?? '';
+                if (email.isEmpty) {
+                  return 'Email wajib diisi';
+                }
+                if (!_emailRegex.hasMatch(email)) {
+                  return 'Format email tidak valid';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!formKey.currentState!.validate()) {
+                  return;
+                }
+                Navigator.of(context).pop(emailController.text.trim());
+              },
+              child: const Text('Kirim Link Reset'),
+            ),
+          ],
+        );
+      },
+    );
+
+    emailController.dispose();
+
+    if (result == null) {
+      return;
+    }
+
+    await ref.read(authProvider.notifier).forgotPassword(
+          email: result,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState.status == AuthStatus.loading;
-
-    ref.listen<AuthState>(authProvider, (previous, next) {
-      if (!mounted) {
-        return;
-      }
-      if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
-      }
-    });
 
     return Scaffold(
       body: Stack(
@@ -78,7 +262,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF3A45D4), Color(0xFF5B67F1), Color(0xFF8B5CF6)],
+                colors: [
+                  Color(0xFF3A45D4),
+                  Color(0xFF5B67F1),
+                  Color(0xFF8B5CF6)
+                ],
                 stops: [0.0, 0.5, 1.0],
               ),
             ),
@@ -159,9 +347,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           color: Colors.white.withOpacity(0.75),
                           height: 1.5,
                         ),
-                      )
-                          .animate()
-                          .fadeIn(delay: 150.ms, duration: 400.ms),
+                      ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -209,7 +395,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                           const SizedBox(height: 28),
                           Text(
-                            _isLogin ? 'Selamat datang kembali!' : 'Buat akun baru',
+                            _isLogin
+                                ? 'Selamat datang kembali!'
+                                : 'Buat akun baru',
                             style: GoogleFonts.poppins(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -241,8 +429,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 }
                                 return null;
                               },
-                              prefixIcon: const Icon(Icons.person_outline_rounded,
-                                  color: AppColors.primary, size: 20),
+                              prefixIcon: const Icon(
+                                  Icons.person_outline_rounded,
+                                  color: AppColors.primary,
+                                  size: 20),
                             ),
                             const SizedBox(height: 14),
                           ],
@@ -255,9 +445,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               if (email.isEmpty) {
                                 return 'Email wajib diisi';
                               }
-                              const String pattern =
-                                  r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$';
-                              if (!RegExp(pattern).hasMatch(email)) {
+                              if (!_emailRegex.hasMatch(email)) {
                                 return 'Format email tidak valid';
                               }
                               return null;
@@ -298,7 +486,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () {},
+                                onPressed: isLoading
+                                    ? null
+                                    : _showForgotPasswordDialog,
                                 child: Text(
                                   'Lupa password?',
                                   style: GoogleFonts.inter(
@@ -347,14 +537,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   label: 'Google',
                                   icon: Icons.g_mobiledata_rounded,
                                   color: const Color(0xFFEA4335),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _SocialButton(
-                                  label: 'Apple',
-                                  icon: Icons.apple_rounded,
-                                  color: Colors.black,
+                                  onTap: isLoading ? null : _continueWithGoogle,
                                 ),
                               ),
                             ],
@@ -429,35 +612,44 @@ class _SocialButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _SocialButton({
     required this.label,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.dividerLight),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+        onTap: onTap,
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.dividerLight),
+            borderRadius: BorderRadius.circular(14),
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:smartlife_app/core/config/env_config.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 
 class DioClient {
   DioClient() {
+    debugPrint('[API] Base URL: ${EnvConfig.apiBaseUrl}');
     _dio = Dio(
       BaseOptions(
         baseUrl: EnvConfig.apiBaseUrl,
@@ -22,7 +24,15 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          debugPrint('[API] ${options.method} ${options.path}');
           handler.next(options);
+        },
+        onError: (error, handler) {
+          debugPrint(
+            '[API][ERROR] ${error.requestOptions.method} ${error.requestOptions.path} -> '
+            '${error.response?.statusCode} ${error.response?.data}',
+          );
+          handler.next(error);
         },
       ),
     );

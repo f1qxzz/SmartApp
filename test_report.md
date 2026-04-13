@@ -1,60 +1,52 @@
-# 📊 SmartLife App — Test Execution Report
+﻿# SmartLife App - QA Report (Android + Backend)
 
-Berikut adalah laporan hasil pengujian sistem backend **SmartLife** yang dilakukan secara otomatis untuk memverifikasi kesiapan fitur utama.
+> Tanggal: 13 April 2026 (Asia/Jakarta)
+> Catatan: Fitur Apple/iOS login telah dihapus sesuai permintaan.
 
----
+## Ringkasan
+- Login manual: aktif
+- Login Google: aktif
+- Forgot password: aktif (email reset link)
+- Login Apple/iOS: **dihapus**
 
-## 🏗️ 1. Infrastructure Coverage
-- **Server Health**: [Verified] - Backend berjalan di port 5000.
-- **Database Connection**: [Verified] - MongoDB Atlas terhubung dengan sukses.
+## Hasil Uji API
+- `GET /health` -> 200
+- `POST /api/auth/register` -> 201
+- `POST /api/auth/login` (valid) -> 200
+- `POST /api/auth/login` (invalid) -> 401
+- `POST /api/auth/google` (tanpa token) -> 400
+- `POST /api/auth/forgot-password` -> 200
+- `POST /api/auth/reset-password` -> 200
 
----
+## Hasil Uji Fitur
+----------------------------------------
+📱 NAMA FITUR: Login Manual
+📸 Screenshot: `screenshots/auth_login_result_1775999517891.png`
+🧪 Hasil Testing: PASS (valid masuk, invalid ditolak)
+❌ Bug: tidak ada bug blocker
+💡 Solusi: validasi credential di backend tetap ketat
+----------------------------------------
 
-## 🔑 2. Authentication Test
-Saya berhasil menyimulasikan pendaftaran dan login user baru untuk memastikan gerbang keamanan aplikasi berfungsi.
+----------------------------------------
+📱 NAMA FITUR: Login Google
+📸 Screenshot: (runtime baru menunggu env OAuth valid)
+🧪 Hasil Testing: PASS untuk route/validasi backend, flow frontend aktif
+❌ Bug: jika OAuth belum diisi, login ditolak dengan pesan konfigurasi
+💡 Solusi: isi `GOOGLE_WEB_CLIENT_ID` + setup Firebase SHA-1
+----------------------------------------
 
-| Activity | Status | Result |
-| :--- | :--- | :--- |
-| **Register User** | ✅ PASSED | Akun `tester1@example.com` berhasil terdaftar. |
-| **Login API** | ✅ PASSED | JWT Token berhasil digenerate dan diverifikasi. |
+----------------------------------------
+📱 NAMA FITUR: Forgot Password
+📸 Screenshot: `screenshots/authorized_profile_check_1776000137532.png`
+🧪 Hasil Testing: PASS (request reset + apply reset password)
+❌ Bug: sebelumnya reset langsung tanpa token
+💡 Solusi: sudah pakai token reset + expiry
+----------------------------------------
 
-**Screenshot Logic Verification:**
-![Unauthorized Response](file:///C:/Users/ASUS%20TUF%20GAMING/.gemini/antigravity/brain/debef7ba-3672-4a3a-8780-b9d1368eb1c3/backend_unauthorized_stats_1775906818971.png)
-*Gambar di atas membuktikan sistem keamanan (middleware) aktif; menolak akses tanpa token.*
-
----
-
-## 💰 3. Finance & Budgeting Test
-Pengujian dilakukan dengan menambahkan pengeluaran dummy dan memverifikasi perhitungan statistik harian.
-
-**Dummy Data Injected:**
-1. **Makanan**: 50,000 (Makan Siang)
-2. **Perumahan**: 2,000,000 (Sewa Apartemen)
-3. **Transportasi**: 20,000 (Gojek ke Kantor)
-
-**Calculated Results:**
-- **Daily Total**: `2,070,000` (Sudah Benar)
-- **Category Match**: Kategori `Perumahan` mendominasi stats bulanan.
-
----
-
-## 🧠 4. AI Intelligence Test
-Saya menguji asisten AI dengan pertanyaan kontekstual: *"Apa analisis Anda tentang pengeluaran saya hari ini?"*
-
-> [!CAUTION]
-> **Issue Found (Quota Exceeded)**:
-> Sistem backend berhasil mencapai server OpenAI, namun respons gagal karena **Kuota OpenAI API Key Anda telah habis atau kredit tidak mencukupi**.
-> `Error: 429 You exceeded your current quota.`
-
----
-
-## 🖼️ 5. Visual Proof (Backend Healthy)
-![Backend Health Check](file:///C:/Users/ASUS%20TUF%20GAMING/.gemini/antigravity/brain/debef7ba-3672-4a3a-8780-b9d1368eb1c3/backend_health_check_1775906808607.png)
-*Respons `{"status":"ok"}` dari server menunjukkan kesiapan melayani request.*
-
----
-
-## ✅ Kesimpulan
-Sistem backend **SmartLife** sudah **siap 90% secara fungsional**. Seluruh logika bisnis (Auth & Finance) berjalan sempurna. Satu-satunya kendala adalah kuota API OpenAI yang perlu diisi ulang agar fitur asisten AI dapat memberikan respons cerdas.
-
-*Dibuat oleh Antigravity Assistant pada 11 April 2026.*
+----------------------------------------
+📱 NAMA FITUR: Login Apple/iOS
+📸 Screenshot: N/A
+🧪 Hasil Testing: REMOVED
+❌ Bug: fitur dinonaktifkan permanen sesuai permintaan
+💡 Solusi: endpoint, dependency, env, dan UI Apple sudah dihapus
+----------------------------------------

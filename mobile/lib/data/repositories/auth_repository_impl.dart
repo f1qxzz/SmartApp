@@ -9,7 +9,8 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthService _authService;
 
   @override
-  Future<(UserEntity user, String token)> login({required String email, required String password}) {
+  Future<(UserEntity user, String token)> login(
+      {required String email, required String password}) {
     return _authService.login(email: email, password: password);
   }
 
@@ -20,6 +21,35 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) {
     return _authService.register(name: name, email: email, password: password);
+  }
+
+  @override
+  Future<(UserEntity user, String token)> socialLogin({
+    required String provider,
+    required String idToken,
+  }) {
+    return _authService.socialLogin(
+      provider: provider,
+      idToken: idToken,
+    );
+  }
+
+  @override
+  Future<void> forgotPassword({required String email}) {
+    return _authService.forgotPassword(email: email);
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) {
+    return _authService.resetPassword(
+      email: email,
+      token: token,
+      newPassword: newPassword,
+    );
   }
 
   @override

@@ -81,9 +81,6 @@ flutter pub get
 # Android emulator / physical device
 flutter run
 
-# iOS simulator (macOS only)
-flutter run -d iPhone
-
 # Web (preview)
 flutter run -d chrome
 ```
@@ -96,9 +93,6 @@ flutter build apk --release
 
 # Android App Bundle
 flutter build appbundle --release
-
-# iOS
-flutter build ios --release
 ```
 
 ---
@@ -134,7 +128,7 @@ uuid: ^4.3.3
 - Animated logo entrance
 - Tab toggle Login/Register
 - Input email, password, nama
-- Social login (Google, Apple)
+- Social login (Google)
 - Form validation
 
 ### 2. Chat Screen (WhatsApp Style)

@@ -22,6 +22,8 @@ class MainScreen extends ConsumerStatefulWidget {
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
+  bool _isSuccessMessageScheduled = false;
+  ProviderSubscription<AuthState>? _authSubscription;
 
   final List<Widget> _screens = const <Widget>[
     ChatListScreen(),
@@ -29,6 +31,55 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     DashboardScreen(),
     AIScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = ref.listenManual<AuthState>(
+      authProvider,
+      (AuthState? previous, AuthState next) {
+        _showRegisterSuccess(next);
+      },
+      fireImmediately: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.close();
+    super.dispose();
+  }
+
+  void _showRegisterSuccess(AuthState next) {
+    if (!mounted) {
+      return;
+    }
+
+    final String? message = next.successMessage;
+    if (message == null || message.isEmpty || _isSuccessMessageScheduled) {
+      return;
+    }
+
+    _isSuccessMessageScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: GoogleFonts.inter(fontSize: 13),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      ref.read(authProvider.notifier).clearSuccessMessage();
+      _isSuccessMessageScheduled = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

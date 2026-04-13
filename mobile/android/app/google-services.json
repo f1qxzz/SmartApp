@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "405297168241",
+    "project_id": "smartlife-app-eddf9",
+    "storage_bucket": "smartlife-app-eddf9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405297168241:android:18f6f266413a96f16a00d0",
+        "android_client_info": {
+          "package_name": "com.example.smartlife_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrapWuQXbac_Y2k0kWGB_hmLZbC5rLI6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

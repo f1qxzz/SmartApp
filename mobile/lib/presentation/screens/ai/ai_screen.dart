@@ -282,7 +282,7 @@ class _AiHeader extends StatelessWidget {
               children: <Widget>[
                 Text('SmartLife AI', style: AppTextStyles.heading3(context)),
                 Text(
-                  'AI via backend (OpenAI + fallback)',
+                  'AI via backend (Gemini + fallback)',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.secondary,

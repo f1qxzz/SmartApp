@@ -1,6 +1,21 @@
 module.exports = function errorHandler(err, req, res, next) {
-  const status = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
+  let status = err.statusCode || 500;
+  let message = err.message || 'Internal server error';
+
+  if (err && err.code === 11000) {
+    status = 409;
+    const duplicateField = Object.keys(err.keyPattern || {})[0];
+    if (duplicateField === 'email') {
+      message = 'Email sudah terdaftar';
+    } else {
+      message = 'Data duplikat terdeteksi';
+    }
+  }
+
+  if (err && err.name === 'ValidationError') {
+    status = 400;
+    message = err.message || 'Validasi data gagal';
+  }
 
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
@@ -10,6 +25,6 @@ module.exports = function errorHandler(err, req, res, next) {
   res.status(status).json({
     success: false,
     message,
-    errors: err.errors || null,
+    data: null,
   });
 };

@@ -1,14 +1,27 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Finance = require('../finance/finance.model');
+
+function getModelCandidates() {
+  const primary = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-flash-latest')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([primary, ...fallbacks]));
+}
 
 function buildPrompt(financeData, userQuestion) {
   return [
+    'Kamu adalah asisten keuangan yang cerdas pada aplikasi SmartLife.',
+    'Tugasmu: analisis data pengeluaran user dan berikan saran yang actionable dalam Bahasa Indonesia.',
+    '',
     'Berikut data pengeluaran user (JSON):',
     JSON.stringify(financeData, null, 2),
     '',
     `Pertanyaan user: ${userQuestion}`,
     '',
-    'Tugas:',
+    'Instruksi:',
     '- Berikan analisis singkat, jelas, dan actionable dalam Bahasa Indonesia.',
     '- Jika ada pola boros, sebutkan kategorinya.',
     '- Berikan 3 saran konkret yang realistis.',
@@ -43,52 +56,54 @@ async function collectFinanceSummary(userId) {
 
 async function askAI({ userId, message }) {
   const financeSummary = await collectFinanceSummary(userId);
+  const prompt = buildPrompt(financeSummary, message);
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return buildFallbackAnswer({
       financeSummary,
-      reason: 'OPENAI_API_KEY belum dikonfigurasi',
+      reason: 'GEMINI_API_KEY belum dikonfigurasi',
     });
   }
 
-  try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const modelCandidates = getModelCandidates();
+  let lastError = null;
 
-    const response = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.4,
-      max_tokens: 500,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful financial assistant for the SmartLife app. You analyze user spending and provide advice based on their transaction data.',
-        },
-        {
-          role: 'user',
-          content: buildPrompt(financeSummary, message),
-        },
-      ],
-    });
+  for (const modelName of modelCandidates) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const outputText = result.response.text() || '';
 
-    const outputText = response.choices[0]?.message?.content || '';
-    if (!outputText.trim()) {
-      return buildFallbackAnswer({
-        financeSummary,
-        reason: 'OpenAI mengembalikan respons kosong',
-      });
+      if (outputText.trim()) {
+        return outputText.trim();
+      }
+    } catch (error) {
+      lastError = error;
     }
-
-    return outputText.trim();
-  } catch (error) {
-    const reason = error?.status === 429
-      ? 'Kuota OpenAI habis / limit tercapai'
-      : 'OpenAI sedang tidak tersedia';
-
-    return buildFallbackAnswer({
-      financeSummary,
-      reason,
-    });
   }
+
+  const errorMsg = String(lastError?.message || '').toLowerCase();
+  let reason;
+
+  if (!lastError) {
+    reason = 'Gemini mengembalikan respons kosong';
+  } else if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('resource_exhausted')) {
+    reason = 'Kuota Gemini AI habis. Coba lagi besok atau upgrade ke paid plan.';
+  } else if (errorMsg.includes('503') || errorMsg.includes('service unavailable') || errorMsg.includes('high demand')) {
+    reason = 'Gemini AI sedang sibuk karena traffic tinggi. Coba lagi sebentar lagi.';
+  } else if (errorMsg.includes('api key') || errorMsg.includes('invalid')) {
+    reason = 'API Key Gemini tidak valid. Silakan cek konfigurasi.';
+  } else if (errorMsg.includes('not found')) {
+    reason = 'Model Gemini tidak ditemukan. Silakan cek GEMINI_MODEL.';
+  } else {
+    reason = 'Gemini AI sedang tidak tersedia. Coba lagi nanti.';
+  }
+
+  return buildFallbackAnswer({
+    financeSummary,
+    reason,
+  });
 }
 
 function buildFallbackAnswer({ financeSummary, reason }) {
@@ -99,7 +114,7 @@ function buildFallbackAnswer({ financeSummary, reason }) {
     : 0;
 
   const lines = [
-    `OpenAI sementara tidak tersedia (${reason}).`,
+    `AI sementara tidak tersedia (${reason}).`,
     'Berikut analisis cepat dari data real transaksi kamu:',
     `- Total pengeluaran: Rp ${Math.round(total).toLocaleString('id-ID')}`,
     `- Jumlah transaksi: ${financeSummary.transactionCount}`,
