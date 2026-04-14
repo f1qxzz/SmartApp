@@ -9,20 +9,23 @@
 ## ✨ Fitur Unggulan
 
 ### 💰 Finance Tracker (Real-time Stats)
+
 - **Daily, Weekly, Monthly Stats**: Pantau pengeluaran Anda dengan ringkasan otomatis.
 - **Category Breakdown**: Lihat visualisasi pengeluaran berdasarkan kategori.
 - **Transaction Management**: Catat, edit, dan hapus transaksi dengan mudah.
 - **Budget Alerts**: Notifikasi otomatis jika pengeluaran melebihi budget yang ditentukan.
 
 ### 💬 Real-time Chat
+
 - **Instant Messaging**: Kirim dan terima pesan secara real-time menggunakan Socket.io.
 - **WhatsApp Style Multimedia**:
-    - **Voice Notes**: Rekam suara dengan indikator durasi dan ikon mic berkedip.
-    - **Image Sharing & Preview**: Pratinjau gambar dengan fitur caption sebelum dikirim.
-- **Message Management**: Hapus pesan (*Delete for Everyone*) dan hapus seluruh percakapan.
+  - **Voice Notes**: Rekam suara dengan indikator durasi dan ikon mic berkedip.
+  - **Image Sharing & Preview**: Pratinjau gambar dengan fitur caption sebelum dikirim.
+- **Message Management**: Hapus pesan (_Delete for Everyone_) dan hapus seluruh percakapan.
 - **Interactive UI**: Typing indicator dan online presence.
 
 ### 🤖 SmartLife AI (Financial Consultant)
+
 - **Deep Analysis**: AI menganalisis pola pengeluaran Anda dan memberikan saran konkret.
 - **Natural Language**: Tanya apa saja tentang finansial dalam Bahasa Indonesia.
 - **Context Aware**: Jawaban didasarkan pada data transaksi aktual Anda di aplikasi.
@@ -32,6 +35,7 @@
 ## 🛠️ Tech Stack
 
 ### Mobile (Flutter)
+
 - **State Management**: flutter_riverpod
 - **Networking**: Dio
 - **Storage**: Hive (Local Cache)
@@ -39,6 +43,7 @@
 - **UI/UX**: flutter_animate, fl_chart, google_fonts
 
 ### Backend (Node.js)
+
 - **Framework**: Express.js
 - **Database**: MongoDB (Mongoose)
 - **Real-time**: Socket.io
@@ -50,12 +55,14 @@
 ## 🚀 Cara Menjalankan Project
 
 ### 1. Prasyarat
+
 - Flutter SDK (minimal 3.10+)
 - Node.js & npm (minimal 16+)
 - Akun MongoDB Atlas (atau Local MongoDB)
 - OpenAI API Key
 
 ### 2. Setup Backend
+
 1. Masuk ke folder backend:
    ```bash
    cd backend
@@ -78,6 +85,7 @@
    ```
 
 ### 3. Setup Mobile (Flutter)
+
 1. Masuk ke folder mobile:
    ```bash
    cd mobile
@@ -97,6 +105,7 @@
 ---
 
 ## 📂 Struktur Proyek
+
 ```text
 SmartLife/
 ├── backend/           # Node.js Express API
@@ -116,4 +125,4 @@ SmartLife/
 
 ---
 
-*Dibuat dengan ❤️ oleh Antigravity Assistant.*
+_Dibuat oleh @f1qxzz_
