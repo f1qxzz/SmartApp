@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
@@ -124,15 +125,19 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text(
+                    Text(
                     widget.title,
-                    style: AppTextStyles.heading2(context),
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildLabel('Apa yang ingin diingat?'),
                   _buildTextField(
                     controller: _titleController,
-                    hint: 'E.g. Bayar Tagihan Listrik',
+                    hint: 'Misalnya: Bayar Tagihan Listrik',
                     icon: Icons.edit_notifications_rounded,
                   ),
                   const SizedBox(height: 16),
@@ -149,18 +154,25 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today_rounded, size: 20, color: AppColors.primary),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+                          ),
                           const SizedBox(width: 12),
                           Text(
                             '${AppFormatters.monthYear(_selectedDate)}, ${AppFormatters.timeOnly(_selectedDate)}',
                             style: GoogleFonts.inter(
                               fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                               color: isDark ? Colors.white : Colors.black87,
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                          const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Colors.grey),
                         ],
                       ),
                     ),
@@ -177,13 +189,21 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                         selected: isSelected,
                         onSelected: (val) => setState(() => _selectedCategory = val ? cat : null),
                         selectedColor: AppColors.primary,
+                        showCheckmark: false,
                         labelStyle: GoogleFonts.inter(
                           fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
                         ),
                         backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      );
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: isSelected ? AppColors.primary : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                      ).animate(target: isSelected ? 1 : 0).scale(duration: 200.ms);
                     }).toList().cast<Widget>(),
                   ),
                   const SizedBox(height: 16),
@@ -198,35 +218,50 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                   SizedBox(
                     width: double.infinity,
                     height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_titleController.text.isEmpty) return;
-                        final reminder = ReminderEntity(
-                          id: widget.reminder?.id ?? const Uuid().v4(),
-                          title: _titleController.text,
-                          description: _descController.text,
-                          dateTime: _selectedDate,
-                          category: _selectedCategory,
-                          isCompleted: widget.reminder?.isCompleted ?? false,
-                        );
-                        widget.onSubmit(reminder);
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        elevation: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.gradientPrimary,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        widget.submitLabel,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_titleController.text.isEmpty) return;
+                          final reminder = ReminderEntity(
+                            id: widget.reminder?.id ?? const Uuid().v4(),
+                            title: _titleController.text,
+                            description: _descController.text,
+                            dateTime: _selectedDate,
+                            category: _selectedCategory,
+                            isCompleted: widget.reminder?.isCompleted ?? false,
+                          );
+                          widget.onSubmit(reminder);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          widget.submitLabel,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -238,12 +273,13 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
 
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
-        text,
+        text.toUpperCase(),
         style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+          fontSize: 10,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w800,
           color: Colors.grey[500],
         ),
       ),
@@ -268,14 +304,23 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
         maxLines: maxLines,
         style: GoogleFonts.inter(
           fontSize: 14,
+          fontWeight: FontWeight.w500,
           color: isDark ? Colors.white : Colors.black87,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-          prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: AppColors.primary),
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );

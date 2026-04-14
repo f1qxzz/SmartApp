@@ -337,9 +337,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
           TextButton(
             onPressed: () async {
+              final rootNavigator = Navigator.of(this.context);
               Navigator.pop(context);
               await ref.read(chatProvider.notifier).deleteConversation(_chatId);
-              if (mounted) Navigator.pop(context);
+              if (mounted) rootNavigator.pop();
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.red)),
           ),

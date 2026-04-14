@@ -138,7 +138,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.15 : 0.06),
+                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -152,7 +152,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text('Distribusi bulan ini', style: AppTextStyles.caption(context)),
                     const SizedBox(height: 24),
                     if (categoryData.isEmpty)
-                      _EmptySection(
+                      const _EmptySection(
                         icon: Icons.pie_chart_outline_rounded,
                         text: 'Belum ada transaksi untuk dianalisis.',
                       )
@@ -389,7 +389,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.15 : 0.06),
+                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -408,7 +408,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -506,8 +506,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: <Color>[
-                                      AppColors.primary.withOpacity(0.25),
-                                      AppColors.primary.withOpacity(0),
+                                      AppColors.primary.withValues(alpha: 0.25),
+                                      AppColors.primary.withValues(alpha: 0),
                                     ],
                                   ),
                                 ),
@@ -531,7 +531,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Text('Kategori Paling Boros', style: AppTextStyles.heading3(context)),
                   const SizedBox(height: 12),
                   if (categoryData.isEmpty)
-                    _EmptySection(
+                    const _EmptySection(
                       icon: Icons.insights_outlined,
                       text: 'Top kategori akan tampil setelah ada transaksi.',
                     )
@@ -657,7 +657,7 @@ class _SummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: castedGradient.colors.first.withOpacity(0.3),
+            color: castedGradient.colors.first.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -734,7 +734,7 @@ class _TopCategoryItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.1 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -746,7 +746,7 @@ class _TopCategoryItem extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -792,7 +792,7 @@ class _TopCategoryItem extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: percentage,
                     minHeight: 6,
-                    backgroundColor: color.withOpacity(0.1),
+                    backgroundColor: color.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),

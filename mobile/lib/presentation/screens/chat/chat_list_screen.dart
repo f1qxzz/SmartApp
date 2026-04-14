@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -12,6 +13,9 @@ import 'package:smartlife_app/domain/entities/chat_conversation_entity.dart';
 import 'package:smartlife_app/presentation/providers/chat_provider.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_detail_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_user_profile_screen.dart';
+import 'package:smartlife_app/core/utils/app_formatters.dart';
+import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
+import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -186,7 +190,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                               : 'Semua chat',
                           isDark: isDark,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
+                        
+                        // Smart Assistant Banner
+                        if (!isSearchActive) 
+                          _SmartAssistantBanner(isDark: isDark),
+                        
+                        const SizedBox(height: 14),
                         Row(
                           children: <Widget>[
                             _FilterToggleChip(
@@ -1020,5 +1030,116 @@ class _ConversationCard extends StatelessWidget {
       return '${diff.inDays}d';
     }
     return '${dt.day}/${dt.month}';
+  }
+}
+
+class _SmartAssistantBanner extends ConsumerWidget {
+  final bool isDark;
+
+  const _SmartAssistantBanner({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminderState = ref.watch(reminderProvider);
+    final upcoming = reminderState.reminders.where((r) => !r.isCompleted).toList();
+
+    if (upcoming.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final nextReminder = upcoming.first;
+    final isOverdue = nextReminder.isOverdue;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ReminderScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: isOverdue 
+            ? LinearGradient(colors: [Colors.red.withValues(alpha: 0.1), Colors.red.withValues(alpha: 0.02)])
+            : LinearGradient(
+                begin: AppColors.gradientPrimary.begin,
+                end: AppColors.gradientPrimary.end,
+                colors: AppColors.gradientPrimary.colors.map((c) => c.withValues(alpha: 0.08)).toList(),
+              ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isOverdue ? Colors.red.withValues(alpha: 0.2) : AppColors.primary.withValues(alpha: 0.15),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isOverdue ? Colors.red.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isOverdue ? Icons.priority_high_rounded : Icons.auto_awesome_rounded,
+                size: 20,
+                color: isOverdue ? Colors.red : AppColors.primary,
+              ),
+            ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+             .scale(duration: 2.seconds, begin: const Offset(1, 1), end: const Offset(1.1, 1.1)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isOverdue ? 'Terlewatkan!' : 'Pengingat Berikutnya',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: isOverdue ? Colors.red : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    nextReminder.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _formatTime(nextReminder.dateTime),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Icon(Icons.arrow_forward_ios_rounded, size: 12, color: isDark ? Colors.white24 : Colors.black26),
+              ],
+            ),
+          ],
+        ),
+      ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+      return AppFormatters.timeOnly(dt);
+    }
+    return DateFormat('dd/MM').format(dt);
   }
 }
