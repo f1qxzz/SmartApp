@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 
@@ -71,10 +73,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
   static final RegExp _usernameRegex = RegExp(r'^[a-z0-9._]{3,30}$');
 
+  String _normalizeGender(String? gender) {
+    final value = (gender ?? '').trim().toLowerCase();
+    if (value.isEmpty) {
+      return '';
+    }
+    if (value == 'laki-laki' || value == 'pria') {
+      return 'male';
+    }
+    if (value == 'perempuan' || value == 'wanita') {
+      return 'female';
+    }
+    if (value == 'male' || value == 'female' || value == 'other') {
+      return value;
+    }
+    return '';
+  }
+
   void _setClientError(String message) {
-    state = AuthState(
+    state = state.copyWith(
       status: AuthStatus.unauthenticated,
       errorMessage: message,
+      clearSuccess: true,
     );
   }
 
@@ -183,6 +203,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String username,
     required String email,
     required String password,
+    String? gender,
     required bool rememberMe,
   }) async {
     state = state.copyWith(
@@ -193,6 +214,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final normalizedUsername = username.trim().toLowerCase();
     final normalizedEmail = email.trim();
+    final normalizedGender = _normalizeGender(gender);
 
     if (normalizedUsername.isEmpty ||
         normalizedEmail.isEmpty ||
@@ -223,6 +245,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         username: normalizedUsername,
         email: normalizedEmail,
         password: password,
+        gender: normalizedGender.isEmpty ? null : normalizedGender,
         rememberMe: rememberMe,
       );
       await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
@@ -319,9 +342,119 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> refreshProfile() async {
+    if (!state.isAuthenticated || state.token == null) {
+      return;
+    }
+
+    try {
+      final profile = await _refreshFromServerAndCache();
+      state = state.copyWith(user: profile, clearError: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+    }
+  }
+
   Future<void> logout() async {
     await _useCases.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> updateProfile({
+    required String username,
+    required String email,
+    String? gender,
+    String? avatar,
+  }) async {
+    if (!state.isAuthenticated || state.user == null || state.token == null) {
+      state = state.copyWith(
+        errorMessage: 'Sesi login tidak valid. Silakan login ulang.',
+      );
+      return;
+    }
+
+    final normalizedUsername = username.trim().toLowerCase();
+    final normalizedEmail = email.trim();
+    final normalizedGender = _normalizeGender(gender);
+
+    if (normalizedUsername.isEmpty) {
+      state = state.copyWith(errorMessage: 'Username wajib diisi.');
+      return;
+    }
+
+    if (!_usernameRegex.hasMatch(normalizedUsername)) {
+      state = state.copyWith(
+        errorMessage:
+            'Username harus 3-30 karakter (huruf kecil, angka, titik, underscore).',
+      );
+      return;
+    }
+
+    if (normalizedEmail.isEmpty) {
+      state = state.copyWith(errorMessage: 'Email wajib diisi.');
+      return;
+    }
+
+    if (!_emailRegex.hasMatch(normalizedEmail)) {
+      state = state.copyWith(errorMessage: 'Format email tidak valid.');
+      return;
+    }
+
+    if (gender != null &&
+        gender.trim().isNotEmpty &&
+        normalizedGender.isEmpty) {
+      state = state.copyWith(errorMessage: 'Gender tidak valid.');
+      return;
+    }
+
+    state = state.copyWith(clearError: true, clearSuccess: true);
+
+    try {
+      await _useCases.updateProfile(
+        username: normalizedUsername,
+        email: normalizedEmail,
+        gender: normalizedGender,
+        avatar: avatar,
+      );
+      final refreshedProfile = await _refreshFromServerAndCache();
+      state = state.copyWith(
+        user: refreshedProfile,
+        clearError: true,
+        successMessage: 'Profil berhasil diperbarui.',
+      );
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> changeAvatar(File file) async {
+    if (!state.isAuthenticated || state.user == null) {
+      state = state.copyWith(
+        errorMessage: 'Sesi login tidak valid. Silakan login ulang.',
+      );
+      return;
+    }
+
+    final exists = await file.exists();
+    if (!exists) {
+      state = state.copyWith(errorMessage: 'File foto tidak ditemukan.');
+      return;
+    }
+
+    try {
+      final avatarUrl = await _useCases.uploadAvatar(file);
+      final currentUser = state.user!;
+      await updateProfile(
+        username: currentUser.username,
+        email: currentUser.email,
+        gender: currentUser.gender,
+        avatar: avatarUrl,
+      );
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
   }
 
   void setRememberMe(bool value) {
@@ -334,6 +467,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void clearErrorMessage() {
     state = state.copyWith(clearError: true);
+  }
+
+  Future<UserEntity> _refreshFromServerAndCache() async {
+    final profile = await _useCases.getProfile();
+    final token = state.token!;
+    final rememberMe = state.rememberMe;
+
+    await _useCases.cacheAuth(
+      profile,
+      token,
+      rememberMe: rememberMe,
+    );
+
+    return profile;
   }
 }
 

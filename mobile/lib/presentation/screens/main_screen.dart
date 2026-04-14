@@ -1,15 +1,19 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:smartlife_app/core/storage/hive_boxes.dart';
+import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
-import 'package:smartlife_app/presentation/providers/theme_provider.dart';
 import 'package:smartlife_app/presentation/screens/ai/ai_screen.dart';
+import 'package:smartlife_app/presentation/screens/calculator/calculator_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:smartlife_app/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:smartlife_app/presentation/screens/finance/finance_screen.dart';
+import 'package:smartlife_app/presentation/screens/profile/profile_screen.dart';
 import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -27,13 +31,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   final List<Widget> _screens = const <Widget>[
     ChatListScreen(),
     FinanceScreen(),
+    CalculatorScreen(),
     DashboardScreen(),
     AIScreen(),
+    ProfileScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
+    _loadInitialTab();
     _authSubscription = ref.listenManual<AuthState>(
       authProvider,
       (AuthState? previous, AuthState next) {
@@ -41,6 +48,19 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       },
       fireImmediately: true,
     );
+  }
+
+  void _loadInitialTab() {
+    final savedIndex = HiveService.appBox.get(HiveBoxes.lastTab) as int?;
+    if (savedIndex != null && savedIndex >= 0 && savedIndex < _screens.length) {
+      _currentIndex = savedIndex;
+    }
+  }
+
+  void _updateTab(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+    HiveService.appBox.put(HiveBoxes.lastTab, index);
   }
 
   @override
@@ -85,15 +105,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: IndexedStack(
+      extendBody: true,
+      body: FadeIndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       floatingActionButton: _currentIndex == 1
           ? FloatingActionButton(
               onPressed: () => _showAddTransaction(context),
-              backgroundColor: AppColors.primary,
-              elevation: 4,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
               tooltip: 'Tambah transaksi',
               child: Container(
                 width: 56,
@@ -101,6 +122,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 decoration: const BoxDecoration(
                   gradient: AppColors.gradientPrimary,
                   shape: BoxShape.circle,
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x557C7E9D),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.add_rounded,
@@ -112,20 +140,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           : null,
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
-        onTap: (int index) => setState(() => _currentIndex = index),
+        onTap: _updateTab,
         isDark: isDark,
-        onToggleTheme: _toggleTheme,
-        onLogout: _logout,
       ),
     );
-  }
-
-  void _toggleTheme() {
-    ref.read(appThemeModeProvider.notifier).toggle();
-  }
-
-  Future<void> _logout() async {
-    await ref.read(authProvider.notifier).logout();
   }
 
   void _showAddTransaction(BuildContext context) {
@@ -137,6 +155,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         title: 'Catat Pengeluaran',
         submitLabel: 'Simpan',
         onSubmit: (value) async {
+          final messenger = ScaffoldMessenger.of(context);
           try {
             await ref.read(financeProvider.notifier).create(
                   title: value.title,
@@ -147,7 +166,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 );
           } catch (_) {
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(
                   'Gagal menambahkan transaksi',
@@ -164,7 +183,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           }
 
           if (ref.read(financeProvider).isOverBudget) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(
                   'Alert: pengeluaran bulan ini melebihi budget',
@@ -175,7 +194,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             );
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(
                 'Transaksi berhasil ditambahkan',
@@ -194,15 +213,11 @@ class _BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final bool isDark;
-  final VoidCallback onToggleTheme;
-  final VoidCallback onLogout;
 
   const _BottomNav({
     required this.currentIndex,
     required this.onTap,
     required this.isDark,
-    required this.onToggleTheme,
-    required this.onLogout,
   });
 
   @override
@@ -215,97 +230,152 @@ class _BottomNav extends StatelessWidget {
         Icons.account_balance_wallet_rounded,
         'Finance',
       ),
+      (Icons.calculate_outlined, Icons.calculate_rounded, 'Hitung'),
       (Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Dashboard'),
       (Icons.auto_awesome_outlined, Icons.auto_awesome_rounded, 'AI'),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            children: <Widget>[
-              ...List<Widget>.generate(
-                items.length,
-                (int i) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTap(i),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: currentIndex == i ? 44 : 36,
-                            height: currentIndex == i ? 44 : 36,
-                            decoration: BoxDecoration(
-                              gradient: currentIndex == i
-                                  ? AppColors.gradientPrimary
-                                  : null,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(
-                              currentIndex == i ? items[i].$2 : items[i].$1,
-                              size: currentIndex == i ? 22 : 20,
-                              color: currentIndex == i
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textTertiary),
-                            ),
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF161A2D).withValues(alpha: 0.65)
+                      : Colors.white.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.white,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List<Widget>.generate(
+                    items.length,
+                    (int i) {
+                      final bool isActive = currentIndex == i;
+                      return GestureDetector(
+                        onTap: () {
+                          if (!isActive) HapticFeedback.lightImpact();
+                          onTap(i);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.fastOutSlowIn,
+                          padding: isActive
+                              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+                              : const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: isActive ? AppColors.gradientPrimary : null,
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                          const SizedBox(height: 4),
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 250),
-                            style: GoogleFonts.inter(
-                              fontSize: currentIndex == i ? 11 : 10,
-                              fontWeight: currentIndex == i
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: currentIndex == i
-                                  ? AppColors.primary
-                                  : (isDark
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              if (!isActive)
+                                Icon(
+                                  items[i].$1,
+                                  size: 24,
+                                  color: isDark
                                       ? AppColors.textSecondaryDark
-                                      : AppColors.textTertiary),
-                            ),
-                            child: Text(items[i].$3),
+                                      : AppColors.textSecondary,
+                                ),
+                              if (isActive)
+                                Icon(
+                                  items[i].$2,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                              if (isActive) ...<Widget>[
+                                const SizedBox(width: 8),
+                                Text(
+                                  items[i].$3,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: onToggleTheme,
-                onLongPress: onLogout,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                    color: isDark ? AppColors.accent : AppColors.textSecondary,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class FadeIndexedStack extends StatelessWidget {
+  final int index;
+  final List<Widget> children;
+  final Duration duration;
+
+  const FadeIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.duration = const Duration(milliseconds: 450),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: List<Widget>.generate(children.length, (int i) {
+        final bool isActive = index == i;
+        return IgnorePointer(
+          ignoring: !isActive,
+          child: AnimatedOpacity(
+            opacity: isActive ? 1.0 : 0.0,
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            child: AnimatedSlide(
+              offset: isActive ? Offset.zero : const Offset(0.0, 0.02),
+              duration: duration,
+              curve: Curves.easeOutQuart,
+              child: AnimatedScale(
+                scale: isActive ? 1.0 : 0.98,
+                duration: duration,
+                curve: Curves.easeOutQuart,
+                child: TickerMode(
+                  enabled: isActive,
+                  child: children[i],
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/domain/repositories/auth_repository.dart';
 
@@ -7,7 +9,9 @@ class AuthUseCases {
   final AuthRepository _repository;
 
   Future<(UserEntity, String)> login(
-      {required String identifier, required String password, required bool rememberMe}) {
+      {required String identifier,
+      required String password,
+      required bool rememberMe}) {
     return _repository.login(
       identifier: identifier,
       password: password,
@@ -19,11 +23,13 @@ class AuthUseCases {
       {required String username,
       required String email,
       required String password,
+      String? gender,
       required bool rememberMe}) {
     return _repository.register(
       username: username,
       email: email,
       password: password,
+      gender: gender,
       rememberMe: rememberMe,
     );
   }
@@ -56,7 +62,8 @@ class AuthUseCases {
     );
   }
 
-  Future<void> cacheAuth(UserEntity user, String token, {required bool rememberMe}) =>
+  Future<void> cacheAuth(UserEntity user, String token,
+          {required bool rememberMe}) =>
       _repository.cacheAuth(user, token, rememberMe: rememberMe);
 
   Future<UserEntity?> getCachedUser() => _repository.getCachedUser();
@@ -64,6 +71,21 @@ class AuthUseCases {
   Future<String?> getCachedToken() => _repository.getCachedToken();
 
   Future<UserEntity> getProfile() => _repository.getProfile();
+
+  Future<UserEntity> updateProfile({
+    required String username,
+    required String email,
+    String? gender,
+    String? avatar,
+  }) =>
+      _repository.updateProfile(
+        username: username,
+        email: email,
+        gender: gender,
+        avatar: avatar,
+      );
+
+  Future<String> uploadAvatar(File file) => _repository.uploadAvatar(file);
 
   Future<void> logout() => _repository.logout();
 

@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:smartlife_app/core/config/env_config.dart';
 import 'package:smartlife_app/core/network/api_exception.dart';
 import 'package:smartlife_app/core/network/dio_client.dart';
+import 'package:smartlife_app/core/utils/url_helper.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 
 class AuthService {
@@ -69,6 +73,7 @@ class AuthService {
     required String username,
     required String email,
     required String password,
+    String? gender,
     required bool rememberMe,
   }) async {
     try {
@@ -79,6 +84,7 @@ class AuthService {
           'username': username,
           'email': email,
           'password': password,
+          if (gender != null && gender.trim().isNotEmpty) 'gender': gender,
           'rememberMe': rememberMe,
         },
       );
@@ -162,6 +168,63 @@ class AuthService {
       return UserEntity.fromJson(_asMap(userRaw));
     } on DioException catch (error) {
       debugPrint('[AUTH][API] /auth/me failed: $error');
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<UserEntity> updateProfile({
+    required String username,
+    required String email,
+    String? gender,
+    String? avatar,
+  }) async {
+    try {
+      final response = await _dioClient.instance.put(
+        '/auth/profile',
+        data: {
+          'username': username,
+          'email': email,
+          if (gender != null) 'gender': gender,
+          if (avatar != null) 'avatar': avatar,
+        },
+      );
+
+      final root = _asMap(response.data);
+      final payload = root['data'] is Map ? _asMap(root['data']) : root;
+      final userRaw = payload['user'] ?? payload;
+
+      return UserEntity.fromJson(_asMap(userRaw));
+    } catch (error) {
+      if (error is ApiException) {
+        rethrow;
+      }
+      debugPrint('[AUTH][API] /auth/profile failed: $error');
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<String> uploadAvatar(File file) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path),
+      });
+
+      final response =
+          await _dioClient.instance.post('/api/upload', data: formData);
+      final root = _asMap(response.data);
+      final payload = root['data'] is Map ? _asMap(root['data']) : root;
+      final url = (payload['url'] ?? '').toString();
+
+      if (url.isEmpty) {
+        throw const ApiException('URL avatar tidak ditemukan dari server');
+      }
+
+      return UrlHelper.toAbsolute(EnvConfig.apiBaseUrl, url);
+    } catch (error) {
+      if (error is ApiException) {
+        rethrow;
+      }
+      debugPrint('[AUTH][API] /api/upload failed: $error');
       throw ApiException.fromDio(error);
     }
   }

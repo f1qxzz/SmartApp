@@ -43,7 +43,8 @@ class AiNotifier extends StateNotifier<AiState> {
     state = state.copyWith(
       messages: [
         AiMessageEntity(
-          text: 'Halo! Saya SmartLife AI. Tanyakan apa saja tentang kondisi finansialmu.',
+          text:
+              'Halo! Saya SmartLife AI. Tanyakan apa saja tentang kondisi finansialmu.',
           isUser: false,
           timestamp: DateTime.now(),
         ),
@@ -66,7 +67,8 @@ class AiNotifier extends StateNotifier<AiState> {
         ),
       );
 
-    state = state.copyWith(messages: nextMessages, isLoading: true, clearError: true);
+    state = state.copyWith(
+        messages: nextMessages, isLoading: true, clearError: true);
 
     try {
       final answer = await _useCases.ask(cleanQuestion);
@@ -96,6 +98,11 @@ class AiNotifier extends StateNotifier<AiState> {
         errorMessage: error.toString(),
       );
     }
+  }
+
+  void clearConversation() {
+    state = const AiState();
+    _setWelcome();
   }
 
   void reset() {

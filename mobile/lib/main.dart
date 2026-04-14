@@ -33,6 +33,8 @@ class SmartLifeApp extends ConsumerWidget {
     return MaterialApp(
       title: 'SmartLife',
       debugShowCheckedModeBanner: false,
+      themeAnimationCurve: Curves.easeInOutCubic,
+      themeAnimationDuration: const Duration(milliseconds: 320),
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,

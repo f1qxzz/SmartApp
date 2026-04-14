@@ -42,13 +42,13 @@ function sendAuthSuccess(res, statusCode, message, authPayload, rememberMe = fal
 }
 
 const register = asyncHandler(async (req, res) => {
-  const { username, email, password, rememberMe } = req.body;
+  const { username, email, password, gender, rememberMe } = req.body;
 
   if (!username || !email || !password) {
     return sendError(res, 400, 'Username, email, dan password wajib diisi');
   }
 
-  const data = await authService.register({ username, email, password });
+  const data = await authService.register({ username, email, password, gender });
   return sendAuthSuccess(res, 201, 'Register berhasil', data, rememberMe === true);
 });
 
@@ -129,6 +129,22 @@ const me = asyncHandler(async (req, res) => {
   return sendAuthSuccess(res, 200, 'Profil berhasil diambil', data, false);
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const { username, email, gender, avatar } = req.body;
+  const user = await authService.updateProfile(req.user._id, {
+    username,
+    email,
+    gender,
+    avatar,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Profil berhasil diperbarui',
+    data: { user },
+  });
+});
+
 const logout = asyncHandler(async (req, res) => {
   await authService.logout(req.user._id);
   clearAuthCookie(res);
@@ -147,5 +163,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   me,
+  updateProfile,
   logout,
 };

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +14,7 @@ class ChatState {
   final String? errorMessage;
   final List<ChatConversationEntity> chats;
   final List<ChatConversationEntity> searchResults;
+  final String searchKeyword;
   final Map<String, List<ChatMessageEntity>> messagesByChatId;
   final Map<String, bool> typingFrom;
   final String? activeChatId;
@@ -22,6 +24,7 @@ class ChatState {
     this.errorMessage,
     this.chats = const [],
     this.searchResults = const [],
+    this.searchKeyword = '',
     this.messagesByChatId = const {},
     this.typingFrom = const {},
     this.activeChatId,
@@ -32,6 +35,7 @@ class ChatState {
     String? errorMessage,
     List<ChatConversationEntity>? chats,
     List<ChatConversationEntity>? searchResults,
+    String? searchKeyword,
     Map<String, List<ChatMessageEntity>>? messagesByChatId,
     Map<String, bool>? typingFrom,
     String? activeChatId,
@@ -42,6 +46,7 @@ class ChatState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       chats: chats ?? this.chats,
       searchResults: searchResults ?? this.searchResults,
+      searchKeyword: searchKeyword ?? this.searchKeyword,
       messagesByChatId: messagesByChatId ?? this.messagesByChatId,
       typingFrom: typingFrom ?? this.typingFrom,
       activeChatId: activeChatId ?? this.activeChatId,
@@ -58,6 +63,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _presenceSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  int _searchRequestId = 0;
 
   String? _connectedToken;
 
@@ -98,13 +104,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   Future<void> searchUsers(String keyword) async {
     final query = keyword.trim();
+    final requestId = ++_searchRequestId;
+
     if (query.isEmpty) {
-      state = state.copyWith(searchResults: const []);
+      state = state.copyWith(
+        searchResults: const [],
+        searchKeyword: '',
+      );
       return;
     }
 
     try {
       final users = await _useCases.searchUsers(query);
+      if (requestId != _searchRequestId) {
+        return;
+      }
       final chatsByUser = {
         for (final chat in state.chats) chat.userId: chat,
       };
@@ -122,8 +136,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }).toList();
 
-      state = state.copyWith(searchResults: merged);
+      state = state.copyWith(
+        searchResults: merged,
+        searchKeyword: query,
+      );
     } catch (error) {
+      if (requestId != _searchRequestId) {
+        return;
+      }
       state = state.copyWith(errorMessage: error.toString());
     }
   }
@@ -153,21 +173,62 @@ class ChatNotifier extends StateNotifier<ChatState> {
     required String text,
     String? chatId,
     String? receiverId,
+    String type = 'text',
+    String? attachmentUrl,
   }) async {
-    final normalizedText = text.trim();
-    if (normalizedText.isEmpty) {
-      throw Exception('Pesan tidak boleh kosong');
-    }
-
     final message = await _useCases.sendMessage(
-      text: normalizedText,
+      text: text,
       chatId: chatId,
       receiverId: receiverId,
+      type: type,
+      attachmentUrl: attachmentUrl,
     );
 
     _appendMessage(message);
     await _refreshChatsSilent();
     return message;
+  }
+
+  Future<String> uploadFile(File file) => _useCases.uploadFile(file);
+
+  Future<void> deleteMessage(String messageId, String chatId) async {
+    try {
+      await _useCases.deleteMessage(messageId);
+
+      // Optimistic/Local update
+      final map =
+          Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      final list = List<ChatMessageEntity>.from(map[chatId] ?? const []);
+      list.removeWhere((m) => m.id == messageId);
+      map[chatId] = list;
+
+      state = state.copyWith(messagesByChatId: map);
+      await _refreshChatsSilent();
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+    }
+  }
+
+  Future<void> deleteConversation(String chatId) async {
+    try {
+      await _useCases.deleteConversation(chatId);
+
+      // Remove from list
+      final chats =
+          List<ChatConversationEntity>.from(state.chats);
+      chats.removeWhere((c) => c.chatId == chatId);
+
+      final map =
+          Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      map.remove(chatId);
+
+      state = state.copyWith(
+        chats: chats,
+        messagesByChatId: map,
+      );
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+    }
   }
 
   void setTyping({
@@ -241,6 +302,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     _presenceSub = _useCases.onPresence().listen((_) async {
       await _refreshChatsSilent();
+      final activeSearchKeyword = state.searchKeyword.trim();
+      if (activeSearchKeyword.isNotEmpty) {
+        await searchUsers(activeSearchKeyword);
+      }
     });
 
     _readSub = _useCases.onRead().listen((_) {});

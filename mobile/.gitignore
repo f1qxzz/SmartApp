@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Specific sensitive files
+google-services.json
+GoogleService-Info.plist
+*analyze_output.txt

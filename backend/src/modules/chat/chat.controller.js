@@ -28,13 +28,15 @@ const getMessages = asyncHandler(async (req, res) => {
 });
 
 const sendMessage = asyncHandler(async (req, res) => {
-  const { receiverId, chatId, text } = req.body;
+  const { receiverId, chatId, text, messageType, attachmentUrl } = req.body;
 
   const message = await chatService.sendMessage({
     senderId: req.user._id,
     receiverId,
     chatId,
     text,
+    messageType,
+    attachmentUrl,
   });
 
   emitReceiveMessage(message);
@@ -45,9 +47,27 @@ const sendMessage = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteMessage = asyncHandler(async (req, res) => {
+  const result = await chatService.deleteMessage(req.user._id, req.params.id);
+  return res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
+const deleteConversation = asyncHandler(async (req, res) => {
+  const result = await chatService.deleteConversation(req.user._id, req.params.id);
+  return res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
 module.exports = {
   searchUsers,
   getChats,
   getMessages,
   sendMessage,
+  deleteMessage,
+  deleteConversation,
 };

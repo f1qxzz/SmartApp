@@ -40,3 +40,10 @@ uploads/
 
 # Testing
 coverage/
+
+# Specific sensitive files
+google-services.json
+GoogleService-Info.plist
+*.jks
+*.keystore
+key.properties

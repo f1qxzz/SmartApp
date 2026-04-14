@@ -7,10 +7,14 @@ function emitToUser(userId, event, payload) {
   io.to(String(userId)).emit(event, payload);
 }
 
-function broadcastOnlineStatus(userId, online) {
+function broadcastOnlineStatus(userId, online, lastSeen) {
   const io = getIO();
   if (!io) return;
-  io.emit('presence:update', { userId: String(userId), online });
+  io.emit('presence:update', {
+    userId: String(userId),
+    online: Boolean(online),
+    lastSeen: lastSeen ? new Date(lastSeen).toISOString() : null,
+  });
 }
 
 function emitReceiveMessage(message) {

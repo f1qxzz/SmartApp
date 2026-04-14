@@ -24,6 +24,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   bool _isLogin = true;
   bool _obscurePass = true;
+  String _selectedGender = '';
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -124,6 +125,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           username: _usernameCtrl.text.trim().toLowerCase(),
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text,
+          gender: _selectedGender,
           rememberMe: ref.read(authProvider).rememberMe,
         );
   }
@@ -300,9 +302,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF3A45D4),
-                  Color(0xFF5B67F1),
-                  Color(0xFF8B5CF6)
+                  Color(0xFF4C5372),
+                  Color(0xFF7C7E9D),
+                  Color(0xFF949AB1)
                 ],
                 stops: [0.0, 0.5, 1.0],
               ),
@@ -317,7 +319,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -329,7 +331,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -347,10 +349,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         width: 72,
                         height: 72,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                           ),
                         ),
                         child: const Icon(
@@ -381,7 +383,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.75),
+                          color: Colors.white.withValues(alpha: 0.75),
                           height: 1.5,
                         ),
                       ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
@@ -398,7 +400,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 40,
                           offset: const Offset(0, 20),
                         ),
@@ -504,6 +506,70 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   color: AppColors.primary, size: 20),
                             ),
                             const SizedBox(height: 14),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedGender.isEmpty
+                                  ? null
+                                  : _selectedGender,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                hintText: 'Pilih Gender',
+                                prefixIcon: const Icon(
+                                  Icons.wc_rounded,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? AppColors.surfaceDark
+                                    : AppColors.surfaceLight,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              icon:
+                                  const Icon(Icons.keyboard_arrow_down_rounded),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                              items: const <DropdownMenuItem<String>>[
+                                DropdownMenuItem<String>(
+                                  value: 'male',
+                                  child: Text('Laki-laki'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'female',
+                                  child: Text('Perempuan'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'other',
+                                  child: Text('Lainnya'),
+                                ),
+                              ],
+                              onChanged: (String? value) {
+                                setState(() => _selectedGender = value ?? '');
+                              },
+                              validator: (String? value) {
+                                if (_isLogin) {
+                                  return null;
+                                }
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Gender wajib dipilih';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
                           ],
                           InputField(
                             hint: 'Password',
@@ -584,7 +650,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           // Social login divider
                           Row(
                             children: [
-                              Expanded(
+                              const Expanded(
                                 child: Divider(color: AppColors.dividerLight),
                               ),
                               Padding(
@@ -598,7 +664,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   ),
                                 ),
                               ),
-                              Expanded(
+                              const Expanded(
                                 child: Divider(color: AppColors.dividerLight),
                               ),
                             ],
@@ -660,7 +726,7 @@ class _TabButton extends StatelessWidget {
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

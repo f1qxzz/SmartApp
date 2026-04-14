@@ -77,12 +77,16 @@ class ChatService {
     required String text,
     String? receiverId,
     String? chatId,
+    String type = 'text',
+    String? attachmentUrl,
   }) async {
     try {
       final response = await _dioClient.instance.post(
         '/messages/send',
         data: {
           'text': text,
+          'messageType': type,
+          if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
           if (receiverId != null && receiverId.trim().isNotEmpty)
             'receiverId': receiverId,
           if (chatId != null && chatId.trim().isNotEmpty) 'chatId': chatId,
@@ -96,16 +100,31 @@ class ChatService {
     }
   }
 
-  Future<String> uploadImage(File file) async {
+  Future<String> uploadFile(File file) async {
     try {
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(file.path),
       });
 
-      final response =
-          await _dioClient.instance.post('/api/upload', data: formData);
+      final response = await _dioClient.instance.post('/api/upload', data: formData);
       final path = (response.data['data']['url'] ?? '').toString();
       return UrlHelper.toAbsolute(EnvConfig.apiBaseUrl, path);
+    } catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      await _dioClient.instance.delete('/messages/$messageId');
+    } catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<void> deleteConversation(String chatId) async {
+    try {
+      await _dioClient.instance.delete('/conversations/$chatId');
     } catch (error) {
       throw ApiException.fromDio(error);
     }

@@ -11,6 +11,8 @@ import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
+import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
+import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -157,47 +159,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     else
                       Row(
                         children: <Widget>[
-                          SizedBox(
-                            width: 150,
-                            height: 150,
-                            child: PieChart(
-                              PieChartData(
-                                pieTouchData: PieTouchData(
-                                  touchCallback: (FlTouchEvent event, pieResponse) {
-                                    setState(() {
-                                      if (!event.isInterestedForInteractions ||
-                                          pieResponse == null ||
-                                          pieResponse.touchedSection == null) {
-                                        _touchedPieIndex = -1;
-                                      } else {
-                                        _touchedPieIndex = pieResponse
-                                            .touchedSection!.touchedSectionIndex;
-                                      }
-                                    });
-                                  },
+                          RepaintBoundary(
+                            child: SizedBox(
+                              width: 150,
+                              height: 150,
+                              child: PieChart(
+                                PieChartData(
+                                  pieTouchData: PieTouchData(
+                                    touchCallback: (FlTouchEvent event, pieResponse) {
+                                      setState(() {
+                                        if (!event.isInterestedForInteractions ||
+                                            pieResponse == null ||
+                                            pieResponse.touchedSection == null) {
+                                          _touchedPieIndex = -1;
+                                        } else {
+                                          _touchedPieIndex = pieResponse
+                                              .touchedSection!.touchedSectionIndex;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  sections: List<PieChartSectionData>.generate(
+                                    categoryData.length,
+                                    (int i) {
+                                      final bool isTouched = i == _touchedPieIndex;
+                                      final data = categoryData[i];
+                                      return PieChartSectionData(
+                                        color: data.color,
+                                        value: data.percentage * 100,
+                                        title: isTouched
+                                            ? '${(data.percentage * 100).toStringAsFixed(0)}%'
+                                            : '',
+                                        radius: isTouched ? 65 : 55,
+                                        titleStyle: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  sectionsSpace: 3,
+                                  centerSpaceRadius: 30,
                                 ),
-                                sections: List<PieChartSectionData>.generate(
-                                  categoryData.length,
-                                  (int i) {
-                                    final bool isTouched = i == _touchedPieIndex;
-                                    final data = categoryData[i];
-                                    return PieChartSectionData(
-                                      color: data.color,
-                                      value: data.percentage * 100,
-                                      title: isTouched
-                                          ? '${(data.percentage * 100).toStringAsFixed(0)}%'
-                                          : '',
-                                      radius: isTouched ? 65 : 55,
-                                      titleStyle: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    );
-                                  },
-                                ),
-                                sectionsSpace: 3,
-                                centerSpaceRadius: 30,
                               ),
                             ),
                           ),
@@ -247,8 +251,133 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                   ],
                 ),
-              ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
+              ),
             ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Pengingat Mendatang', style: AppTextStyles.heading3(context)),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ReminderScreen()),
+                        ),
+                        child: Text(
+                          'Lihat Semua',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final reminderState = ref.watch(reminderProvider);
+                      final pendingReminders = reminderState.reminders
+                          .where((r) => !r.isCompleted)
+                          .toList();
+
+                      if (pendingReminders.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.notifications_paused_rounded, color: Colors.grey[400]),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Tidak ada pengingat pending',
+                                style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return RepaintBoundary(
+                        child: SizedBox(
+                          height: 100,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: math.min(pendingReminders.length, 5),
+                            itemBuilder: (context, index) {
+                              final reminder = pendingReminders[index];
+                              return Container(
+                                width: 220,
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: index == 0 ? AppColors.gradientPrimary : null,
+                                  color: index == 0 ? null : (isDark ? AppColors.cardDark : Colors.white),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: index == 0 ? null : Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      reminder.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: index == 0 ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 14,
+                                          color: index == 0 ? Colors.white70 : Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          AppFormatters.timeOnly(reminder.dateTime),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: index == 0 ? Colors.white70 : Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -294,95 +423,97 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    SizedBox(
-                      height: 180,
-                      child: LineChart(
-                        LineChartData(
-                          minX: 0,
-                          maxX: 6,
-                          minY: 0,
-                          maxY: maxChartY,
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: intervalY,
-                            getDrawingHorizontalLine: (_) => FlLine(
-                              color:
-                                  isDark ? AppColors.dividerDark : AppColors.dividerLight,
-                              strokeWidth: 1,
+                    RepaintBoundary(
+                      child: SizedBox(
+                        height: 180,
+                        child: LineChart(
+                          LineChartData(
+                            minX: 0,
+                            maxX: 6,
+                            minY: 0,
+                            maxY: maxChartY,
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: intervalY,
+                              getDrawingHorizontalLine: (_) => FlLine(
+                                color:
+                                    isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                                strokeWidth: 1,
+                              ),
                             ),
-                          ),
-                          titlesData: FlTitlesData(
-                            leftTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: 1,
-                                getTitlesWidget: (double value, TitleMeta _) {
-                                  final int index = value.toInt();
-                                  if (index < 0 || index >= weeklySeries.labels.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      weeklySeries.labels[index],
-                                      style: GoogleFonts.inter(
-                                        fontSize: 11,
-                                        color: isDark
-                                            ? AppColors.textSecondaryDark
-                                            : AppColors.textTertiary,
+                            titlesData: FlTitlesData(
+                              leftTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: 1,
+                                  getTitlesWidget: (double value, TitleMeta _) {
+                                    final int index = value.toInt();
+                                    if (index < 0 || index >= weeklySeries.labels.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        weeklySeries.labels[index],
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? AppColors.textSecondaryDark
+                                              : AppColors.textTertiary,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          lineBarsData: <LineChartBarData>[
-                            LineChartBarData(
-                              spots: weeklySeries.spots,
-                              isCurved: true,
-                              curveSmoothness: 0.3,
-                              gradient: const LinearGradient(
-                                colors: <Color>[
-                                  AppColors.primary,
-                                  AppColors.primaryLight,
-                                ],
-                              ),
-                              barWidth: 3,
-                              isStrokeCapRound: true,
-                              dotData: FlDotData(
-                                show: true,
-                                getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
-                                  radius: 4,
-                                  color: AppColors.primary,
-                                  strokeColor: isDark ? AppColors.cardDark : Colors.white,
-                                  strokeWidth: 2,
+                                    );
+                                  },
                                 ),
                               ),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
+                            ),
+                            borderData: FlBorderData(show: false),
+                            lineBarsData: <LineChartBarData>[
+                              LineChartBarData(
+                                spots: weeklySeries.spots,
+                                isCurved: true,
+                                curveSmoothness: 0.3,
+                                gradient: const LinearGradient(
                                   colors: <Color>[
-                                    AppColors.primary.withOpacity(0.25),
-                                    AppColors.primary.withOpacity(0),
+                                    AppColors.primary,
+                                    AppColors.primaryLight,
                                   ],
                                 ),
+                                barWidth: 3,
+                                isStrokeCapRound: true,
+                                dotData: FlDotData(
+                                  show: true,
+                                  getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                                    radius: 4,
+                                    color: AppColors.primary,
+                                    strokeColor: isDark ? AppColors.cardDark : Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: <Color>[
+                                      AppColors.primary.withOpacity(0.25),
+                                      AppColors.primary.withOpacity(0),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

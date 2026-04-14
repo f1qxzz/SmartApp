@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,39 +56,50 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     });
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: <Widget>[
-          _AiHeader(
-            isDark: isDark,
-            totalSpent: financeState.totalSpent,
-            budget: financeState.budget,
-          ),
-          Expanded(
-            child: aiState.messages.length <= 1 && !aiState.isLoading
-                ? _WelcomeView(
-                    suggestions: _suggestions,
-                    onSuggestion: _sendMessage,
-                  )
-                : ListView.builder(
-                    controller: _scrollCtrl,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    itemCount: aiState.messages.length + (aiState.isLoading ? 1 : 0),
-                    itemBuilder: (_, int i) {
-                      if (i == aiState.messages.length) {
-                        return const _AiLoadingBubble();
-                      }
-                      final message = aiState.messages[i];
-                      return _AiBubble(message: message)
-                          .animate()
-                          .fadeIn(duration: 200.ms)
-                          .slideY(begin: 0.1, end: 0);
-                    },
-                  ),
-          ),
-          _buildInputBar(
-            isDark,
-            aiState.isLoading,
-            aiState.messages.length <= 1,
+          _AiBackground(isDark: isDark),
+          Column(
+            children: <Widget>[
+              _AiHeader(
+                isDark: isDark,
+                totalSpent: financeState.totalSpent,
+                budget: financeState.budget,
+                onClear: () => _clearConversation(aiState.messages.length),
+              ),
+              Expanded(
+                child: aiState.messages.length <= 1 && !aiState.isLoading
+                    ? _WelcomeView(
+                        suggestions: _suggestions,
+                        onSuggestion: _sendMessage,
+                      )
+                    : ListView.builder(
+                        controller: _scrollCtrl,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        itemCount: aiState.messages.length +
+                            (aiState.isLoading ? 1 : 0),
+                        itemBuilder: (_, int i) {
+                          if (i == aiState.messages.length) {
+                            return const _AiLoadingBubble();
+                          }
+                          final message = aiState.messages[i];
+                          return _AiBubble(
+                            message: message,
+                            onCopy: () => _copyMessage(message.text),
+                          )
+                              .animate()
+                              .fadeIn(duration: 200.ms)
+                              .slideY(begin: 0.1, end: 0);
+                        },
+                      ),
+              ),
+              _buildInputBar(
+                isDark,
+                aiState.isLoading,
+                aiState.messages.length <= 1,
+              ),
+            ],
           ),
         ],
       ),
@@ -106,7 +118,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         color: isDark ? AppColors.cardDark : Colors.white,
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -125,23 +137,29 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                     onTap: () => _sendMessage(suggestion.$2),
                     child: Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                        color: isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.surfaceLight,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.dividerLight),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Icon(suggestion.$1, size: 14, color: AppColors.primary),
+                          Icon(suggestion.$1,
+                              size: 14, color: AppColors.primary),
                           const SizedBox(width: 6),
                           Text(
                             suggestion.$2,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -158,7 +176,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    color:
+                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: TextField(
@@ -167,10 +186,13 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                       hintText: 'Tanya sesuatu tentang keuanganmu...',
                       border: InputBorder.none,
                       filled: false,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 14),
                       hintStyle: GoogleFonts.inter(
                         fontSize: 13,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textTertiary,
                       ),
                     ),
                     style: GoogleFonts.inter(fontSize: 14),
@@ -191,13 +213,14 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                       shape: BoxShape.circle,
                       boxShadow: <BoxShadow>[
                         BoxShadow(
-                          color: Color(0x555B67F1),
+                          color: Color(0x557C7E9D),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    child: const Icon(Icons.send_rounded,
+                        color: Colors.white, size: 20),
                   ),
                 ),
               ),
@@ -231,83 +254,138 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       );
     });
   }
+
+  Future<void> _copyMessage(String text) async {
+    final String clean = text.trim();
+    if (clean.isEmpty) {
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: clean));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pesan berhasil disalin')),
+    );
+  }
+
+  void _clearConversation(int messageCount) {
+    if (messageCount <= 1) {
+      return;
+    }
+    ref.read(aiProvider.notifier).clearConversation();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Riwayat obrolan AI dibersihkan')),
+    );
+  }
 }
 
 class _AiHeader extends StatelessWidget {
   final bool isDark;
   final double totalSpent;
   final double budget;
+  final VoidCallback onClear;
 
   const _AiHeader({
     required this.isDark,
     required this.totalSpent,
     required this.budget,
+    required this.onClear,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double budgetPct = budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999);
+    final double budgetPct =
+        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999);
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
+        top: MediaQuery.of(context).padding.top + 14,
         left: 20,
         right: 20,
-        bottom: 16,
+        bottom: 14,
       ),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.dividerLight,
           ),
-        ],
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              gradient: AppColors.gradientPrimary,
-              shape: BoxShape.circle,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text('SmartLife AI', style: AppTextStyles.heading3(context)),
-                Text(
-                  'AI via backend (Gemini + fallback)',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w600,
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                gradient: AppColors.gradientPrimary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('SmartLife AI', style: AppTextStyles.heading3(context)),
+                  Text(
+                    'Asisten insight keuangan real-time',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${budgetPct.toStringAsFixed(0)}% budget',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
+                ],
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${budgetPct.toStringAsFixed(0)}% budget',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onClear,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color:
+                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.cleaning_services_rounded, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -336,10 +414,15 @@ class _WelcomeView extends StatelessWidget {
               gradient: AppColors.gradientPrimary,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 36),
-          ).animate().scaleXY(begin: 0.5, curve: Curves.elasticOut, duration: 600.ms),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 36),
+          )
+              .animate()
+              .scaleXY(begin: 0.5, curve: Curves.elasticOut, duration: 600.ms),
           const SizedBox(height: 16),
-          Text('SmartLife AI', style: AppTextStyles.heading2(context)).animate().fadeIn(delay: 200.ms),
+          Text('SmartLife AI', style: AppTextStyles.heading2(context))
+              .animate()
+              .fadeIn(delay: 200.ms),
           const SizedBox(height: 8),
           Text(
             'Asisten keuangan pintar dengan data real dari transaksi kamu.',
@@ -365,10 +448,11 @@ class _WelcomeView extends StatelessWidget {
                       ? AppColors.cardDark
                       : AppColors.cardLight,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.15)),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -390,7 +474,8 @@ class _WelcomeView extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primary),
+                    const Icon(Icons.arrow_forward_ios_rounded,
+                        size: 14, color: AppColors.primary),
                   ],
                 ),
               ).animate().fadeIn(delay: (400 + i * 100).ms).slideX(begin: 0.1),
@@ -404,8 +489,12 @@ class _WelcomeView extends StatelessWidget {
 
 class _AiBubble extends StatelessWidget {
   final AiMessageEntity message;
+  final VoidCallback onCopy;
 
-  const _AiBubble({required this.message});
+  const _AiBubble({
+    required this.message,
+    required this.onCopy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +505,8 @@ class _AiBubble extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment:
+            isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
         children: <Widget>[
           if (isAi) ...<Widget>[
             Container(
@@ -426,55 +516,70 @@ class _AiBubble extends StatelessWidget {
                 gradient: AppColors.gradientPrimary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  color: Colors.white, size: 16),
             ),
             const SizedBox(width: 10),
           ],
           Flexible(
-            child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: isAi ? null : AppColors.gradientPrimary,
-                color: isAi ? (isDark ? AppColors.surfaceDark : AppColors.surfaceLight) : null,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isAi ? 4 : 18),
-                  bottomRight: Radius.circular(isAi ? 18 : 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onLongPress: onCopy,
+              child: Container(
+                constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.78),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: isAi ? null : AppColors.gradientPrimary,
+                  color: isAi
+                      ? (isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.surfaceLight)
+                      : null,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isAi ? 4 : 18),
+                    bottomRight: Radius.circular(isAi ? 18 : 4),
+                  ),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: (isAi ? Colors.black : AppColors.primary)
+                          .withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: (isAi ? Colors.black : AppColors.primary).withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    message.text,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      height: 1.6,
-                      color: isAi
-                          ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary)
-                          : Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      message.text,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: isAi
+                            ? (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary)
+                            : Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppFormatters.timeOnly(message.timestamp),
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: isAi
-                          ? (isDark ? AppColors.textSecondaryDark : AppColors.textTertiary)
-                          : Colors.white70,
+                    const SizedBox(height: 8),
+                    Text(
+                      '${AppFormatters.timeOnly(message.timestamp)}  •  tahan untuk salin',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: isAi
+                            ? (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textTertiary)
+                            : Colors.white70,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -501,12 +606,47 @@ class _AiLoadingBubble extends StatelessWidget {
               gradient: AppColors.gradientPrimary,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 16),
           ),
           const SizedBox(width: 10),
           const TypingIndicator(),
         ],
       ).animate().fadeIn(duration: 200.ms),
+    );
+  }
+}
+
+class _AiBackground extends StatelessWidget {
+  final bool isDark;
+
+  const _AiBackground({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        Container(
+          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        ),
+        Positioned(
+          top: -120,
+          left: -70,
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: <Color>[
+                  AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.12),
+                  AppColors.secondary.withValues(alpha: isDark ? 0.14 : 0.08),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

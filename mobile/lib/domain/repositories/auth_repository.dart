@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
   Future<(UserEntity user, String token)> login(
-      {required String identifier, required String password, required bool rememberMe});
+      {required String identifier,
+      required String password,
+      required bool rememberMe});
   Future<(UserEntity user, String token)> register(
       {required String username,
       required String email,
       required String password,
+      String? gender,
       required bool rememberMe});
   Future<(UserEntity user, String token)> socialLogin({
     required String provider,
@@ -21,8 +26,16 @@ abstract class AuthRepository {
   });
   Future<UserEntity?> getCachedUser();
   Future<String?> getCachedToken();
-  Future<void> cacheAuth(UserEntity user, String token, {required bool rememberMe});
+  Future<void> cacheAuth(UserEntity user, String token,
+      {required bool rememberMe});
   Future<void> logout();
   Future<UserEntity> getProfile();
+  Future<UserEntity> updateProfile({
+    required String username,
+    required String email,
+    String? gender,
+    String? avatar,
+  });
+  Future<String> uploadAvatar(File file);
   Future<(UserEntity user, String token)> restoreSession();
 }

@@ -23,6 +23,13 @@ const userSchema = new mongoose.Schema(
     },
     password: { type: String, minlength: 6 },
     avatar: { type: String, default: '' },
+    gender: {
+      type: String,
+      enum: ['', 'male', 'female', 'other'],
+      default: '',
+      lowercase: true,
+      trim: true,
+    },
     authProvider: {
       type: String,
       enum: ['local', 'google'],

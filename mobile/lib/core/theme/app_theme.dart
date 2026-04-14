@@ -2,18 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
+  // Soft palette from design reference
+  static const softCream = Color(0xFFFFFDF6);
+  static const softLilac = Color(0xFFE2D4E0);
+  static const softBlueGrayLight = Color(0xFF949AB1);
+  static const softBlueGray = Color(0xFF7C7E9D);
+  static const softNavy = Color(0xFF4C5372);
+
   // Primary palette
-  static const primary = Color(0xFF5B67F1);
-  static const primaryLight = Color(0xFF8B94F5);
-  static const primaryDark = Color(0xFF3A45D4);
+  static const primary = softBlueGray;
+  static const primaryLight = softBlueGrayLight;
+  static const primaryDark = softNavy;
 
   // Secondary
-  static const secondary = Color(0xFF00C9A7);
-  static const secondaryLight = Color(0xFF4DDFC7);
+  static const secondary = softLilac;
+  static const secondaryLight = Color(0xFFEDE2EC);
 
   // Accent
-  static const accent = Color(0xFFFFB800);
-  static const accentLight = Color(0xFFFFD166);
+  static const accent = Color(0xFFB8AFC4);
+  static const accentLight = Color(0xFFD7CFE0);
 
   // Semantic
   static const success = Color(0xFF22C55E);
@@ -22,57 +29,57 @@ class AppColors {
   static const info = Color(0xFF3B82F6);
 
   // Light mode
-  static const backgroundLight = Color(0xFFF8F9FD);
+  static const backgroundLight = softCream;
   static const cardLight = Color(0xFFFFFFFF);
-  static const surfaceLight = Color(0xFFF1F3FF);
-  static const textPrimary = Color(0xFF0F1222);
-  static const textSecondary = Color(0xFF6B7280);
-  static const textTertiary = Color(0xFF9CA3AF);
-  static const dividerLight = Color(0xFFE5E7EB);
+  static const surfaceLight = Color(0xFFF5EFF6);
+  static const textPrimary = softNavy;
+  static const textSecondary = softBlueGray;
+  static const textTertiary = softBlueGrayLight;
+  static const dividerLight = Color(0xFFE8E2EC);
 
   // Dark mode
-  static const backgroundDark = Color(0xFF0F1222);
-  static const cardDark = Color(0xFF1A1D2E);
-  static const surfaceDark = Color(0xFF252840);
-  static const textPrimaryDark = Color(0xFFF1F5F9);
-  static const textSecondaryDark = Color(0xFF94A3B8);
-  static const dividerDark = Color(0xFF2D3147);
+  static const backgroundDark = Color(0xFF2E334B);
+  static const cardDark = Color(0xFF3A4060);
+  static const surfaceDark = Color(0xFF464D70);
+  static const textPrimaryDark = Color(0xFFFDFBF7);
+  static const textSecondaryDark = Color(0xFFD8CCDB);
+  static const dividerDark = Color(0xFF5C6387);
 
   // Gradients
   static const gradientPrimary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5B67F1), Color(0xFF8B5CF6)],
+    colors: [softBlueGray, softBlueGrayLight],
   );
 
   static const gradientSecondary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF00C9A7), Color(0xFF0EA5E9)],
+    colors: [softLilac, softBlueGrayLight],
   );
 
   static const gradientAccent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFB800), Color(0xFFFF6B6B)],
+    colors: [softCream, softLilac],
   );
 
   static const gradientDark = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF1A1D2E), Color(0xFF252840)],
+    colors: [Color(0xFF3A4060), Color(0xFF4C5372)],
   );
 
   // Category colors
   static const categoryColors = [
-    Color(0xFF5B67F1),
-    Color(0xFF00C9A7),
-    Color(0xFFFFB800),
-    Color(0xFFEF4444),
-    Color(0xFF8B5CF6),
-    Color(0xFF06B6D4),
-    Color(0xFFF97316),
-    Color(0xFF22C55E),
+    Color(0xFF7C7E9D),
+    Color(0xFF949AB1),
+    Color(0xFFE2D4E0),
+    Color(0xFF4C5372),
+    Color(0xFFB5B0C8),
+    Color(0xFFA6ABC3),
+    Color(0xFFCBBED0),
+    Color(0xFF6F7697),
   ];
 }
 
@@ -143,10 +150,22 @@ class AppTextStyles {
 }
 
 class AppTheme {
+  static const PageTransitionsTheme _pageTransitions = PageTransitionsTheme(
+    builders: <TargetPlatform, PageTransitionsBuilder>{
+      TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      pageTransitionsTheme: _pageTransitions,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.light,
@@ -157,6 +176,14 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.backgroundLight,
       textTheme: GoogleFonts.poppinsTextTheme(),
+      cardTheme: CardThemeData(
+        color: AppColors.cardLight,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppColors.dividerLight),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.backgroundLight,
         elevation: 0,
@@ -180,6 +207,16 @@ class AppTheme {
           textStyle: AppTextStyles.button,
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.softNavy,
+        contentTextStyle: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceLight,
@@ -195,8 +232,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide:
-              const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         hintStyle: GoogleFonts.inter(
           fontSize: 14,
@@ -210,6 +246,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      pageTransitionsTheme: _pageTransitions,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.dark,
@@ -220,6 +257,14 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.backgroundDark,
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      cardTheme: CardThemeData(
+        color: AppColors.cardDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppColors.dividerDark),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.backgroundDark,
         elevation: 0,
@@ -242,6 +287,16 @@ class AppTheme {
           ),
           textStyle: AppTextStyles.button,
         ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.softCream,
+        contentTextStyle: GoogleFonts.inter(
+          color: AppColors.softNavy,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

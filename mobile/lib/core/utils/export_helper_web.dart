@@ -1,20 +1,23 @@
 import 'dart:convert';
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 
 Future<String> saveCsvExportImpl({
   required String csvContent,
   required String fileName,
 }) async {
   final bytes = utf8.encode(csvContent);
-  final blob = html.Blob([bytes], 'text/csv;charset=utf-8;');
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  final anchor =
-      html.AnchorElement(href: url)..setAttribute('download', fileName);
+  final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: 'text/csv;charset=utf-8;'));
+  final url = web.URL.createObjectURL(blob);
+  
+  final anchor = web.HTMLAnchorElement()
+    ..href = url
+    ..setAttribute('download', fileName);
 
-  html.document.body?.children.add(anchor);
+  web.document.body?.append(anchor);
   anchor.click();
   anchor.remove();
-  html.Url.revokeObjectUrl(url);
+  web.URL.revokeObjectURL(url);
 
   return fileName;
 }

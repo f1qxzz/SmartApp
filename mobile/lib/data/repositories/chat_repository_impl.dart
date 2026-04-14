@@ -27,16 +27,27 @@ class ChatRepositoryImpl implements ChatRepository {
     required String text,
     String? receiverId,
     String? chatId,
+    String type = 'text',
+    String? attachmentUrl,
   }) {
     return _chatService.sendMessage(
       text: text,
       receiverId: receiverId,
       chatId: chatId,
+      type: type,
+      attachmentUrl: attachmentUrl,
     );
   }
 
   @override
-  Future<String> uploadImage(File file) => _chatService.uploadImage(file);
+  Future<String> uploadFile(File file) => _chatService.uploadFile(file);
+
+  @override
+  Future<void> deleteMessage(String id) => _chatService.deleteMessage(id);
+
+  @override
+  Future<void> deleteConversation(String id) =>
+      _chatService.deleteConversation(id);
 
   @override
   void connectSocket(String token) => _chatService.connectSocket(token);

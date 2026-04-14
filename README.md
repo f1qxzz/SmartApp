@@ -16,9 +16,11 @@
 
 ### 💬 Real-time Chat
 - **Instant Messaging**: Kirim dan terima pesan secara real-time menggunakan Socket.io.
-- **Online Presence**: Lihat siapa yang sedang aktif.
-- **Typing Indicator**: Animasi interaktif saat lawan bicara sedang mengetik.
-- **Image Sharing**: Lampirkan foto dalam percakapan Anda.
+- **WhatsApp Style Multimedia**:
+    - **Voice Notes**: Rekam suara dengan indikator durasi dan ikon mic berkedip.
+    - **Image Sharing & Preview**: Pratinjau gambar dengan fitur caption sebelum dikirim.
+- **Message Management**: Hapus pesan (*Delete for Everyone*) dan hapus seluruh percakapan.
+- **Interactive UI**: Typing indicator dan online presence.
 
 ### 🤖 SmartLife AI (Financial Consultant)
 - **Deep Analysis**: AI menganalisis pola pengeluaran Anda dan memberikan saran konkret.

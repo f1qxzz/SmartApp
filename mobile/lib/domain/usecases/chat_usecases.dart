@@ -19,15 +19,24 @@ class ChatUseCases {
     required String text,
     String? receiverId,
     String? chatId,
+    String type = 'text',
+    String? attachmentUrl,
   }) {
     return _repository.sendMessage(
       text: text,
       receiverId: receiverId,
       chatId: chatId,
+      type: type,
+      attachmentUrl: attachmentUrl,
     );
   }
 
-  Future<String> uploadImage(File file) => _repository.uploadImage(file);
+  Future<String> uploadFile(File file) => _repository.uploadFile(file);
+
+  Future<void> deleteMessage(String id) => _repository.deleteMessage(id);
+
+  Future<void> deleteConversation(String id) =>
+      _repository.deleteConversation(id);
 
   void connectSocket(String token) => _repository.connectSocket(token);
   void disconnectSocket() => _repository.disconnectSocket();

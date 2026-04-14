@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Chat = require('./chat.model');
 const Message = require('./message.model');
 const User = require('../auth/user.model');
-const { isUserOnline } = require('../../sockets/store');
+const { isUserOnline, getUserLastSeen } = require('../../sockets/store');
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -22,11 +22,13 @@ function normalizeKeyword(value) {
 }
 
 function toChatUser(user) {
+  const lastSeen = getUserLastSeen(String(user._id));
   return {
     id: String(user._id),
     username: user.username,
     avatar: user.avatar || '',
     isOnline: isUserOnline(String(user._id)),
+    lastSeen: lastSeen ? lastSeen.toISOString() : null,
   };
 }
 
@@ -54,7 +56,9 @@ function toMessagePayload(message, receiverId) {
       avatar: message.senderId.avatar || '',
     },
     receiverId: String(receiverId),
-    text: message.text,
+    text: message.text || '',
+    messageType: message.messageType || 'text',
+    attachmentUrl: message.attachmentUrl || '',
     createdAt: message.createdAt,
   };
 }
@@ -169,16 +173,22 @@ async function getMessages(currentUserId, chatId) {
       username: message.senderId.username || '',
       avatar: message.senderId.avatar || '',
     },
-    text: message.text,
+    text: message.text || '',
+    messageType: message.messageType,
+    attachmentUrl: message.attachmentUrl,
     createdAt: message.createdAt,
   }));
 }
 
-async function sendMessage({ senderId, receiverId, chatId, text }) {
+async function sendMessage({
+  senderId,
+  receiverId,
+  chatId,
+  text,
+  messageType = 'text',
+  attachmentUrl = '',
+}) {
   const normalizedText = String(text || '').trim();
-  if (!normalizedText) {
-    throw createHttpError(400, 'Pesan tidak boleh kosong');
-  }
 
   let chat = null;
   let targetUserId = receiverId ? String(receiverId) : '';
@@ -186,7 +196,8 @@ async function sendMessage({ senderId, receiverId, chatId, text }) {
   if (chatId) {
     chat = await getChatById(senderId, chatId);
     const participants = chat.participants.map((participant) => String(participant));
-    targetUserId = participants.find((participantId) => participantId !== String(senderId)) || '';
+    targetUserId =
+      participants.find((participantId) => participantId !== String(senderId)) || '';
   } else if (receiverId) {
     chat = await ensureChatBetweenUsers(senderId, receiverId);
   } else {
@@ -201,9 +212,11 @@ async function sendMessage({ senderId, receiverId, chatId, text }) {
     chatId: chat._id,
     senderId: toObjectId(senderId),
     text: normalizedText,
+    messageType,
+    attachmentUrl,
   });
 
-  chat.lastMessage = normalizedText;
+  chat.lastMessage = messageType === 'text' ? normalizedText : `[${messageType}]`;
   chat.updatedAt = createdMessage.createdAt;
   await chat.save();
 
@@ -215,9 +228,36 @@ async function sendMessage({ senderId, receiverId, chatId, text }) {
   return toMessagePayload(message, targetUserId);
 }
 
+async function deleteMessage(currentUserId, messageId) {
+  const message = await Message.findById(messageId);
+  if (!message) {
+    throw createHttpError(404, 'Pesan tidak ditemukan');
+  }
+
+  if (String(message.senderId) !== String(currentUserId)) {
+    throw createHttpError(403, 'Tidak diizinkan menghapus pesan orang lain');
+  }
+
+  await Message.deleteOne({ _id: messageId });
+  return { success: true };
+}
+
+async function deleteConversation(currentUserId, chatId) {
+  const chat = await getChatById(currentUserId, chatId);
+
+  // In this simple implementation, we delete all messages and the chat object.
+  // In a production app, we might want to just hide it for this user.
+  await Message.deleteMany({ chatId: chat._id });
+  await Chat.deleteOne({ _id: chat._id });
+
+  return { success: true };
+}
+
 module.exports = {
   searchUsers,
   getChats,
   getMessages,
   sendMessage,
+  deleteMessage,
+  deleteConversation,
 };

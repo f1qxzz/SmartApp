@@ -11,8 +11,12 @@ abstract class ChatRepository {
     required String text,
     String? receiverId,
     String? chatId,
+    String type = 'text',
+    String? attachmentUrl,
   });
-  Future<String> uploadImage(File file);
+  Future<String> uploadFile(File file);
+  Future<void> deleteMessage(String id);
+  Future<void> deleteConversation(String id);
 
   void connectSocket(String token);
   void disconnectSocket();

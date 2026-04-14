@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:smartlife_app/core/theme/app_theme.dart';
+import 'package:smartlife_app/core/utils/app_formatters.dart';
 
 class TransactionFormValue {
   final String title;
@@ -62,14 +63,24 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
       'Belanja',
       AppColors.categoryColors[2],
     ),
-    ('health', Icons.favorite_rounded, 'Kesehatan', AppColors.categoryColors[3]),
+    (
+      'health',
+      Icons.favorite_rounded,
+      'Kesehatan',
+      AppColors.categoryColors[3]
+    ),
     (
       'entertainment',
       Icons.movie_rounded,
       'Hiburan',
       AppColors.categoryColors[4],
     ),
-    ('bills', Icons.receipt_long_rounded, 'Tagihan', AppColors.categoryColors[6]),
+    (
+      'bills',
+      Icons.receipt_long_rounded,
+      'Tagihan',
+      AppColors.categoryColors[6]
+    ),
     ('other', Icons.more_horiz_rounded, 'Lainnya', AppColors.categoryColors[7]),
   ];
 
@@ -103,6 +114,11 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.dividerLight,
+        ),
       ),
       child: Form(
         key: _formKey,
@@ -129,7 +145,19 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Isi data transaksi dengan lengkap untuk laporan yang lebih akurat.',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -139,12 +167,14 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                   decoration: InputDecoration(
                     hintText: 'Judul transaksi',
                     filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    fillColor:
+                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                   ),
                   validator: (String? value) {
                     final input = value?.trim() ?? '';
@@ -169,7 +199,8 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                     children: <Widget>[
                       Text(
                         'Jumlah',
-                        style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: Colors.white70),
                       ),
                       Row(
                         children: <Widget>[
@@ -228,7 +259,9 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -241,11 +274,14 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                       onTap: () => setState(() => _selectedCategory = cat.$1),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? cat.$4.withOpacity(0.15)
-                              : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
+                              ? cat.$4.withValues(alpha: 0.15)
+                              : (isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.surfaceLight),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isSelected ? cat.$4 : Colors.transparent,
@@ -258,7 +294,8 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                             Icon(
                               cat.$2,
                               size: 16,
-                              color: isSelected ? cat.$4 : AppColors.textTertiary,
+                              color:
+                                  isSelected ? cat.$4 : AppColors.textTertiary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -285,19 +322,56 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                      color: isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.surfaceLight,
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : AppColors.dividerLight,
+                      ),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        const Icon(Icons.calendar_today_rounded, size: 16),
+                        const Icon(Icons.calendar_today_rounded,
+                            size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
-                        Text(
-                          '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                          style: GoogleFonts.inter(fontSize: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'Tanggal transaksi',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${AppFormatters.weekDayShort(_selectedDate)}, '
+                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const Icon(Icons.chevron_right_rounded, size: 18),
                       ],
                     ),
                   ),
@@ -313,12 +387,14 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                       color: AppColors.textTertiary,
                     ),
                     filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    fillColor:
+                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -326,7 +402,8 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                   children: <Widget>[
                     Expanded(
                       child: TextButton(
-                        onPressed: _submitting ? null : () => Navigator.pop(context),
+                        onPressed:
+                            _submitting ? null : () => Navigator.pop(context),
                         child: Text(
                           'Batal',
                           style: GoogleFonts.poppins(
@@ -347,7 +424,7 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: <BoxShadow>[
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
+                              color: AppColors.primary.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -361,7 +438,8 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : Text(

@@ -2,7 +2,13 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../modules/auth/user.model');
 const chatService = require('../modules/chat/chat.service');
-const { setIO, addUserSocket, removeUserSocket, getSocketsByUser } = require('./store');
+const {
+  setIO,
+  addUserSocket,
+  removeUserSocket,
+  getSocketsByUser,
+  getUserLastSeen,
+} = require('./store');
 const { emitReceiveMessage, emitTyping, broadcastOnlineStatus } = require('./events');
 
 function resolveToken(socket) {
@@ -56,7 +62,7 @@ function initSocketServer(server) {
     socket.join(userId);
 
     if (getSocketsByUser(userId).length === 1) {
-      broadcastOnlineStatus(userId, true);
+      broadcastOnlineStatus(userId, true, null);
     }
 
     const handleSendMessage = async (payload = {}) => {
@@ -100,9 +106,9 @@ function initSocketServer(server) {
     });
 
     socket.on('disconnect', () => {
-      removeUserSocket(userId, socket.id);
+      const disconnectedAt = removeUserSocket(userId, socket.id);
       if (getSocketsByUser(userId).length === 0) {
-        broadcastOnlineStatus(userId, false);
+        broadcastOnlineStatus(userId, false, disconnectedAt || getUserLastSeen(userId));
       }
     });
   });

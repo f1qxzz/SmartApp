@@ -8,6 +8,7 @@ class HiveService {
     await Future.wait([
       Hive.openBox(HiveBoxes.auth),
       Hive.openBox(HiveBoxes.app),
+      Hive.openBox(HiveBoxes.reminders),
     ]);
   }
 

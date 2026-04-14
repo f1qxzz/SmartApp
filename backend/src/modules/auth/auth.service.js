@@ -46,6 +46,23 @@ function normalizeUsername(username) {
   return String(username || '').toLowerCase().trim();
 }
 
+function normalizeGender(gender) {
+  const value = String(gender || '').trim().toLowerCase();
+  if (!value) {
+    return '';
+  }
+
+  if (value === 'laki-laki' || value === 'pria') {
+    return 'male';
+  }
+
+  if (value === 'perempuan' || value === 'wanita') {
+    return 'female';
+  }
+
+  return value;
+}
+
 function ensureValidEmail(email) {
   if (!email || !emailRegex.test(email)) {
     throw createHttpError(400, 'Format email tidak valid');
@@ -59,6 +76,19 @@ function ensureValidUsername(username) {
       'Username harus 3-30 karakter dan hanya boleh huruf kecil, angka, titik, atau underscore'
     );
   }
+}
+
+function ensureValidGender(gender) {
+  const normalizedGender = normalizeGender(gender);
+  if (!normalizedGender) {
+    return '';
+  }
+
+  if (!['male', 'female', 'other'].includes(normalizedGender)) {
+    throw createHttpError(400, 'Gender tidak valid');
+  }
+
+  return normalizedGender;
 }
 
 function sanitizeUsernameSeed(seed) {
@@ -181,6 +211,7 @@ function buildAuthResponse(user) {
       name: user.name || user.username,
       email: user.email,
       avatar: user.avatar,
+      gender: user.gender || '',
       monthlyBudget: Number(user.monthlyBudget || 0),
     },
   };
@@ -296,6 +327,7 @@ async function register(payload) {
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || '');
   const name = String(payload.name || username).trim() || username;
+  const gender = ensureValidGender(payload.gender);
 
   ensureValidUsername(username);
   ensureValidEmail(email);
@@ -325,6 +357,7 @@ async function register(payload) {
       name,
       email,
       password: hashedPassword,
+      gender,
       authProvider: 'local',
     });
   } catch (error) {
@@ -567,6 +600,65 @@ async function resetPassword(payload) {
   return { message: 'Password berhasil diperbarui. Silakan login kembali.' };
 }
 
+async function updateProfile(userId, payload) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw createHttpError(404, 'User tidak ditemukan');
+  }
+
+  if (user.isSystem) {
+    throw createHttpError(401, 'Akun tidak dapat digunakan');
+  }
+
+  const nextUsername = normalizeUsername(payload.username || user.username);
+  const nextEmail = normalizeEmail(payload.email || user.email);
+  const nextGender = ensureValidGender(
+    Object.prototype.hasOwnProperty.call(payload, 'gender') ? payload.gender : user.gender
+  );
+  const nextAvatar = String(payload.avatar ?? user.avatar ?? '').trim();
+
+  ensureValidUsername(nextUsername);
+  ensureValidEmail(nextEmail);
+
+  if (nextUsername !== user.username) {
+    const existingUsername = await User.exists({
+      _id: { $ne: user._id },
+      username: nextUsername,
+    });
+    if (existingUsername) {
+      throw createHttpError(409, 'Username sudah digunakan');
+    }
+  }
+
+  if (nextEmail !== user.email) {
+    const existingEmail = await User.exists({
+      _id: { $ne: user._id },
+      email: nextEmail,
+    });
+    if (existingEmail) {
+      throw createHttpError(409, 'Email sudah terdaftar');
+    }
+  }
+
+  user.username = nextUsername;
+  user.email = nextEmail;
+  user.gender = nextGender;
+  user.avatar = nextAvatar;
+  user.name = String(payload.name || user.name || nextUsername).trim() || nextUsername;
+
+  await user.save();
+
+  return {
+    id: String(user._id),
+    username: user.username,
+    name: user.name || user.username,
+    email: user.email,
+    avatar: user.avatar || '',
+    gender: user.gender || '',
+    monthlyBudget: Number(user.monthlyBudget || 0),
+  };
+}
+
 async function logout(userId) {
   const user = await User.findById(userId);
   if (!user) {
@@ -587,5 +679,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   issueSession,
+  updateProfile,
   logout,
 };

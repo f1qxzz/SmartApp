@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -75,52 +76,84 @@ class _CustomButtonState extends State<CustomButton>
           opacity: _isEnabled ? 1 : 0.65,
           child: Container(
             width: widget.width ?? double.infinity,
-            height: 56,
+            height: 54,
             decoration: BoxDecoration(
               gradient: widget.isOutlined
                   ? null
                   : (widget.gradient ?? AppColors.gradientPrimary),
-              borderRadius: BorderRadius.circular(16),
-              border: widget.isOutlined
-                  ? Border.all(color: AppColors.primary, width: 1.5)
+              color: widget.isOutlined
+                  ? (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.surfaceDark
+                      : Colors.white)
                   : null,
+              borderRadius: BorderRadius.circular(15),
+              border: widget.isOutlined
+                  ? Border.all(color: AppColors.primary, width: 1.4)
+                  : Border.all(color: Colors.white.withValues(alpha: 0.14)),
               boxShadow: widget.isOutlined
-                  ? null
+                  ? <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
                   : <BoxShadow>[
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.35),
-                        blurRadius: 16,
+                        color: AppColors.primary.withValues(alpha: 0.30),
+                        blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
                     ],
             ),
-            child: Center(
-              child: widget.isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        if (widget.icon != null) ...<Widget>[
-                          widget.icon!,
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          widget.text,
-                          style: AppTextStyles.button.copyWith(
-                            color: widget.isOutlined
-                                ? AppColors.primary
-                                : Colors.white,
-                          ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Stack(
+                children: <Widget>[
+                  if (!widget.isOutlined)
+                    Positioned(
+                      top: -24,
+                      right: -8,
+                      child: Container(
+                        width: 86,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(34),
                         ),
-                      ],
+                      ),
                     ),
+                  Center(
+                    child: widget.isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              if (widget.icon != null) ...<Widget>[
+                                widget.icon!,
+                                const SizedBox(width: 8),
+                              ],
+                              Text(
+                                widget.text,
+                                style: AppTextStyles.button.copyWith(
+                                  color: widget.isOutlined
+                                      ? AppColors.primary
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -169,16 +202,31 @@ class _InputFieldState extends State<InputField> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isFocused
+                ? AppColors.primary.withValues(alpha: 0.70)
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.dividerLight),
+            width: _isFocused ? 1.2 : 1,
+          ),
           boxShadow: _isFocused
               ? <BoxShadow>[
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: AppColors.primary.withValues(alpha: 0.16),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : const <BoxShadow>[],
+              : <BoxShadow>[
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: TextFormField(
           controller: widget.controller,
@@ -193,6 +241,8 @@ class _InputFieldState extends State<InputField> {
             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
           ),
           decoration: InputDecoration(
+            fillColor: Colors.transparent,
+            filled: true,
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null
                 ? Padding(
@@ -203,6 +253,7 @@ class _InputFieldState extends State<InputField> {
             prefixIconConstraints:
                 const BoxConstraints(minWidth: 52, minHeight: 52),
             suffixIcon: widget.suffixIcon,
+            border: InputBorder.none,
           ),
         ),
       ),
@@ -217,6 +268,9 @@ class ChatBubble extends StatelessWidget {
   final DateTime timestamp;
   final bool isRead;
   final String? avatarUrl;
+  final String type;
+  final String attachmentUrl;
+  final VoidCallback? onLongPress;
 
   const ChatBubble({
     super.key,
@@ -226,6 +280,9 @@ class ChatBubble extends StatelessWidget {
     required this.timestamp,
     this.isRead = false,
     this.avatarUrl,
+    this.type = 'text',
+    this.attachmentUrl = '',
+    this.onLongPress,
   });
 
   @override
@@ -243,137 +300,155 @@ class ChatBubble extends StatelessWidget {
             CircleAvatar(
               radius: 16,
               backgroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-              backgroundColor: AppColors.primary.withOpacity(0.2),
-              child: avatarUrl == null
+                  avatarUrl != null && avatarUrl!.isNotEmpty
+                      ? NetworkImage(avatarUrl!)
+                      : null,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+              child: avatarUrl == null || avatarUrl!.isEmpty
                   ? const Icon(Icons.person, size: 16, color: AppColors.primary)
                   : null,
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: <Widget>[
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.7,
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: isMe ? AppColors.gradientPrimary : null,
-                    color: isMe
-                        ? null
-                        : (isDark
-                            ? AppColors.surfaceDark
-                            : AppColors.surfaceLight),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(18),
-                      topRight: const Radius.circular(18),
-                      bottomLeft: Radius.circular(isMe ? 18 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 18),
+            child: GestureDetector(
+              onLongPress: onLongPress,
+              child: Column(
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.7,
                     ),
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: (isMe ? AppColors.primary : Colors.black)
-                            .withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: isMe ? AppColors.gradientPrimary : null,
+                      color: isMe
+                          ? null
+                          : (isDark
+                              ? AppColors.surfaceDark
+                              : AppColors.surfaceLight),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
+                        bottomLeft: Radius.circular(isMe ? 18 : 4),
+                        bottomRight: Radius.circular(isMe ? 4 : 18),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      if (imageUrl.trim().isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(
-                              bottom: text.trim().isNotEmpty ? 10 : 0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              imageUrl,
-                              width: 210,
-                              height: 170,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: (isMe ? AppColors.primary : Colors.black)
+                              .withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (type == 'image' ||
+                            attachmentUrl.contains('.jpg') ||
+                            attachmentUrl.contains('.png'))
+                          Padding(
+                            padding: EdgeInsets.only(
+                                bottom: text.trim().isNotEmpty ? 10 : 0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                attachmentUrl.isEmpty
+                                    ? imageUrl
+                                    : attachmentUrl,
                                 width: 210,
                                 height: 170,
-                                color: isMe
-                                    ? Colors.white.withOpacity(0.2)
-                                    : (isDark
-                                        ? AppColors.backgroundDark
-                                        : AppColors.surfaceLight),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.broken_image_outlined,
-                                  size: 22,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 210,
+                                  height: 170,
                                   color: isMe
-                                      ? Colors.white
+                                      ? Colors.white.withValues(alpha: 0.2)
                                       : (isDark
-                                          ? AppColors.textSecondaryDark
-                                          : AppColors.textSecondary),
+                                          ? AppColors.backgroundDark
+                                          : AppColors.surfaceLight),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    size: 22,
+                                    color: isMe
+                                        ? Colors.white
+                                        : (isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondary),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      if (text.trim().isNotEmpty)
-                        Text(
-                          text,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: isMe
-                                ? Colors.white
-                                : (isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimary),
+                        if (type == 'voice' ||
+                            type == 'audio' ||
+                            attachmentUrl.contains('.m4a'))
+                          VoiceMessagePlayer(
+                            url: attachmentUrl,
+                            isMe: isMe,
                           ),
-                        ),
-                      if (text.trim().isEmpty && imageUrl.trim().isEmpty)
-                        Text(
-                          'Pesan kosong',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: isMe
-                                ? Colors.white70
-                                : (isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textTertiary),
+                        if (text.trim().isNotEmpty)
+                          Text(
+                            text,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              height: 1.5,
+                              color: isMe
+                                  ? Colors.white
+                                  : (isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary),
+                            ),
                           ),
+                        if (text.trim().isEmpty &&
+                            imageUrl.trim().isEmpty &&
+                            attachmentUrl.isEmpty)
+                          Text(
+                            'Pesan kosong',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: isMe
+                                  ? Colors.white70
+                                  : (isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textTertiary),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        _formatTime(timestamp),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textTertiary,
                         ),
+                      ),
+                      if (isMe) ...<Widget>[
+                        const SizedBox(width: 4),
+                        Icon(
+                          isRead ? Icons.done_all : Icons.done,
+                          size: 14,
+                          color: isRead
+                              ? AppColors.secondary
+                              : AppColors.textTertiary,
+                        ),
+                      ],
                     ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      _formatTime(timestamp),
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textTertiary,
-                      ),
-                    ),
-                    if (isMe) ...<Widget>[
-                      const SizedBox(width: 4),
-                      Icon(
-                        isRead ? Icons.done_all : Icons.done,
-                        size: 14,
-                        color: isRead
-                            ? AppColors.secondary
-                            : AppColors.textTertiary,
-                      ),
-                    ],
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (isMe) const SizedBox(width: 4),
@@ -386,6 +461,138 @@ class ChatBubble extends StatelessWidget {
     final String h = dt.hour.toString().padLeft(2, '0');
     final String m = dt.minute.toString().padLeft(2, '0');
     return '$h:$m';
+  }
+}
+
+class VoiceMessagePlayer extends StatefulWidget {
+  final String url;
+  final bool isMe;
+
+  const VoiceMessagePlayer({
+    super.key,
+    required this.url,
+    required this.isMe,
+  });
+
+  @override
+  State<VoiceMessagePlayer> createState() => _VoiceMessagePlayerState();
+}
+
+class _VoiceMessagePlayerState extends State<VoiceMessagePlayer> {
+  late AudioPlayer _audioPlayer;
+  bool _isPlaying = false;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+
+    _audioPlayer.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) setState(() => _isPlaying = state == PlayerState.playing);
+    });
+
+    _audioPlayer.onPlayerComplete.listen((event) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _position = Duration.zero;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play(UrlSource(widget.url));
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final String minutes = twoDigits(d.inMinutes.remainder(60));
+    final String seconds = twoDigits(d.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = widget.isMe ? Colors.white : AppColors.primary;
+
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: _togglePlay,
+            iconSize: 28,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: Icon(
+              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                    activeTrackColor: color,
+                    inactiveTrackColor: color.withValues(alpha: 0.3),
+                    thumbColor: color,
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: _duration.inMilliseconds.toDouble(),
+                    value: _position.inMilliseconds
+                        .clamp(0, _duration.inMilliseconds)
+                        .toDouble(),
+                    onChanged: (value) async {
+                      final position = Duration(milliseconds: value.toInt());
+                      await _audioPlayer.seek(position);
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    _formatDuration(_isPlaying ? _position : _duration),
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      color: color.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -426,7 +633,7 @@ class FinanceCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: AppColors.error.withOpacity(0.15),
+          color: AppColors.error.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Icon(Icons.delete_outline_rounded,
@@ -442,9 +649,14 @@ class FinanceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? AppColors.cardDark : AppColors.cardLight,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.dividerLight,
+            ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
@@ -453,10 +665,19 @@ class FinanceCard extends StatelessWidget {
           child: Row(
             children: <Widget>[
               Container(
+                width: 4,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: color, size: 22),
@@ -494,7 +715,7 @@ class FinanceCard extends StatelessWidget {
                     ],
                     const SizedBox(height: 3),
                     Text(
-                      '${category} - ${_formatDate(date)}',
+                      '$category - ${_formatDate(date)}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: isDark
@@ -505,12 +726,19 @@ class FinanceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '-${AppFormatters.currency(amount)}',
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.error,
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 110),
+                child: Text(
+                  '-${AppFormatters.currency(amount)}',
+                  textAlign: TextAlign.end,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.error,
+                  ),
                 ),
               ),
             ],
@@ -558,112 +786,157 @@ class BalanceCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: AppColors.gradientPrimary,
         borderRadius: BorderRadius.circular(24),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.4),
+            color: AppColors.primary.withValues(alpha: 0.36),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                'Total Pengeluaran',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: Colors.white.withOpacity(0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              top: -30,
+              right: -20,
+              child: Container(
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Bulan Ini',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.10),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            AppFormatters.currency(totalSpent),
-            style: AppTextStyles.moneyLarge(context),
-          ),
-          const SizedBox(height: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+            Positioned(
+              bottom: -36,
+              left: -16,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    'Budget: ${AppFormatters.currency(budget)}',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Text(
+                        'Total Pengeluaran',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Bulan Ini',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                   Text(
-                    '${(pct * 100).toStringAsFixed(0)}%',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    AppFormatters.currency(totalSpent),
+                    style: AppTextStyles.moneyLarge(context),
+                  ),
+                  const SizedBox(height: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              'Budget: ${AppFormatters.currency(budget)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(pct * 100).toStringAsFixed(0)}%',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 8,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            pct > 0.8 ? AppColors.accentLight : Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _StatItem(
+                          label: 'Budget',
+                          value: AppFormatters.compactCurrency(income),
+                          icon: Icons.arrow_downward_rounded,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatItem(
+                          label: 'Sisa',
+                          value: AppFormatters.compactCurrency(
+                              income - totalSpent),
+                          icon: Icons.account_balance_wallet_rounded,
+                          color: AppColors.accentLight,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  minHeight: 8,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    pct > 0.8 ? AppColors.accentLight : Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: <Widget>[
-              _StatItem(
-                label: 'Budget',
-                value: AppFormatters.compactCurrency(income),
-                icon: Icons.arrow_downward_rounded,
-                color: AppColors.secondary,
-              ),
-              const SizedBox(width: 24),
-              _StatItem(
-                label: 'Sisa',
-                value: AppFormatters.compactCurrency(income - totalSpent),
-                icon: Icons.account_balance_wallet_rounded,
-                color: AppColors.accentLight,
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -690,31 +963,37 @@ class _StatItem extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.7),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
               ),
-            ),
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -817,8 +1096,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
               width: 8,
               height: 8 + _controllers[i].value * 4,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(
-                  0.4 + _controllers[i].value * 0.6,
+                color: AppColors.primary.withValues(
+                  alpha: 0.4 + _controllers[i].value * 0.6,
                 ),
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -850,17 +1129,17 @@ class GlassCard extends StatelessWidget {
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.07)
-            : Colors.white.withOpacity(0.85),
+            ? Colors.white.withValues(alpha: 0.07)
+            : Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.6),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.6),
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),

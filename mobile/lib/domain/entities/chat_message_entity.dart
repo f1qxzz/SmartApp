@@ -5,6 +5,8 @@ class ChatMessageEntity {
   final String senderUsername;
   final String senderAvatar;
   final String text;
+  final String type;
+  final String attachmentUrl;
   final DateTime createdAt;
 
   const ChatMessageEntity({
@@ -14,6 +16,8 @@ class ChatMessageEntity {
     required this.senderUsername,
     required this.senderAvatar,
     required this.text,
+    this.type = 'text',
+    this.attachmentUrl = '',
     required this.createdAt,
   });
 
@@ -25,6 +29,11 @@ class ChatMessageEntity {
             ? Map<String, dynamic>.from(senderRaw)
             : <String, dynamic>{'_id': senderRaw};
 
+    final String createdAtRaw =
+        (json['createdAt'] ?? json['timestamp'] ?? '').toString();
+    final DateTime parsedCreatedAt =
+        DateTime.tryParse(createdAtRaw)?.toLocal() ?? DateTime.now();
+
     return ChatMessageEntity(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       chatId: (json['chatId'] ?? '').toString(),
@@ -32,10 +41,9 @@ class ChatMessageEntity {
       senderUsername: (sender['username'] ?? sender['name'] ?? '').toString(),
       senderAvatar: (sender['avatar'] ?? '').toString(),
       text: (json['text'] ?? '').toString(),
-      createdAt: DateTime.tryParse(
-            (json['createdAt'] ?? json['timestamp'] ?? '').toString(),
-          ) ??
-          DateTime.now(),
+      type: (json['messageType'] ?? json['type'] ?? 'text').toString(),
+      attachmentUrl: (json['attachmentUrl'] ?? '').toString(),
+      createdAt: parsedCreatedAt,
     );
   }
 
@@ -46,6 +54,8 @@ class ChatMessageEntity {
     String? senderUsername,
     String? senderAvatar,
     String? text,
+    String? type,
+    String? attachmentUrl,
     DateTime? createdAt,
   }) {
     return ChatMessageEntity(
@@ -55,6 +65,8 @@ class ChatMessageEntity {
       senderUsername: senderUsername ?? this.senderUsername,
       senderAvatar: senderAvatar ?? this.senderAvatar,
       text: text ?? this.text,
+      type: type ?? this.type,
+      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }

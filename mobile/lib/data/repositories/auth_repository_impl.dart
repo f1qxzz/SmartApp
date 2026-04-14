@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/storage/session_auth_cache.dart';
 import 'package:smartlife_app/data/services/auth_service.dart';
@@ -26,12 +28,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String username,
     required String email,
     required String password,
+    String? gender,
     required bool rememberMe,
   }) {
     return _authService.register(
       username: username,
       email: email,
       password: password,
+      gender: gender,
       rememberMe: rememberMe,
     );
   }
@@ -123,6 +127,26 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserEntity> getProfile() {
     return _authService.me();
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String username,
+    required String email,
+    String? gender,
+    String? avatar,
+  }) {
+    return _authService.updateProfile(
+      username: username,
+      email: email,
+      gender: gender,
+      avatar: avatar,
+    );
+  }
+
+  @override
+  Future<String> uploadAvatar(File file) {
+    return _authService.uploadAvatar(file);
   }
 
   @override
