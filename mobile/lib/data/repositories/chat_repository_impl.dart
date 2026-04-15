@@ -29,6 +29,7 @@ class ChatRepositoryImpl implements ChatRepository {
     String? chatId,
     String type = 'text',
     String? attachmentUrl,
+    String? replyToId,
   }) {
     return _chatService.sendMessage(
       text: text,
@@ -36,6 +37,7 @@ class ChatRepositoryImpl implements ChatRepository {
       chatId: chatId,
       type: type,
       attachmentUrl: attachmentUrl,
+      replyToId: replyToId,
     );
   }
 
@@ -48,6 +50,19 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<void> deleteConversation(String id) =>
       _chatService.deleteConversation(id);
+
+  @override
+  Future<void> addReaction({
+    required String chatId,
+    required String messageId,
+    required String emoji,
+  }) {
+    return _chatService.addReaction(
+      chatId: chatId,
+      messageId: messageId,
+      emoji: emoji,
+    );
+  }
 
   @override
   void connectSocket(String token) => _chatService.connectSocket(token);
@@ -71,4 +86,7 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Stream<Map<String, dynamic>> onRead() => _chatService.onRead();
+
+  @override
+  Stream<Map<String, dynamic>> onReaction() => _chatService.onReaction();
 }

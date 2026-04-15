@@ -6,6 +6,9 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon server.js",
+    "dev:tunnel": "node scripts/dev-with-tunnel.js",
+    "dev:cloudflare": "node scripts/dev-with-cloudflare.js",
+    "dev:ngrok": "node scripts/dev-with-ngrok.js",
     "start": "node server.js",
     "lint": "echo \"No lint configured\""
   },
@@ -28,6 +31,8 @@
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
+    "localtunnel": "^2.0.2",
+    "ngrok": "^5.0.0-beta.2",
     "nodemon": "^3.1.4"
   }
 }

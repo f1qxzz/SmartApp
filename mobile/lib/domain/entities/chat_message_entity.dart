@@ -8,6 +8,9 @@ class ChatMessageEntity {
   final String type;
   final String attachmentUrl;
   final DateTime createdAt;
+  final Map<String, String>? reactions;
+  final String? replyToId;
+  final ChatMessageEntity? replyToMessage;
 
   const ChatMessageEntity({
     required this.id,
@@ -19,6 +22,9 @@ class ChatMessageEntity {
     this.type = 'text',
     this.attachmentUrl = '',
     required this.createdAt,
+    this.reactions,
+    this.replyToId,
+    this.replyToMessage,
   });
 
   factory ChatMessageEntity.fromJson(Map<String, dynamic> json) {
@@ -34,6 +40,20 @@ class ChatMessageEntity {
     final DateTime parsedCreatedAt =
         DateTime.tryParse(createdAtRaw)?.toLocal() ?? DateTime.now();
 
+    // Parse reactions
+    Map<String, String>? reactions;
+    if (json['reactions'] != null && json['reactions'] is Map) {
+      reactions = Map<String, String>.from(json['reactions']);
+    }
+
+    // Parse replyToMessage
+    ChatMessageEntity? replyToMessage;
+    if (json['replyToMessage'] != null && json['replyToMessage'] is Map) {
+      replyToMessage = ChatMessageEntity.fromJson(
+        Map<String, dynamic>.from(json['replyToMessage']),
+      );
+    }
+
     return ChatMessageEntity(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       chatId: (json['chatId'] ?? '').toString(),
@@ -44,6 +64,9 @@ class ChatMessageEntity {
       type: (json['messageType'] ?? json['type'] ?? 'text').toString(),
       attachmentUrl: (json['attachmentUrl'] ?? '').toString(),
       createdAt: parsedCreatedAt,
+      reactions: reactions,
+      replyToId: json['replyToId']?.toString(),
+      replyToMessage: replyToMessage,
     );
   }
 
@@ -57,6 +80,9 @@ class ChatMessageEntity {
     String? type,
     String? attachmentUrl,
     DateTime? createdAt,
+    Map<String, String>? reactions,
+    String? replyToId,
+    ChatMessageEntity? replyToMessage,
   }) {
     return ChatMessageEntity(
       id: id ?? this.id,
@@ -68,6 +94,9 @@ class ChatMessageEntity {
       type: type ?? this.type,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       createdAt: createdAt ?? this.createdAt,
+      reactions: reactions ?? this.reactions,
+      replyToId: replyToId ?? this.replyToId,
+      replyToMessage: replyToMessage ?? this.replyToMessage,
     );
   }
 }

@@ -75,14 +75,18 @@ class AuthUseCases {
   Future<UserEntity> updateProfile({
     required String username,
     required String email,
+    String? name,
     String? gender,
     String? avatar,
+    double? monthlyBudget,
   }) =>
       _repository.updateProfile(
         username: username,
         email: email,
+        name: name,
         gender: gender,
         avatar: avatar,
+        monthlyBudget: monthlyBudget,
       );
 
   Future<String> uploadAvatar(File file) => _repository.uploadAvatar(file);

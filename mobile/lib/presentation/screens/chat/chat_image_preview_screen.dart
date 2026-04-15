@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:smartlife_app/core/theme/app_theme.dart';
 
 class ChatImagePreviewScreen extends StatefulWidget {
   final XFile image;
@@ -49,59 +49,86 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen> {
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
-                top: 16,
+                top: 32,
                 bottom: MediaQuery.of(context).padding.bottom + 16,
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black87, Colors.transparent],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.75),
+                    Colors.black.withValues(alpha: 0.4),
+                    Colors.transparent,
+                  ],
                 ),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: TextField(
-                        controller: _captionCtrl,
-                        style: GoogleFonts.inter(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Tambah keterangan...',
-                          hintStyle: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 14,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1.2,
+                            ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          child: TextField(
+                            controller: _captionCtrl,
+                            maxLines: 4,
+                            minLines: 1,
+                            cursorColor: Colors.white,
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              shadows: const <Shadow>[
+                                Shadow(
+                                  color: Color(0xCC000000),
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Tambah keterangan...',
+                              hintStyle: GoogleFonts.inter(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context, _captionCtrl.text.trim());
                     },
                     child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.gradientPrimary,
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8C90A8),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black45,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),

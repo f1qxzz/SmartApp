@@ -26,6 +26,8 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   bool _isSuccessMessageScheduled = false;
+  bool _isQuickActionsOpen = false;
+  String _activeTabUserId = '';
   ProviderSubscription<AuthState>? _authSubscription;
 
   final List<Widget> _screens = const <Widget>[
@@ -40,27 +42,55 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialTab();
+    final userId = ref.read(authProvider).user?.id;
+    _loadInitialTab(userId: userId);
     _authSubscription = ref.listenManual<AuthState>(
       authProvider,
       (AuthState? previous, AuthState next) {
+        final nextUserId = (next.user?.id ?? '').trim();
+        if (_activeTabUserId != nextUserId) {
+          _loadInitialTab(userId: next.user?.id, refreshUi: true);
+        }
         _showRegisterSuccess(next);
       },
       fireImmediately: true,
     );
   }
 
-  void _loadInitialTab() {
-    final savedIndex = HiveService.appBox.get(HiveBoxes.lastTab) as int?;
-    if (savedIndex != null && savedIndex >= 0 && savedIndex < _screens.length) {
-      _currentIndex = savedIndex;
+  void _loadInitialTab({
+    String? userId,
+    bool refreshUi = false,
+  }) {
+    final scopedUserId = (userId ?? '').trim();
+    final savedIndex = HiveService.getUserScopedAppInt(
+      HiveBoxes.lastTab,
+      userId: scopedUserId,
+      fallback: 0,
+      fallbackToLegacy: true,
+    );
+    final safeIndex =
+        savedIndex >= 0 && savedIndex < _screens.length ? savedIndex : 0;
+
+    _activeTabUserId = scopedUserId;
+    if (refreshUi && mounted) {
+      setState(() => _currentIndex = safeIndex);
+      return;
     }
+
+    _currentIndex = safeIndex;
   }
 
   void _updateTab(int index) {
+    if (_isQuickActionsOpen) {
+      _closeQuickActions();
+    }
     if (_currentIndex == index) return;
     setState(() => _currentIndex = index);
-    HiveService.appBox.put(HiveBoxes.lastTab, index);
+    HiveService.putUserScopedAppValue(
+      HiveBoxes.lastTab,
+      index,
+      userId: ref.read(authProvider).user?.id,
+    );
   }
 
   @override
@@ -106,38 +136,38 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     return Scaffold(
       extendBody: true,
-      body: FadeIndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      floatingActionButton: _currentIndex == 1
-          ? FloatingActionButton(
-              onPressed: () => _showAddTransaction(context),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              tooltip: 'Tambah transaksi',
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(
-                  gradient: AppColors.gradientPrimary,
-                  shape: BoxShape.circle,
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: Color(0x557C7E9D),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 28,
+      body: Stack(
+        children: <Widget>[
+          FadeIndexedStack(
+            index: _currentIndex,
+            duration: const Duration(milliseconds: 280),
+            children: _screens,
+          ),
+          if (_isQuickActionsOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeQuickActions,
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.14),
                 ),
               ),
-            )
-          : null,
+            ),
+        ],
+      ),
+      floatingActionButton: _QuickActionFabMenu(
+        isDark: isDark,
+        isOpen: _isQuickActionsOpen,
+        onToggle: _toggleQuickActions,
+        onAddTransaction: () => _runQuickAction(
+          () => _showAddTransaction(context),
+        ),
+        onOpenChat: () => _runQuickAction(() => _updateTab(0)),
+        onOpenDashboard: () => _runQuickAction(() => _updateTab(3)),
+        onOpenAI: () => _runQuickAction(() => _updateTab(4)),
+        onOpenProfile: () => _runQuickAction(() => _updateTab(5)),
+      ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTap: _updateTab,
@@ -207,6 +237,237 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
     );
   }
+
+  void _toggleQuickActions() {
+    HapticFeedback.lightImpact();
+    setState(() => _isQuickActionsOpen = !_isQuickActionsOpen);
+  }
+
+  void _closeQuickActions() {
+    if (!_isQuickActionsOpen) {
+      return;
+    }
+    setState(() => _isQuickActionsOpen = false);
+  }
+
+  void _runQuickAction(VoidCallback action) {
+    _closeQuickActions();
+    Future<void>.delayed(const Duration(milliseconds: 80), () {
+      if (!mounted) {
+        return;
+      }
+      action();
+    });
+  }
+}
+
+class _QuickActionFabMenu extends StatelessWidget {
+  final bool isDark;
+  final bool isOpen;
+  final VoidCallback onToggle;
+  final VoidCallback onAddTransaction;
+  final VoidCallback onOpenChat;
+  final VoidCallback onOpenDashboard;
+  final VoidCallback onOpenAI;
+  final VoidCallback onOpenProfile;
+
+  const _QuickActionFabMenu({
+    required this.isDark,
+    required this.isOpen,
+    required this.onToggle,
+    required this.onAddTransaction,
+    required this.onOpenChat,
+    required this.onOpenDashboard,
+    required this.onOpenAI,
+    required this.onOpenProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        _buildAnimatedAction(
+          order: 0,
+          child: _QuickActionChip(
+            label: 'Catat Transaksi',
+            icon: Icons.add_card_rounded,
+            isDark: isDark,
+            onTap: onAddTransaction,
+          ),
+        ),
+        _buildAnimatedAction(
+          order: 1,
+          child: _QuickActionChip(
+            label: 'Buka Chat',
+            icon: Icons.chat_bubble_rounded,
+            isDark: isDark,
+            onTap: onOpenChat,
+          ),
+        ),
+        _buildAnimatedAction(
+          order: 2,
+          child: _QuickActionChip(
+            label: 'Dashboard',
+            icon: Icons.bar_chart_rounded,
+            isDark: isDark,
+            onTap: onOpenDashboard,
+          ),
+        ),
+        _buildAnimatedAction(
+          order: 3,
+          child: _QuickActionChip(
+            label: 'Smart AI',
+            icon: Icons.auto_awesome_rounded,
+            isDark: isDark,
+            onTap: onOpenAI,
+          ),
+        ),
+        _buildAnimatedAction(
+          order: 4,
+          child: _QuickActionChip(
+            label: 'Profile',
+            icon: Icons.person_rounded,
+            isDark: isDark,
+            onTap: onOpenProfile,
+          ),
+        ),
+        const SizedBox(height: 10),
+        FloatingActionButton(
+          onPressed: onToggle,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          tooltip: isOpen ? 'Tutup aksi cepat' : 'Buka aksi cepat',
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: isOpen
+                  ? const LinearGradient(
+                      colors: <Color>[
+                        Color(0xFF4C5372),
+                        Color(0xFF2F344A),
+                      ],
+                    )
+                  : AppColors.gradientPrimary,
+              shape: BoxShape.circle,
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: isDark ? 0.38 : 0.26),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Center(
+              child: AnimatedRotation(
+                turns: isOpen ? 0.125 : 0,
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                child: Icon(
+                  isOpen ? Icons.close_rounded : Icons.widgets_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnimatedAction({
+    required int order,
+    required Widget child,
+  }) {
+    final duration = Duration(milliseconds: 160 + (order * 40));
+    return IgnorePointer(
+      ignoring: !isOpen,
+      child: AnimatedSlide(
+        duration: duration,
+        curve: Curves.easeOutCubic,
+        offset: isOpen ? Offset.zero : const Offset(0.3, 0.04),
+        child: AnimatedOpacity(
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          opacity: isOpen ? 1 : 0,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _QuickActionChip({
+    required this.label,
+    required this.icon,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.86),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.20)
+                      : Colors.white,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(icon, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _BottomNav extends StatelessWidget {
@@ -255,7 +516,8 @@ class _BottomNav extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0xFF161A2D).withValues(alpha: 0.65)
@@ -284,10 +546,12 @@ class _BottomNav extends StatelessWidget {
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.fastOutSlowIn,
                           padding: isActive
-                              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+                              ? const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8)
                               : const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            gradient: isActive ? AppColors.gradientPrimary : null,
+                            gradient:
+                                isActive ? AppColors.gradientPrimary : null,
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: Row(
@@ -334,7 +598,6 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
-
 class FadeIndexedStack extends StatelessWidget {
   final int index;
   final List<Widget> children;
@@ -363,16 +626,18 @@ class FadeIndexedStack extends StatelessWidget {
               offset: isActive ? Offset.zero : const Offset(0.0, 0.02),
               duration: duration,
               curve: Curves.easeOutQuart,
-              child: AnimatedScale(
-                scale: isActive ? 1.0 : 0.98,
-                duration: duration,
-                curve: Curves.easeOutQuart,
-                child: TickerMode(
-                  enabled: isActive,
-                  child: children[i],
+                child: AnimatedScale(
+                  scale: isActive ? 1.0 : 0.98,
+                  duration: duration,
+                  curve: Curves.easeOutQuart,
+                  child: TickerMode(
+                    enabled: isActive,
+                    child: RepaintBoundary(
+                      child: children[i],
+                    ),
+                  ),
                 ),
               ),
-            ),
           ),
         );
       }),

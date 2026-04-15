@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:smartlife_app/core/config/env_config.dart';
 import 'package:smartlife_app/core/network/api_exception.dart';
@@ -21,6 +22,21 @@ class ChatService {
   Stream<Map<String, dynamic>>? _typingStream;
   Stream<Map<String, dynamic>>? _presenceStream;
   Stream<Map<String, dynamic>>? _readStream;
+  Stream<Map<String, dynamic>>? _reactionStream;
+
+  Map<String, dynamic> _asMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    if (value is Map) {
+      return value.map(
+        (key, val) => MapEntry(key.toString(), val),
+      );
+    }
+
+    throw const ApiException('Format response API tidak valid');
+  }
 
   Future<List<ChatConversationEntity>> getConversations() async {
     try {
@@ -79,6 +95,7 @@ class ChatService {
     String? chatId,
     String type = 'text',
     String? attachmentUrl,
+    String? replyToId,
   }) async {
     try {
       final response = await _dioClient.instance.post(
@@ -90,6 +107,8 @@ class ChatService {
           if (receiverId != null && receiverId.trim().isNotEmpty)
             'receiverId': receiverId,
           if (chatId != null && chatId.trim().isNotEmpty) 'chatId': chatId,
+          if (replyToId != null && replyToId.trim().isNotEmpty)
+            'replyToId': replyToId,
         },
       );
 
@@ -102,14 +121,38 @@ class ChatService {
 
   Future<String> uploadFile(File file) async {
     try {
+      final fileName = file.uri.pathSegments.isNotEmpty
+          ? file.uri.pathSegments.last
+          : 'upload_${DateTime.now().millisecondsSinceEpoch}';
+
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(file.path),
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
       });
 
-      final response = await _dioClient.instance.post('/api/upload', data: formData);
-      final path = (response.data['data']['url'] ?? '').toString();
+      final response = await _dioClient.instance.post(
+        '/api/upload',
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          sendTimeout: const Duration(seconds: 90),
+          receiveTimeout: const Duration(seconds: 90),
+        ),
+      );
+
+      final root = _asMap(response.data);
+      final payload = root['data'] is Map ? _asMap(root['data']) : root;
+      final path = (payload['url'] ?? '').toString().trim();
+      if (path.isEmpty) {
+        throw const ApiException('URL file tidak ditemukan dari server');
+      }
       return UrlHelper.toAbsolute(EnvConfig.apiBaseUrl, path);
     } catch (error) {
+      if (error is ApiException) {
+        rethrow;
+      }
       throw ApiException.fromDio(error);
     }
   }
@@ -130,6 +173,33 @@ class ChatService {
     }
   }
 
+  Future<void> addReaction({
+    required String chatId,
+    required String messageId,
+    required String emoji,
+  }) async {
+    // Emit socket event for real-time
+    _socketClient.emit('chat:reaction', {
+      'chatId': chatId,
+      'messageId': messageId,
+      'emoji': emoji,
+    });
+
+    // Optional: Call REST for persistence
+    try {
+      await _dioClient.instance.post(
+        '/messages/reaction',
+        data: {
+          'chatId': chatId,
+          'messageId': messageId,
+          'emoji': emoji,
+        },
+      );
+    } catch (error) {
+      debugPrint('[CHAT] Add reaction REST failed: $error');
+    }
+  }
+
   void connectSocket(String token) {
     _socketClient.connect(token: token);
   }
@@ -140,6 +210,7 @@ class ChatService {
     _typingStream = null;
     _presenceStream = null;
     _readStream = null;
+    _reactionStream = null;
   }
 
   void emitTyping({required String toUserId, required bool isTyping}) {
@@ -183,5 +254,14 @@ class ChatService {
         .asBroadcastStream();
 
     return _readStream!;
+  }
+
+  Stream<Map<String, dynamic>> onReaction() {
+    _reactionStream ??= _socketClient
+        .on('chat:reaction')
+        .map((event) => Map<String, dynamic>.from(event as Map))
+        .asBroadcastStream();
+
+    return _reactionStream!;
   }
 }

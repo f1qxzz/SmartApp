@@ -82,13 +82,34 @@ class FinanceState {
 }
 
 class FinanceNotifier extends StateNotifier<FinanceState> {
-  FinanceNotifier(this._useCases) : super(const FinanceState()) {
-    load();
-  }
+  FinanceNotifier(this._useCases) : super(const FinanceState());
 
   final FinanceUseCases _useCases;
+  String? _activeUserId;
+
+  Future<void> onAuthChanged(AuthState authState) async {
+    final userId = authState.user?.id.trim();
+    if (!authState.isAuthenticated || userId == null || userId.isEmpty) {
+      _activeUserId = null;
+      reset();
+      return;
+    }
+
+    if (_activeUserId == userId && state.entries.isNotEmpty) {
+      return;
+    }
+
+    _activeUserId = userId;
+    state = const FinanceState();
+    await load();
+  }
 
   Future<void> load({bool silent = false}) async {
+    if (_activeUserId == null || _activeUserId!.isEmpty) {
+      reset();
+      return;
+    }
+
     if (!silent) {
       state = state.copyWith(isLoading: true, clearError: true);
     }
@@ -212,13 +233,10 @@ final financeProvider = StateNotifierProvider<FinanceNotifier, FinanceState>(
     final notifier = FinanceNotifier(ref.read(financeUseCasesProvider));
 
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (!next.isAuthenticated) {
-        notifier.reset();
-        return;
-      }
-      notifier.load();
+      notifier.onAuthChanged(next);
     });
 
+    notifier.onAuthChanged(ref.read(authProvider));
     return notifier;
   },
 );

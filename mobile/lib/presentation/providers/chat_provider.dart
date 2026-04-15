@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:smartlife_app/core/notifications/notification_service.dart';
+import 'package:smartlife_app/core/storage/hive_boxes.dart';
+import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/domain/entities/chat_conversation_entity.dart';
 import 'package:smartlife_app/domain/entities/chat_message_entity.dart';
 import 'package:smartlife_app/domain/usecases/chat_usecases.dart';
@@ -18,6 +21,7 @@ class ChatState {
   final Map<String, List<ChatMessageEntity>> messagesByChatId;
   final Map<String, bool> typingFrom;
   final String? activeChatId;
+  final ChatMessageEntity? replyMessage;
 
   const ChatState({
     this.isLoading = false,
@@ -28,6 +32,7 @@ class ChatState {
     this.messagesByChatId = const {},
     this.typingFrom = const {},
     this.activeChatId,
+    this.replyMessage,
   });
 
   ChatState copyWith({
@@ -39,7 +44,9 @@ class ChatState {
     Map<String, List<ChatMessageEntity>>? messagesByChatId,
     Map<String, bool>? typingFrom,
     String? activeChatId,
+    ChatMessageEntity? replyMessage,
     bool clearError = false,
+    bool clearReply = false,
   }) {
     return ChatState(
       isLoading: isLoading ?? this.isLoading,
@@ -50,6 +57,7 @@ class ChatState {
       messagesByChatId: messagesByChatId ?? this.messagesByChatId,
       typingFrom: typingFrom ?? this.typingFrom,
       activeChatId: activeChatId ?? this.activeChatId,
+      replyMessage: clearReply ? null : (replyMessage ?? this.replyMessage),
     );
   }
 }
@@ -63,16 +71,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _presenceSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  StreamSubscription<Map<String, dynamic>>? _reactionSub;
   int _searchRequestId = 0;
 
   String? _connectedToken;
+  String? _currentUserId;
 
   Future<void> onAuthChanged(AuthState authState) async {
     if (!authState.isAuthenticated || authState.token == null) {
       disconnect();
+      _currentUserId = null;
       state = const ChatState();
       return;
     }
+
+    _currentUserId = authState.user?.id;
 
     if (_connectedToken == authState.token) {
       return;
@@ -81,6 +94,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _connectedToken = authState.token;
     _useCases.connectSocket(authState.token!);
     _bindSocketStreams();
+
+    // Ensure notifications are initialized and permissions requested
+    await NotificationService.instance.initialize();
 
     await refreshChats();
   }
@@ -114,6 +130,18 @@ class ChatNotifier extends StateNotifier<ChatState> {
       return;
     }
 
+    final List<ChatConversationEntity> localMatches = state.chats
+        .where(
+          (chat) => chat.username.toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList();
+
+    state = state.copyWith(
+      searchResults: localMatches,
+      searchKeyword: query,
+      clearError: true,
+    );
+
     try {
       final users = await _useCases.searchUsers(query);
       if (requestId != _searchRequestId) {
@@ -139,12 +167,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
       state = state.copyWith(
         searchResults: merged,
         searchKeyword: query,
+        clearError: true,
       );
     } catch (error) {
       if (requestId != _searchRequestId) {
         return;
       }
-      state = state.copyWith(errorMessage: error.toString());
+      state = state.copyWith(
+        // Keep local fallback results when API search fails.
+        searchResults: localMatches,
+        searchKeyword: query,
+        errorMessage: localMatches.isEmpty ? error.toString() : null,
+        clearError: localMatches.isNotEmpty,
+      );
     }
   }
 
@@ -175,6 +210,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     String? receiverId,
     String type = 'text',
     String? attachmentUrl,
+    String? replyToId,
   }) async {
     final message = await _useCases.sendMessage(
       text: text,
@@ -182,11 +218,39 @@ class ChatNotifier extends StateNotifier<ChatState> {
       receiverId: receiverId,
       type: type,
       attachmentUrl: attachmentUrl,
+      replyToId: replyToId,
     );
 
     _appendMessage(message);
+    state = state.copyWith(clearReply: true);
     await _refreshChatsSilent();
     return message;
+  }
+
+  Future<void> addReaction(String messageId, String emoji) async {
+    final activeChatId = state.activeChatId;
+    if (activeChatId == null || _currentUserId == null) return;
+
+    try {
+      // Optimistic Update
+      _updateMessageReaction(activeChatId, messageId, _currentUserId!, emoji);
+      
+      await _useCases.addReaction(
+        chatId: activeChatId,
+        messageId: messageId,
+        emoji: emoji,
+      );
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+    }
+  }
+
+  void setReplyMessage(ChatMessageEntity? message) {
+    state = state.copyWith(replyMessage: message);
+  }
+
+  void clearReplyMessage() {
+    state = state.copyWith(clearReply: true);
   }
 
   Future<String> uploadFile(File file) => _useCases.uploadFile(file);
@@ -214,8 +278,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       await _useCases.deleteConversation(chatId);
 
       // Remove from list
-      final chats =
-          List<ChatConversationEntity>.from(state.chats);
+      final chats = List<ChatConversationEntity>.from(state.chats);
       chats.removeWhere((c) => c.chatId == chatId);
 
       final map =
@@ -277,13 +340,58 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
+  void _updateMessageReaction(
+    String chatId,
+    String messageId,
+    String userId,
+    String emoji,
+  ) {
+    final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+    final list = List<ChatMessageEntity>.from(map[chatId] ?? const []);
+
+    final index = list.indexWhere((m) => m.id == messageId);
+    if (index != -1) {
+      final msg = list[index];
+      final reactions = Map<String, String>.from(msg.reactions ?? {});
+      
+      if (reactions[userId] == emoji) {
+        reactions.remove(userId);
+      } else {
+        reactions[userId] = emoji;
+      }
+
+      list[index] = msg.copyWith(reactions: reactions);
+      map[chatId] = list;
+      state = state.copyWith(messagesByChatId: map);
+    }
+  }
+
   void _bindSocketStreams() {
     _messageSub?.cancel();
     _typingSub?.cancel();
     _presenceSub?.cancel();
     _readSub?.cancel();
+    _reactionSub?.cancel();
 
     _messageSub = _useCases.onNewMessage().listen((message) async {
+      final fromOtherUser =
+          _currentUserId != null && message.senderId != _currentUserId;
+      final activeChatId = state.activeChatId?.trim() ?? '';
+      final isCurrentChatOpen =
+          activeChatId.isNotEmpty && activeChatId == message.chatId;
+
+      if (fromOtherUser && !isCurrentChatOpen) {
+        final bool chatNotifEnabled = HiveService.getUserScopedAppBool(
+          HiveBoxes.prefChatNotifications,
+          userId: _currentUserId ?? '',
+          fallback: true,
+        );
+
+        if (chatNotifEnabled) {
+          await NotificationService.instance.showChatMessage(message);
+        }
+      }
+
       _appendMessage(message);
       await _refreshChatsSilent();
     });
@@ -309,18 +417,32 @@ class ChatNotifier extends StateNotifier<ChatState> {
     });
 
     _readSub = _useCases.onRead().listen((_) {});
+
+    _reactionSub = _useCases.onReaction().listen((event) {
+      final chatId = event['chatId']?.toString();
+      final messageId = event['messageId']?.toString();
+      final userId = event['userId']?.toString();
+      final emoji = event['emoji']?.toString();
+
+      if (chatId != null && messageId != null && userId != null && emoji != null) {
+        _updateMessageReaction(chatId, messageId, userId, emoji);
+      }
+    });
   }
 
   void disconnect() {
     _connectedToken = null;
+    _currentUserId = null;
     _messageSub?.cancel();
     _typingSub?.cancel();
     _presenceSub?.cancel();
     _readSub?.cancel();
+    _reactionSub?.cancel();
     _messageSub = null;
     _typingSub = null;
     _presenceSub = null;
     _readSub = null;
+    _reactionSub = null;
     _useCases.disconnectSocket();
   }
 

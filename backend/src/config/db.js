@@ -14,7 +14,9 @@ async function connectDatabase() {
     console.log('MongoDB connected successfully');
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('MongoDB connection error. Please ensure MongoDB is running locally on port 27017 or provide a valid MONGO_URI in .env');
+    console.error(
+      'MongoDB connection error. Pastikan MONGO_URI valid, host Atlas dapat di-resolve, kredensial benar, dan IP kamu sudah diizinkan di Atlas Network Access.'
+    );
     throw error;
   }
 }

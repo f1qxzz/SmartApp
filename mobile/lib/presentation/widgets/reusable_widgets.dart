@@ -1,10 +1,15 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
+import 'package:smartlife_app/domain/entities/chat_message_entity.dart';
 
 class CustomButton extends StatefulWidget {
   final String text;
@@ -270,7 +275,10 @@ class ChatBubble extends StatelessWidget {
   final String? avatarUrl;
   final String type;
   final String attachmentUrl;
-  final VoidCallback? onLongPress;
+  final Function(Offset position)? onLongPress;
+  final Map<String, String>? reactions;
+  final ChatMessageEntity? replyToMessage;
+  final VoidCallback? onReply;
 
   const ChatBubble({
     super.key,
@@ -283,195 +291,172 @@ class ChatBubble extends StatelessWidget {
     this.type = 'text',
     this.attachmentUrl = '',
     this.onLongPress,
+    this.reactions,
+    this.replyToMessage,
+    this.onReply,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final String normalizedType = type.trim().toLowerCase();
+    final String normalizedAttachment = attachmentUrl.trim().toLowerCase();
+    final bool isImageMessage = normalizedType == 'image' ||
+        _looksLikeImageAttachment(normalizedAttachment);
+    final bool isVoiceMessage = normalizedType == 'voice' ||
+        normalizedType == 'audio' ||
+        _looksLikeVoiceAttachment(normalizedAttachment);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          if (!isMe) ...<Widget>[
-            CircleAvatar(
-              radius: 16,
-              backgroundImage:
-                  avatarUrl != null && avatarUrl!.isNotEmpty
-                      ? NetworkImage(avatarUrl!)
-                      : null,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-              child: avatarUrl == null || avatarUrl!.isEmpty
-                  ? const Icon(Icons.person, size: 16, color: AppColors.primary)
-                  : null,
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: GestureDetector(
-              onLongPress: onLongPress,
-              child: Column(
-                crossAxisAlignment:
-                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.7,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      gradient: isMe ? AppColors.gradientPrimary : null,
-                      color: isMe
-                          ? null
-                          : (isDark
-                              ? AppColors.surfaceDark
-                              : AppColors.surfaceLight),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(18),
-                        topRight: const Radius.circular(18),
-                        bottomLeft: Radius.circular(isMe ? 18 : 4),
-                        bottomRight: Radius.circular(isMe ? 4 : 18),
-                      ),
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          color: (isMe ? AppColors.primary : Colors.black)
-                              .withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        if (type == 'image' ||
-                            attachmentUrl.contains('.jpg') ||
-                            attachmentUrl.contains('.png'))
-                          Padding(
-                            padding: EdgeInsets.only(
-                                bottom: text.trim().isNotEmpty ? 10 : 0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                attachmentUrl.isEmpty
-                                    ? imageUrl
-                                    : attachmentUrl,
-                                width: 210,
-                                height: 170,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 210,
-                                  height: 170,
-                                  color: isMe
-                                      ? Colors.white.withValues(alpha: 0.2)
-                                      : (isDark
-                                          ? AppColors.backgroundDark
-                                          : AppColors.surfaceLight),
-                                  alignment: Alignment.center,
-                                  child: Icon(
-                                    Icons.broken_image_outlined,
-                                    size: 22,
-                                    color: isMe
-                                        ? Colors.white
-                                        : (isDark
-                                            ? AppColors.textSecondaryDark
-                                            : AppColors.textSecondary),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (type == 'voice' ||
-                            type == 'audio' ||
-                            attachmentUrl.contains('.m4a'))
-                          VoiceMessagePlayer(
-                            url: attachmentUrl,
-                            isMe: isMe,
-                          ),
-                        if (text.trim().isNotEmpty)
-                          Text(
-                            text,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: isMe
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimary),
-                            ),
-                          ),
-                        if (text.trim().isEmpty &&
-                            imageUrl.trim().isEmpty &&
-                            attachmentUrl.isEmpty)
-                          Text(
-                            'Pesan kosong',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: isMe
-                                  ? Colors.white70
-                                  : (isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textTertiary),
-                            ),
-                          ),
-                      ],
-                    ),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: _SwipeToReply(
+          onReply: onReply,
+          child: GestureDetector(
+            onLongPressStart: onLongPress != null
+                ? (details) => onLongPress!(details.globalPosition)
+                : null,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.78,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        _formatTime(timestamp),
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textTertiary,
-                        ),
+                  padding: isImageMessage
+                      ? EdgeInsets.zero
+                      : const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  margin: EdgeInsets.only(
+                    bottom: (reactions != null && reactions!.isNotEmpty) ? 8 : 0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isMe
+                        ? AppColors.chatPrimary
+                        : (isDark ? AppColors.surfaceDark : Colors.white),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(6),
+                    ),
+                    border: isMe
+                        ? null
+                        : Border.all(
+                            color: isDark
+                                ? Colors.white12
+                                : Colors.black.withValues(alpha: 0.05),
+                            width: 1,
+                          ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isMe ? 0.08 : 0.05),
+                        blurRadius: isMe ? 8 : 4,
+                        offset: const Offset(0, 3),
                       ),
-                      if (isMe) ...<Widget>[
-                        const SizedBox(width: 4),
-                        Icon(
-                          isRead ? Icons.done_all : Icons.done,
-                          size: 14,
-                          color: isRead
-                              ? AppColors.secondary
-                              : AppColors.textTertiary,
-                        ),
-                      ],
                     ],
                   ),
-                ],
-              ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (replyToMessage != null)
+                        _ReplyPreview(
+                          message: replyToMessage!,
+                          isMe: isMe,
+                          isDark: isDark,
+                        ),
+                      if (isImageMessage)
+                        _ImageContent(
+                          imageUrl: attachmentUrl.isEmpty ? imageUrl : attachmentUrl,
+                          isMe: isMe,
+                          isDark: isDark,
+                          text: text,
+                          timestamp: timestamp,
+                          isRead: isRead,
+                        ),
+                      if (isVoiceMessage)
+                        Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: VoiceMessagePlayer(
+                            url: attachmentUrl,
+                            isMe: isMe,
+                            timestamp: timestamp,
+                            isRead: isRead,
+                          ),
+                        ),
+                      if (!isImageMessage && !isVoiceMessage)
+                        _TextContent(
+                          text: text,
+                          isMe: isMe,
+                          isDark: isDark,
+                          timestamp: timestamp,
+                          isRead: isRead,
+                        ),
+                    ],
+                  ),
+                ),
+                if (reactions != null && reactions!.isNotEmpty)
+                  Positioned(
+                    bottom: -10,
+                    right: -4,
+                    child: _ReactionBadge(
+                      reactions: reactions!,
+                      isMe: isMe,
+                      isDark: isDark,
+                    ),
+                  ),
+              ],
             ),
-          ),
-          if (isMe) const SizedBox(width: 4),
-        ],
+          )
+              .animate()
+              .fadeIn(duration: 200.ms)
+              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
+        ),
       ),
     );
   }
 
-  String _formatTime(DateTime dt) {
-    final String h = dt.hour.toString().padLeft(2, '0');
-    final String m = dt.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+  bool _looksLikeImageAttachment(String normalizedAttachment) {
+    if (normalizedAttachment.isEmpty) {
+      return false;
+    }
+    return normalizedAttachment.contains('.jpg') ||
+        normalizedAttachment.contains('.jpeg') ||
+        normalizedAttachment.contains('.png') ||
+        normalizedAttachment.contains('.webp') ||
+        normalizedAttachment.contains('.gif') ||
+        normalizedAttachment.contains('/image/upload/') ||
+        normalizedAttachment.contains('image/');
+  }
+
+  bool _looksLikeVoiceAttachment(String normalizedAttachment) {
+    if (normalizedAttachment.isEmpty) {
+      return false;
+    }
+    return normalizedAttachment.contains('.m4a') ||
+        normalizedAttachment.contains('.mp3') ||
+        normalizedAttachment.contains('.wav') ||
+        normalizedAttachment.contains('.aac') ||
+        normalizedAttachment.contains('.ogg') ||
+        normalizedAttachment.contains('.webm') ||
+        normalizedAttachment.contains('.mp4') ||
+        normalizedAttachment.contains('audio/');
   }
 }
 
 class VoiceMessagePlayer extends StatefulWidget {
   final String url;
   final bool isMe;
+  final DateTime timestamp;
+  final bool isRead;
 
   const VoiceMessagePlayer({
     super.key,
     required this.url,
     required this.isMe,
+    required this.timestamp,
+    required this.isRead,
   });
 
   @override
@@ -532,35 +517,49 @@ class _VoiceMessagePlayerState extends State<VoiceMessagePlayer> {
     return '$minutes:$seconds';
   }
 
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Color color = widget.isMe ? Colors.white : AppColors.primary;
+    final Color color = widget.isMe ? Colors.white : AppColors.chatPrimary;
+    final Color metaColor = widget.isMe ? Colors.white70 : AppColors.textTertiary;
 
     return Container(
-      width: 200,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      width: 220,
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          IconButton(
-            onPressed: _togglePlay,
-            iconSize: 28,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(
-              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-              color: color,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: widget.isMe ? Colors.white : AppColors.chatPrimary,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              onPressed: _togglePlay,
+              icon: Icon(
+                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: widget.isMe ? AppColors.chatPrimary : Colors.white,
+                size: 24,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 SliderTheme(
                   data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                    trackHeight: 3,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 0),
+                    overlayShape:
+                        const RoundSliderOverlayShape(overlayRadius: 0),
                     activeTrackColor: color,
                     inactiveTrackColor: color.withValues(alpha: 0.3),
                     thumbColor: color,
@@ -577,15 +576,41 @@ class _VoiceMessagePlayerState extends State<VoiceMessagePlayer> {
                     },
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    _formatDuration(_isPlaying ? _position : _duration),
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: color.withValues(alpha: 0.7),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(_isPlaying ? _position : _duration),
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: color.withValues(alpha: 0.8),
+                      ),
                     ),
-                  ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _formatTime(widget.timestamp),
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: metaColor,
+                          ),
+                        ),
+                        if (widget.isMe) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            widget.isRead
+                                ? Icons.done_all_rounded
+                                : Icons.done_rounded,
+                            size: 12,
+                            color: widget.isRead ? Colors.white : Colors.white70,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1146,6 +1171,616 @@ class GlassCard extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+class AppAlert {
+  static Future<void> show(
+    BuildContext context, {
+    required String title,
+    required String message,
+    bool isError = false,
+    Duration? duration,
+  }) async {
+    HapticFeedback.lightImpact();
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curve = Curves.easeOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: curve,
+          child: Opacity(
+            opacity: anim1.value,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Material(
+                  color: Colors.transparent,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.cardDark.withValues(alpha: 0.85)
+                              : Colors.white.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: (isError ? AppColors.error : AppColors.success)
+                                .withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: (isError ? AppColors.error : AppColors.success)
+                                    .withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isError ? Icons.close_rounded : Icons.check_rounded,
+                                color: isError ? AppColors.error : AppColors.success,
+                                size: 36,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              title,
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: CustomButton(
+                                text: 'OK',
+                                onPressed: () => Navigator.of(context).pop(),
+                                gradient: isError
+                                    ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFB91C1C)])
+                                    : AppColors.gradientPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ReactionMenu {
+  static void show(
+    BuildContext context, {
+    required Offset position,
+    required Function(String emoji) onReactionSelected,
+    VoidCallback? onDelete,
+    bool isMe = true,
+  }) {
+    HapticFeedback.mediumImpact();
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final double curve = Curves.easeOutBack.transform(anim1.value);
+        return Stack(
+          children: [
+            Positioned(
+              top: position.dy - 70,
+              left: isMe ? null : position.dx,
+              right: isMe ? (MediaQuery.of(context).size.width - position.dx - 40) : null,
+              child: Transform.scale(
+                scale: curve,
+                alignment: isMe ? Alignment.bottomRight : Alignment.bottomLeft,
+                child: Opacity(
+                  opacity: anim1.value,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF1E2235).withValues(alpha: 0.8)
+                                : Colors.white.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) {
+                                return GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    onReactionSelected(emoji);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                );
+                              }),
+                              if (onDelete != null) ...[
+                                Container(
+                                  height: 24,
+                                  width: 1,
+                                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                                  color: Colors.white24,
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    Navigator.pop(context);
+                                    onDelete();
+                                  },
+                                  child: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.redAccent,
+                                    size: 22,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SwipeToReply extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onReply;
+
+  const _SwipeToReply({required this.child, this.onReply});
+
+  @override
+  State<_SwipeToReply> createState() => _SwipeToReplyState();
+}
+
+class _SwipeToReplyState extends State<_SwipeToReply> {
+  double _offset = 0;
+  bool _triggered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onHorizontalDragUpdate: (details) {
+        if (widget.onReply == null) return;
+        setState(() {
+          _offset += details.delta.dx;
+          // Only allow swipe to the right
+          if (_offset < 0) _offset = 0;
+          if (_offset > 70) _offset = 70;
+          
+          if (_offset >= 60 && !_triggered) {
+            _triggered = true;
+            HapticFeedback.mediumImpact();
+          } else if (_offset < 60) {
+            _triggered = false;
+          }
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        if (_triggered) {
+          widget.onReply?.call();
+        }
+        setState(() {
+          _offset = 0;
+          _triggered = false;
+        });
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.centerLeft,
+        children: [
+          if (_offset > 0)
+            Positioned(
+              left: -40 + (_offset * 0.5),
+              child: Opacity(
+                opacity: (_offset / 70).clamp(0, 1),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.reply_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          Transform.translate(
+            offset: Offset(_offset, 0),
+            child: widget.child,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyPreview extends StatelessWidget {
+  final ChatMessageEntity message;
+  final bool isMe;
+  final bool isDark;
+
+  const _ReplyPreview({
+    required this.message,
+    required this.isMe,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isMe 
+          ? Colors.black.withValues(alpha: 0.1) 
+          : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: isMe ? Colors.white38 : AppColors.primary,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message.senderUsername,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isMe ? Colors.white.withValues(alpha: 0.9) : AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            message.text.trim().isEmpty ? 'Media' : message.text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: isMe ? Colors.white.withValues(alpha: 0.7) : (isDark ? Colors.white70 : AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReactionBadge extends StatelessWidget {
+  final Map<String, String> reactions;
+  final bool isMe;
+  final bool isDark;
+
+  const _ReactionBadge({
+    required this.reactions,
+    required this.isMe,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Unique emojis
+    final emojis = reactions.values.toSet().toList();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2235) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            emojis.join(' '),
+            style: const TextStyle(fontSize: 12),
+          ),
+          if (reactions.length > 1) ...[
+            const SizedBox(width: 4),
+            Text(
+              '${reactions.length}',
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ImageContent extends StatelessWidget {
+  final String imageUrl;
+  final String text;
+  final bool isMe;
+  final bool isDark;
+  final DateTime timestamp;
+  final bool isRead;
+
+  const _ImageContent({
+    required this.imageUrl,
+    required this.text,
+    required this.isMe,
+    required this.isDark,
+    required this.timestamp,
+    required this.isRead,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          AppRoute<void>(
+            builder: (_) => _FullScreenImage(imageUrl: imageUrl),
+            beginOffset: const Offset(0, 0.05),
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
+              maxHeight: 380,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: 200,
+                    height: 150,
+                    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  );
+                },
+              ),
+            ),
+          ),
+          if (text.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
+              child: Text(
+                text,
+                style: GoogleFonts.inter(
+                  fontSize: 14.5,
+                  color: isMe ? Colors.white : (isDark ? Colors.white : AppColors.textPrimary),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatTime(timestamp),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: isMe ? Colors.white70 : AppColors.textTertiary,
+                  ),
+                ),
+                if (isMe) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                    size: 14,
+                    color: isRead ? Colors.white : Colors.white70,
+                  ).animate(key: ValueKey(isRead)).fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _TextContent extends StatelessWidget {
+  final String text;
+  final bool isMe;
+  final bool isDark;
+  final DateTime timestamp;
+  final bool isRead;
+
+  const _TextContent({
+    required this.text,
+    required this.isMe,
+    required this.isDark,
+    required this.timestamp,
+    required this.isRead,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 14.5,
+            height: 1.4,
+            color: isMe ? Colors.white : (isDark ? Colors.white : AppColors.textPrimary),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _formatTime(timestamp),
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                color: isMe ? Colors.white70 : AppColors.textTertiary,
+              ),
+            ),
+            if (isMe) ...[
+              const SizedBox(width: 4),
+              Icon(
+                isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                size: 14,
+                color: isRead ? Colors.white : Colors.white70,
+              ).animate(key: ValueKey(isRead)).fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _FullScreenImage extends StatelessWidget {
+  final String imageUrl;
+
+  const _FullScreenImage({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

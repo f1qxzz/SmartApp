@@ -21,6 +21,16 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          final baseUri = Uri.tryParse(options.baseUrl);
+          final host = (baseUri?.host ?? '').toLowerCase();
+          final isLocalTunnelHost =
+              host.endsWith('.loca.lt') || host.contains('localtunnel.me');
+
+          if (isLocalTunnelHost) {
+            // Required by loca.lt anti-abuse gateway for non-browser clients.
+            options.headers['bypass-tunnel-reminder'] = 'true';
+          }
+
           final token = SessionAuthCache.token ?? HiveService.token;
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';

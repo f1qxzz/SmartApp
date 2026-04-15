@@ -6,10 +6,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/storage/hive_boxes.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/domain/entities/chat_conversation_entity.dart';
+import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/chat_provider.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_detail_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_user_profile_screen.dart';
@@ -59,9 +61,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final ChatState chatState = ref.watch(chatProvider);
+    final String currentUserId = ref.watch(authProvider).user?.id ?? '';
     final bool isSearchActive = _searchQuery.trim().isNotEmpty;
-    final bool lowDataMode =
-        (HiveService.appBox.get(HiveBoxes.prefLowDataMode) as bool?) ?? false;
+    final bool lowDataMode = HiveService.getUserScopedAppBool(
+      HiveBoxes.prefLowDataMode,
+      userId: currentUserId,
+      fallback: false,
+      fallbackToLegacy: true,
+    );
 
     final List<ChatConversationEntity> sourceItems =
         isSearchActive ? chatState.searchResults : chatState.chats;
@@ -191,11 +198,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           isDark: isDark,
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Smart Assistant Banner
-                        if (!isSearchActive) 
+                        if (!isSearchActive)
                           _SmartAssistantBanner(isDark: isDark),
-                        
+
                         const SizedBox(height: 14),
                         Row(
                           children: <Widget>[
@@ -266,11 +273,22 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (_, __) => const Padding(
-                          padding: EdgeInsets.only(bottom: 10),
-                          child: LoadingSkeleton(
-                            width: double.infinity,
-                            height: 84,
-                            borderRadius: 16,
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            children: [
+                              LoadingSkeleton(width: 52, height: 52, borderRadius: 26),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    LoadingSkeleton(width: 120, height: 16, borderRadius: 4),
+                                    SizedBox(height: 8),
+                                    LoadingSkeleton(width: double.infinity, height: 12, borderRadius: 4),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         childCount: 5,
@@ -331,7 +349,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           return Dismissible(
                             key: Key('chat_${item.chatId}_${item.userId}'),
                             direction: DismissDirection.endToStart,
-                            confirmDismiss: (_) => _confirmDeleteConversation(item),
+                            confirmDismiss: (_) =>
+                                _confirmDeleteConversation(item),
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
@@ -402,11 +421,12 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   Future<void> _openUserProfilePage(ChatConversationEntity user) async {
     final bool? shouldOpenChat = await Navigator.push<bool>(
       context,
-      MaterialPageRoute<bool>(
+      AppRoute<bool>(
         builder: (_) => ChatUserProfileScreen(
           user: user,
           allowOpenChat: true,
         ),
+        beginOffset: const Offset(0.06, 0),
       ),
     );
 
@@ -416,17 +436,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => ChatDetailScreen(contact: user),
-        transitionsBuilder: (_, animation, __, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          ),
-          child: child,
-        ),
+      AppRoute<void>(
+        builder: (_) => ChatDetailScreen(contact: user),
+        beginOffset: const Offset(0.10, 0),
       ),
     );
   }
@@ -752,11 +764,13 @@ class _OnlineUserChip extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       child: lowDataMode || avatarUrl.isEmpty
                           ? Container(
+                              key: ValueKey(avatarUrl.isEmpty ? 'default' : avatarUrl),
                               color: isDark ? AppColors.cardDark : Colors.white,
                               child: const Icon(Icons.person_rounded),
                             )
                           : Image.network(
                               avatarUrl,
+                              key: ValueKey(avatarUrl),
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color:
@@ -828,185 +842,166 @@ class _ConversationCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.push(
           context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => ChatDetailScreen(contact: item),
-            transitionsBuilder: (_, animation, __, child) => SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              ),
-              child: child,
-            ),
+          AppRoute<void>(
+            builder: (_) => ChatDetailScreen(contact: item),
+            beginOffset: const Offset(0.10, 0),
           ),
         ),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: item.unreadCount > 0
-                  ? AppColors.primary.withValues(alpha: 0.35)
-                  : (isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : AppColors.dividerLight),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: <Widget>[
-              Stack(
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+              child: Row(
                 children: <Widget>[
-                  InkWell(
-                    onTap: onProfileTap,
-                    borderRadius: BorderRadius.circular(15),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: lowDataMode || item.avatar.isEmpty
-                            ? Container(
-                                color: isDark
-                                    ? AppColors.surfaceDark
-                                    : AppColors.surfaceLight,
-                                child: const Icon(Icons.person_rounded),
-                              )
-                            : Image.network(
-                                item.avatar,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                  // Circle Avatar
+                  Stack(
+                    children: <Widget>[
+                      InkWell(
+                        onTap: onProfileTap,
+                        borderRadius: BorderRadius.circular(24),
+                        child: CircleAvatar(
+                          key: ValueKey(item.avatar.isNotEmpty ? item.avatar : item.userId),
+                          radius: 24,
+                          backgroundColor: isDark
+                              ? AppColors.surfaceDark
+                              : AppColors.surfaceLight,
+                          backgroundImage: lowDataMode || item.avatar.isEmpty
+                              ? null
+                              : NetworkImage(item.avatar),
+                          child: lowDataMode || item.avatar.isEmpty
+                              ? Icon(Icons.person_rounded,
                                   color: isDark
-                                      ? AppColors.surfaceDark
-                                      : AppColors.surfaceLight,
-                                  child: const Icon(Icons.person_rounded),
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                  size: 22)
+                              : null,
+                        ),
+                      ),
+                      if (item.isOnline)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 13,
+                            height: 13,
+                            decoration: BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.backgroundDark
+                                    : AppColors.backgroundLight,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 14),
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                item.username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: item.unreadCount > 0
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
                                 ),
                               ),
-                      ),
-                    ),
-                  ),
-                  if (item.isOnline)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? AppColors.cardDark : Colors.white,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            item.username,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              fontWeight: item.unreadCount > 0
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimary,
                             ),
-                          ),
-                        ),
-                        Text(
-                          _formatTime(item.updatedAt, now),
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            color: item.unreadCount > 0
-                                ? AppColors.primary
-                                : (isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textTertiary),
-                            fontWeight: item.unreadCount > 0
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            item.lastMessage.isEmpty
-                                ? 'Mulai percakapan baru'
-                                : item.lastMessage,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: item.unreadCount > 0
-                                  ? (isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimary)
-                                  : (isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary),
-                              fontWeight: item.unreadCount > 0
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (item.unreadCount > 0)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: AppColors.gradientPrimary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${item.unreadCount}',
+                            Text(
+                              _formatTime(item.updatedAt, now),
                               style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                fontSize: 11.5,
+                                color: item.unreadCount > 0
+                                    ? AppColors.primary
+                                    : (isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textTertiary),
+                                fontWeight: item.unreadCount > 0
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
                               ),
                             ),
-                          ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                item.lastMessage.isEmpty
+                                    ? 'Mulai percakapan baru'
+                                    : item.lastMessage,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: item.unreadCount > 0
+                                      ? (isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimary)
+                                      : (isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondary),
+                                  fontWeight: item.unreadCount > 0
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                            if (item.unreadCount > 0)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                width: 22,
+                                height: 22,
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.gradientPrimary,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${item.unreadCount}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            // Subtle divider
+            Divider(
+              height: 1,
+              thickness: 0.5,
+              indent: 62,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : AppColors.dividerLight,
+            ),
+          ],
         ),
       ),
     );
@@ -1017,19 +1012,22 @@ class _ConversationCard extends StatelessWidget {
       return '';
     }
     final Duration diff = now.difference(dt);
-    if (diff.inMinutes < 1) {
-      return 'now';
+    // Same day: show HH:mm
+    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     }
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m';
-    }
-    if (diff.inHours < 24) {
-      return '${diff.inHours}h';
+    // Yesterday
+    final DateTime yesterday = now.subtract(const Duration(days: 1));
+    if (dt.year == yesterday.year &&
+        dt.month == yesterday.month &&
+        dt.day == yesterday.day) {
+      return 'Kemarin';
     }
     if (diff.inDays < 7) {
-      return '${diff.inDays}d';
+      const List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      return days[dt.weekday - 1];
     }
-    return '${dt.day}/${dt.month}';
+    return '${dt.day}/${dt.month}/${dt.year % 100}';
   }
 }
 
@@ -1041,7 +1039,8 @@ class _SmartAssistantBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reminderState = ref.watch(reminderProvider);
-    final upcoming = reminderState.reminders.where((r) => !r.isCompleted).toList();
+    final upcoming =
+        reminderState.reminders.where((r) => !r.isCompleted).toList();
 
     if (upcoming.isEmpty) {
       return const SizedBox.shrink();
@@ -1053,21 +1052,31 @@ class _SmartAssistantBanner extends ConsumerWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ReminderScreen()),
+        AppRoute<void>(
+          builder: (_) => const ReminderScreen(),
+          beginOffset: const Offset(0, 0.06),
+        ),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: isOverdue 
-            ? LinearGradient(colors: [Colors.red.withValues(alpha: 0.1), Colors.red.withValues(alpha: 0.02)])
-            : LinearGradient(
-                begin: AppColors.gradientPrimary.begin,
-                end: AppColors.gradientPrimary.end,
-                colors: AppColors.gradientPrimary.colors.map((c) => c.withValues(alpha: 0.08)).toList(),
-              ),
+          gradient: isOverdue
+              ? LinearGradient(colors: [
+                  Colors.red.withValues(alpha: 0.1),
+                  Colors.red.withValues(alpha: 0.02)
+                ])
+              : LinearGradient(
+                  begin: AppColors.gradientPrimary.begin,
+                  end: AppColors.gradientPrimary.end,
+                  colors: AppColors.gradientPrimary.colors
+                      .map((c) => c.withValues(alpha: 0.08))
+                      .toList(),
+                ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isOverdue ? Colors.red.withValues(alpha: 0.2) : AppColors.primary.withValues(alpha: 0.15),
+            color: isOverdue
+                ? Colors.red.withValues(alpha: 0.2)
+                : AppColors.primary.withValues(alpha: 0.15),
             width: 1.5,
           ),
         ),
@@ -1076,16 +1085,25 @@ class _SmartAssistantBanner extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isOverdue ? Colors.red.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1),
+                color: isOverdue
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isOverdue ? Icons.priority_high_rounded : Icons.auto_awesome_rounded,
+                isOverdue
+                    ? Icons.priority_high_rounded
+                    : Icons.auto_awesome_rounded,
                 size: 20,
                 color: isOverdue ? Colors.red : AppColors.primary,
               ),
-            ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-             .scale(duration: 2.seconds, begin: const Offset(1, 1), end: const Offset(1.1, 1.1)),
+            )
+                .animate(
+                    onPlay: (controller) => controller.repeat(reverse: true))
+                .scale(
+                    duration: 2.seconds,
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.1, 1.1)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -1126,7 +1144,8 @@ class _SmartAssistantBanner extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Icon(Icons.arrow_forward_ios_rounded, size: 12, color: isDark ? Colors.white24 : Colors.black26),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 12, color: isDark ? Colors.white24 : Colors.black26),
               ],
             ),
           ],
