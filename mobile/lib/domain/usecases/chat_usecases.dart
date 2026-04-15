@@ -21,6 +21,7 @@ class ChatUseCases {
     String? chatId,
     String type = 'text',
     String? attachmentUrl,
+    String? replyToId,
   }) {
     return _repository.sendMessage(
       text: text,
@@ -28,6 +29,7 @@ class ChatUseCases {
       chatId: chatId,
       type: type,
       attachmentUrl: attachmentUrl,
+      replyToId: replyToId,
     );
   }
 
@@ -38,6 +40,17 @@ class ChatUseCases {
   Future<void> deleteConversation(String id) =>
       _repository.deleteConversation(id);
 
+  Future<void> addReaction({
+    required String chatId,
+    required String messageId,
+    required String emoji,
+  }) =>
+      _repository.addReaction(
+        chatId: chatId,
+        messageId: messageId,
+        emoji: emoji,
+      );
+
   void connectSocket(String token) => _repository.connectSocket(token);
   void disconnectSocket() => _repository.disconnectSocket();
   void emitTyping({required String toUserId, required bool isTyping}) =>
@@ -47,4 +60,5 @@ class ChatUseCases {
   Stream<Map<String, dynamic>> onTyping() => _repository.onTyping();
   Stream<Map<String, dynamic>> onPresence() => _repository.onPresence();
   Stream<Map<String, dynamic>> onRead() => _repository.onRead();
+  Stream<Map<String, dynamic>> onReaction() => _repository.onReaction();
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
@@ -8,6 +9,10 @@ class AppColors {
   static const softBlueGrayLight = Color(0xFF949AB1);
   static const softBlueGray = Color(0xFF7C7E9D);
   static const softNavy = Color(0xFF4C5372);
+  static const softPurple = Color(0xFF6C4EFF);
+  static const softMutedPurple = Color(0xFF8C90A8);
+  static const softHeaderGray = Color(0xFF8A8FA3);
+  static const softHeaderDark = Color(0xFF7C8298);
 
   // Primary palette
   static const primary = softBlueGray;
@@ -27,6 +32,8 @@ class AppColors {
   static const error = Color(0xFFEF4444);
   static const warning = Color(0xFFF59E0B);
   static const info = Color(0xFF3B82F6);
+  static const chatPrimary = softMutedPurple;
+  static const chatAccent = softPurple;
 
   // Light mode
   static const backgroundLight = softCream;
@@ -68,6 +75,12 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF3A4060), Color(0xFF4C5372)],
+  );
+
+  static const gradientChatHeader = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [softHeaderGray, softHeaderDark],
   );
 
   // Category colors
@@ -322,5 +335,38 @@ class AppTheme {
         ),
       ),
     );
+  }
+}
+
+class AppSmoothScrollBehavior extends MaterialScrollBehavior {
+  const AppSmoothScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => <PointerDeviceKind>{
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.invertedStylus,
+        PointerDeviceKind.trackpad,
+      };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    final platform = getPlatform(context);
+    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      return const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      );
+    }
+    return const ClampingScrollPhysics();
+  }
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }

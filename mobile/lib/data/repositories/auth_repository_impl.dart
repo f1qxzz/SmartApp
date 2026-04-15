@@ -133,14 +133,18 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> updateProfile({
     required String username,
     required String email,
+    String? name,
     String? gender,
     String? avatar,
+    double? monthlyBudget,
   }) {
     return _authService.updateProfile(
       username: username,
       email: email,
+      name: name,
       gender: gender,
       avatar: avatar,
+      monthlyBudget: monthlyBudget,
     );
   }
 

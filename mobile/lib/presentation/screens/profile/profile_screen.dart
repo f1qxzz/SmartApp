@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:smartlife_app/core/config/env_config.dart';
@@ -33,7 +35,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameCtrl = TextEditingController();
+  final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _budgetCtrl = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   ProviderSubscription<AuthState>? _authSubscription;
@@ -44,18 +48,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _syncedSignature = '';
   DateTime _lastSyncedAt = DateTime.now();
   bool _dailyReminderEnabled = false;
+  bool _chatNotificationsEnabled = true;
   bool _lowDataModeEnabled = false;
+  String _preferenceUserId = '';
 
   @override
   void initState() {
     super.initState();
     _syncFromUser(ref.read(authProvider).user, force: true);
-    _loadLocalPreferences();
+    _loadLocalPreferences(userId: ref.read(authProvider).user?.id);
 
     _authSubscription = ref.listenManual<AuthState>(
       authProvider,
       (AuthState? previous, AuthState next) {
         _syncFromUser(next.user);
+        final previousUserId = (previous?.user?.id ?? '').trim();
+        final nextUserId = (next.user?.id ?? '').trim();
+        if (previousUserId != nextUserId) {
+          _loadLocalPreferences(userId: next.user?.id, refreshUi: true);
+        }
 
         if (!mounted) {
           return;
@@ -93,18 +104,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _loadLocalPreferences() {
-    _dailyReminderEnabled =
-        (HiveService.appBox.get(HiveBoxes.prefDailyReminder) as bool?) ?? false;
-    _lowDataModeEnabled =
-        (HiveService.appBox.get(HiveBoxes.prefLowDataMode) as bool?) ?? false;
+  void _loadLocalPreferences({
+    String? userId,
+    bool refreshUi = false,
+  }) {
+    final scopedUserId = (userId ?? '').trim();
+    final dailyReminderEnabled = HiveService.getUserScopedAppBool(
+      HiveBoxes.prefDailyReminder,
+      userId: scopedUserId,
+      fallback: false,
+      fallbackToLegacy: true,
+    );
+    final chatNotificationsEnabled = HiveService.getUserScopedAppBool(
+      HiveBoxes.prefChatNotifications,
+      userId: scopedUserId,
+      fallback: true,
+    );
+    final lowDataModeEnabled = HiveService.getUserScopedAppBool(
+      HiveBoxes.prefLowDataMode,
+      userId: scopedUserId,
+      fallback: false,
+      fallbackToLegacy: true,
+    );
+
+    final changed = _preferenceUserId != scopedUserId ||
+        _dailyReminderEnabled != dailyReminderEnabled ||
+        _chatNotificationsEnabled != chatNotificationsEnabled ||
+        _lowDataModeEnabled != lowDataModeEnabled;
+
+    _preferenceUserId = scopedUserId;
+    _dailyReminderEnabled = dailyReminderEnabled;
+    _chatNotificationsEnabled = chatNotificationsEnabled;
+    _lowDataModeEnabled = lowDataModeEnabled;
+
+    if (refreshUi && changed && mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
     _authSubscription?.close();
     _usernameCtrl.dispose();
+    _nameCtrl.dispose();
     _emailCtrl.dispose();
+    _budgetCtrl.dispose();
     super.dispose();
   }
 
@@ -149,7 +193,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   avatarProvider: avatarProvider,
                   onTapChangePhoto: _isUploadingPhoto || _isSaving
                       ? null
-                      : _showImageSourceChooser,
+                      : _pickAndCropProfilePhoto,
                   isUploadingPhoto: _isUploadingPhoto,
                   genderLabel: _genderLabel(_toGenderValue(user.gender)),
                   genderIcon: _genderIcon(_toGenderValue(user.gender)),
@@ -160,7 +204,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _EditProfileCard(
                   formKey: _formKey,
                   usernameCtrl: _usernameCtrl,
+                  nameCtrl: _nameCtrl,
                   emailCtrl: _emailCtrl,
+                  budgetCtrl: _budgetCtrl,
                   selectedGender: _selectedGender,
                   onSelectGender: (value) =>
                       setState(() => _selectedGender = value),
@@ -188,10 +234,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _PreferenceCard(
                   isDark: isDark,
                   dailyReminderEnabled: _dailyReminderEnabled,
+                  chatNotificationsEnabled: _chatNotificationsEnabled,
                   lowDataModeEnabled: _lowDataModeEnabled,
                   onDailyReminderChanged: _setDailyReminder,
+                  onChatNotificationsChanged: _setChatNotifications,
                   onLowDataModeChanged: _setLowDataMode,
-                  onToggleTheme: () => ref.read(appThemeModeProvider.notifier).toggle(),
+                  onToggleTheme: () =>
+                      ref.read(appThemeModeProvider.notifier).toggle(),
                 ),
                 const SizedBox(height: 14),
                 _LogoutCard(
@@ -202,6 +251,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         },
                   isDark: isDark,
                 ),
+                const SizedBox(height: 18),
+                const _AppCredit(),
               ],
             ),
           ),
@@ -231,7 +282,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     _syncedSignature = signature;
     _usernameCtrl.text = user.username;
+    _nameCtrl.text = user.name;
     _emailCtrl.text = user.email;
+    _budgetCtrl.text = user.monthlyBudget.toStringAsFixed(0);
     _selectedGender = _toGenderValue(user.gender);
     _lastSyncedAt = DateTime.now();
 
@@ -244,9 +297,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return <String>[
       user.id,
       user.username,
+      user.name,
       user.email,
       user.gender,
       user.avatar,
+      user.monthlyBudget.toString(),
     ].join('|');
   }
 
@@ -347,8 +402,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(authProvider.notifier).updateProfile(
             username: _usernameCtrl.text.trim().toLowerCase(),
+            name: _nameCtrl.text.trim(),
             email: _emailCtrl.text.trim(),
             gender: _selectedGender,
+            monthlyBudget: double.tryParse(_budgetCtrl.text) ?? 0,
           );
       await _refreshProfile();
     } catch (_) {
@@ -360,62 +417,115 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Future<void> _showImageSourceChooser() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? AppColors.cardDark
-          : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Pilih dari galeri'),
-                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Ambil dari kamera'),
-                onTap: () => Navigator.of(context).pop(ImageSource.camera),
-              ),
+  Future<void> _pickAndCropProfilePhoto() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1400,
+        maxHeight: 1400,
+        imageQuality: 82,
+      );
+
+      if (pickedFile == null) {
+        return;
+      }
+
+      final File? croppedAvatar = await _cropAvatar(pickedFile);
+      if (croppedAvatar == null) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Proses potong foto gagal atau dibatalkan.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      setState(() => _isUploadingPhoto = true);
+      try {
+        await ref.read(authProvider.notifier).changeAvatar(croppedAvatar);
+        await _refreshProfile();
+      } catch (_) {
+        // handled by auth listener
+      } finally {
+        if (mounted) {
+          setState(() => _isUploadingPhoto = false);
+        }
+      }
+    } on PlatformException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal membuka galeri: ${error.message ?? error.code}',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan saat mengganti foto profile.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<File?> _cropAvatar(XFile pickedFile) async {
+    try {
+      final CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        uiSettings: <PlatformUiSettings>[
+          AndroidUiSettings(
+            toolbarTitle: 'Sesuaikan Foto Profil',
+            toolbarColor: AppColors.primary,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: AppColors.primary,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+            cropStyle: CropStyle.rectangle,
+            aspectRatioPresets: const <CropAspectRatioPresetData>[
+              CropAspectRatioPreset.square,
+              _InstagramStoryAspectRatioPreset(),
             ],
           ),
-        ),
-      ),
-    );
+          IOSUiSettings(
+            title: 'Sesuaikan Foto Profil',
+            aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            cropStyle: CropStyle.rectangle,
+            aspectRatioPresets: const <CropAspectRatioPresetData>[
+              CropAspectRatioPreset.square,
+              _InstagramStoryAspectRatioPreset(),
+            ],
+          ),
+        ],
+      );
 
-    if (source == null) {
-      return;
-    }
-
-    final pickedFile = await _imagePicker.pickImage(
-      source: source,
-      maxWidth: 1400,
-      maxHeight: 1400,
-      imageQuality: 82,
-    );
-
-    if (pickedFile == null) {
-      return;
-    }
-
-    setState(() => _isUploadingPhoto = true);
-    try {
-      await ref.read(authProvider.notifier).changeAvatar(File(pickedFile.path));
-      await _refreshProfile();
-    } catch (_) {
-      // handled by auth listener
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingPhoto = false);
+      if (croppedFile == null) {
+        return null;
       }
+      return File(croppedFile.path);
+    } on PlatformException catch (error) {
+      debugPrint('[PROFILE][CROP][ERROR] ${error.code}: ${error.message}');
+      return null;
+    } catch (error) {
+      debugPrint('[PROFILE][CROP][ERROR] $error');
+      return null;
     }
   }
 
@@ -438,13 +548,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _setDailyReminder(bool value) async {
     setState(() => _dailyReminderEnabled = value);
-    await HiveService.appBox.put(HiveBoxes.prefDailyReminder, value);
+    await HiveService.putUserScopedAppValue(
+      HiveBoxes.prefDailyReminder,
+      value,
+      userId: ref.read(authProvider).user?.id,
+    );
   }
 
   Future<void> _setLowDataMode(bool value) async {
     setState(() => _lowDataModeEnabled = value);
-    await HiveService.appBox.put(HiveBoxes.prefLowDataMode, value);
+    await HiveService.putUserScopedAppValue(
+      HiveBoxes.prefLowDataMode,
+      value,
+      userId: ref.read(authProvider).user?.id,
+    );
   }
+
+  Future<void> _setChatNotifications(bool value) async {
+    setState(() => _chatNotificationsEnabled = value);
+    await HiveService.putUserScopedAppValue(
+      HiveBoxes.prefChatNotifications,
+      value,
+      userId: ref.read(authProvider).user?.id,
+    );
+  }
+}
+
+class _InstagramStoryAspectRatioPreset implements CropAspectRatioPresetData {
+  const _InstagramStoryAspectRatioPreset();
+
+  @override
+  (int, int)? get data => (9, 16);
+
+  @override
+  String get name => 'Instagram Story 9:16';
 }
 
 class _ProfileBackground extends StatelessWidget {
@@ -565,27 +702,43 @@ class _HeroProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: AppColors.gradientPrimary,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.26 : 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withValues(alpha: 0.85),
+                AppColors.secondary.withValues(alpha: 0.75),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.15),
+              width: 1.5,
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: isDark ? 0.26 : 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: <Widget>[
+          child: Column(
+            children: <Widget>[
           Row(
             children: <Widget>[
               Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[
                   CircleAvatar(
+                    key: ValueKey(user.avatar.isNotEmpty ? user.avatar : user.id),
                     radius: 42,
                     backgroundColor: Colors.white.withValues(alpha: 0.20),
                     backgroundImage: avatarProvider,
@@ -634,11 +787,22 @@ class _HeroProfileCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      user.username,
+                      user.name,
                       style: GoogleFonts.poppins(
-                        fontSize: 19,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '@${user.username}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.82),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -647,8 +811,8 @@ class _HeroProfileCard extends StatelessWidget {
                     Text(
                       user.email,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.88),
+                        fontSize: 12.5,
+                        color: Colors.white.withValues(alpha: 0.75),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -687,7 +851,9 @@ class _HeroProfileCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
@@ -732,7 +898,9 @@ class _TagPill extends StatelessWidget {
 class _EditProfileCard extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController usernameCtrl;
+  final TextEditingController nameCtrl;
   final TextEditingController emailCtrl;
+  final TextEditingController budgetCtrl;
   final String selectedGender;
   final ValueChanged<String> onSelectGender;
   final List<(String value, String label, IconData icon)> genderOptions;
@@ -743,7 +911,9 @@ class _EditProfileCard extends StatelessWidget {
   const _EditProfileCard({
     required this.formKey,
     required this.usernameCtrl,
+    required this.nameCtrl,
     required this.emailCtrl,
+    required this.budgetCtrl,
     required this.selectedGender,
     required this.onSelectGender,
     required this.genderOptions,
@@ -791,6 +961,31 @@ class _EditProfileCard extends StatelessWidget {
                     : AppColors.textSecondary,
                 height: 1.45,
               ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Nama Lengkap',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color:
+                    isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 9),
+            TextFormField(
+              controller: nameCtrl,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                hintText: 'Masukkan nama lengkap',
+                prefixIcon: Icon(Icons.person_rounded, size: 20),
+              ),
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) {
+                  return 'Nama wajib diisi';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 14),
             Text(
@@ -850,6 +1045,33 @@ class _EditProfileCard extends StatelessWidget {
                     RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
                 if (!emailRegex.hasMatch(input)) {
                   return 'Format email tidak valid';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Budget Bulanan (Rp)',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color:
+                    isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 9),
+            TextFormField(
+              controller: budgetCtrl,
+              textInputAction: TextInputAction.done,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                hintText: 'Masukkan target budget bulanan',
+                prefixIcon: Icon(Icons.account_balance_wallet_rounded, size: 20),
+              ),
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) {
+                  return 'Budget wajib diisi';
                 }
                 return null;
               },
@@ -1096,16 +1318,20 @@ class _InfoRow extends StatelessWidget {
 class _PreferenceCard extends StatelessWidget {
   final bool isDark;
   final bool dailyReminderEnabled;
+  final bool chatNotificationsEnabled;
   final bool lowDataModeEnabled;
   final ValueChanged<bool> onDailyReminderChanged;
+  final ValueChanged<bool> onChatNotificationsChanged;
   final ValueChanged<bool> onLowDataModeChanged;
   final VoidCallback onToggleTheme;
 
   const _PreferenceCard({
     required this.isDark,
     required this.dailyReminderEnabled,
-    required this.lowDataModeEnabled,
+    required this.chatNotificationsEnabled,
     required this.onDailyReminderChanged,
+    required this.onChatNotificationsChanged,
+    required this.lowDataModeEnabled,
     required this.onLowDataModeChanged,
     required this.onToggleTheme,
   });
@@ -1145,6 +1371,29 @@ class _PreferenceCard extends StatelessWidget {
             ),
             subtitle: Text(
               'Simpan preferensi pengingat aktivitas aplikasi.',
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          SwitchListTile.adaptive(
+            value: chatNotificationsEnabled,
+            onChanged: onChatNotificationsChanged,
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: AppColors.primaryDark,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.45),
+            title: Text(
+              'Notifikasi Chat',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Terima pemberitahuan saat ada pesan chat baru masuk.',
               style: GoogleFonts.inter(
                 fontSize: 11.5,
                 color: isDark
@@ -1235,6 +1484,46 @@ class _LogoutCard extends StatelessWidget {
         icon: const Icon(Icons.logout_rounded),
         label: const Text('Keluar dari Akun'),
       ),
+    );
+  }
+}
+
+class _AppCredit extends StatelessWidget {
+  const _AppCredit();
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Text(
+          'SmartLife App',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white70 : Colors.black87,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'v1.0.0 • SmartLife Intelligence',
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white38 : Colors.black38,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 3,
+          width: 30,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ],
     );
   }
 }

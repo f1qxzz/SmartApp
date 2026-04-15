@@ -457,6 +457,14 @@ async function verifyGoogleLogin(idToken) {
     };
   } catch (error) {
     authLog('google.verify.failed', { reason: error && error.message ? error.message : error });
+    const reason = String(error?.message || '').toLowerCase();
+    if (reason.includes('wrong recipient') || reason.includes('audience')) {
+      throw createHttpError(
+        401,
+        'Google Client ID tidak cocok. Cek GOOGLE_WEB_CLIENT_ID/GOOGLE_ANDROID_CLIENT_ID di backend.'
+      );
+    }
+
     throw createHttpError(401, 'Token Google tidak valid. Silakan login ulang.');
   }
 }
@@ -499,8 +507,18 @@ async function loginWithGoogle(payload) {
   ensureSocialAccountCompatible(user, 'google');
   await ensureUserHasUsername(user);
 
-  user.name = googleProfile.name || user.name || user.username;
-  user.avatar = googleProfile.avatar || user.avatar;
+  const currentName = String(user.name || '').trim();
+  const currentAvatar = String(user.avatar || '').trim();
+
+  // Keep user-customized profile data; only fallback to Google profile
+  // when account fields are still empty.
+  if (!currentName) {
+    user.name = googleProfile.name || user.username;
+  }
+
+  if (!currentAvatar) {
+    user.avatar = googleProfile.avatar || '';
+  }
   user.providerId = googleProfile.providerId;
   user.authProvider = 'google';
   await user.save();

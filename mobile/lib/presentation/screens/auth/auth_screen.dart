@@ -62,14 +62,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     final errorMessage = state.errorMessage;
     if (errorMessage != null && errorMessage.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
+      AppAlert.show(
+        context,
+        title: 'Ups! Terjadi Kesalahan',
+        message: errorMessage,
+        isError: true,
       );
       ref.read(authProvider.notifier).clearErrorMessage();
       return;
@@ -77,28 +74,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     final successMessage = state.successMessage;
     if (successMessage != null && successMessage.isNotEmpty) {
-      if (state.status == AuthStatus.authenticated) {
-        // Show success snackbar for login
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      AppAlert.show(
+        context,
+        title: state.status == AuthStatus.authenticated
+            ? 'Selamat Datang!'
+            : 'Berhasil!',
+        message: successMessage,
+        isError: false,
+      );
       ref.read(authProvider.notifier).clearSuccessMessage();
     }
   }
@@ -140,12 +123,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     final googleWebClientId = EnvConfig.googleWebClientId;
     if (googleWebClientId == null || googleWebClientId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'GOOGLE_WEB_CLIENT_ID belum diisi. Cek .env mobile & Firebase OAuth setup.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppAlert.show(
+        context,
+        title: 'Konfigurasi Belum Siap',
+        message: 'GOOGLE_WEB_CLIENT_ID belum diisi. Silakan cek file .env Anda.',
+        isError: true,
       );
       return;
     }
@@ -165,12 +147,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Google Sign-In gagal mendapatkan token. Pastikan SHA-1 & OAuth Client ID sudah benar.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppAlert.show(
+          context,
+          title: 'Gagal Mendapatkan Token',
+          message: 'Google Sign-In gagal mendapatkan idToken. Periksa SHA-1 di Firebase Console.',
+          isError: true,
         );
         return;
       }
@@ -189,17 +170,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
       String message = 'Google Sign-In gagal (${error.code}).';
       if (error.code == 'sign_in_failed') {
-        message =
-            'Google Sign-In gagal. Pastikan SHA-1/SHA-256 sudah didaftarkan di Firebase, OAuth client aktif, dan google-services.json terbaru sudah terpasang.';
+        message = 'Google Sign-In gagal. Periksa kembali SHA-1/SHA-256 dan file google-services.json terbaru.';
       } else if (error.code == 'network_error') {
-        message = 'Koneksi internet bermasalah. Coba lagi.';
+        message = 'Koneksi internet bermasalah. Silakan coba lagi nanti.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppAlert.show(
+        context,
+        title: 'Koneksi Google Bermasalah',
+        message: message,
+        isError: true,
       );
     } catch (error) {
       debugPrint('[AUTH][GOOGLE] sign-in failed: $error');
@@ -207,11 +187,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Google Sign-In gagal: $error'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppAlert.show(
+        context,
+        title: 'Sign-In Error',
+        message: 'Terjadi kesalahan saat masuk dengan Google: $error',
+        isError: true,
       );
     }
   }

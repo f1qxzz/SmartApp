@@ -13,10 +13,16 @@ abstract class ChatRepository {
     String? chatId,
     String type = 'text',
     String? attachmentUrl,
+    String? replyToId,
   });
   Future<String> uploadFile(File file);
   Future<void> deleteMessage(String id);
   Future<void> deleteConversation(String id);
+  Future<void> addReaction({
+    required String chatId,
+    required String messageId,
+    required String emoji,
+  });
 
   void connectSocket(String token);
   void disconnectSocket();
@@ -26,4 +32,5 @@ abstract class ChatRepository {
   Stream<Map<String, dynamic>> onTyping();
   Stream<Map<String, dynamic>> onPresence();
   Stream<Map<String, dynamic>> onRead();
+  Stream<Map<String, dynamic>> onReaction();
 }

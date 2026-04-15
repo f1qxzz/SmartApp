@@ -8,6 +8,7 @@ import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
 import 'package:smartlife_app/presentation/widgets/reminder_card.dart';
 import 'package:smartlife_app/presentation/widgets/reminder_form_sheet.dart';
+import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class ReminderScreen extends ConsumerWidget {
   const ReminderScreen({super.key});
@@ -20,62 +21,82 @@ class ReminderScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F1221) : Colors.white,
       body: RepaintBoundary(
-        child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 120.0,
-                floating: false,
-                pinned: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: false,
-                  titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                  title: Text(
-                    'Pengingat Pintar',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ),
-                leading: IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, 
-                    color: isDark ? Colors.white : Colors.black87, size: 20),
-                  onPressed: () => Navigator.pop(context),
-                ),
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => ref.read(reminderProvider.notifier).loadReminders(),
+          child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-              
-              if (state.isLoading)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (state.reminders.isEmpty)
-                SliverFillRemaining(
-                  child: _buildEmptyState(context, isDark),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final reminder = state.reminders[index];
-                        return ReminderCard(
-                          reminder: reminder,
-                          onToggle: () => ref.read(reminderProvider.notifier).toggleCompletion(reminder.id),
-                          onDelete: () => _confirmDelete(context, ref, reminder.id),
-                          onEdit: () => _showReminderForm(context, ref, reminder: reminder),
-                        );
-                      },
-                      childCount: state.reminders.length,
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 120.0,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                    title: Text(
+                      'Pengingat Pintar',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                     ),
                   ),
+                  leading: IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, 
+                      color: isDark ? Colors.white : Colors.black87, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
-              
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+                
+                if (state.isLoading)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, __) => const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LoadingSkeleton(
+                            width: double.infinity,
+                            height: 94,
+                            borderRadius: 22,
+                          ),
+                        ),
+                        childCount: 5,
+                      ),
+                    ),
+                  )
+                else if (state.reminders.isEmpty)
+                  SliverFillRemaining(
+                    child: _buildEmptyState(context, isDark),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final reminder = state.reminders[index];
+                          return ReminderCard(
+                            reminder: reminder,
+                            onToggle: () => ref.read(reminderProvider.notifier).toggleCompletion(reminder.id),
+                            onDelete: () => _confirmDelete(context, ref, reminder.id),
+                            onEdit: () => _showReminderForm(context, ref, reminder: reminder),
+                          );
+                        },
+                        childCount: state.reminders.length,
+                      ),
+                    ),
+                  ),
+                
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
           ),
         ),
       floatingActionButton: FloatingActionButton.extended(

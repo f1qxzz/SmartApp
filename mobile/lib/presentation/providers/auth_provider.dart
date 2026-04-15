@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:smartlife_app/core/notifications/notification_service.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/domain/usecases/auth_usecases.dart';
@@ -183,6 +184,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] login success: ${result.$1.email}');
+      await NotificationService.instance.showAuthSuccess(
+        title: 'Login Berhasil',
+        body: 'Selamat datang kembali, ${result.$1.username}!',
+      );
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -250,6 +255,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] register success: ${result.$1.email}');
+      await NotificationService.instance.showAuthSuccess(
+        title: 'Registrasi Berhasil',
+        body: 'Akun ${result.$1.username} berhasil dibuat.',
+      );
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -291,6 +300,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
       debugPrint('[AUTH] social login success: ${result.$1.email}');
+      await NotificationService.instance.showAuthSuccess(
+        title: 'Login Google Berhasil',
+        body: 'Selamat datang, ${result.$1.username}!',
+      );
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -363,8 +376,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> updateProfile({
     required String username,
     required String email,
+    String? name,
     String? gender,
     String? avatar,
+    double? monthlyBudget,
   }) async {
     if (!state.isAuthenticated || state.user == null || state.token == null) {
       state = state.copyWith(
@@ -413,8 +428,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _useCases.updateProfile(
         username: normalizedUsername,
         email: normalizedEmail,
+        name: name,
         gender: normalizedGender,
         avatar: avatar,
+        monthlyBudget: monthlyBudget,
       );
       final refreshedProfile = await _refreshFromServerAndCache();
       state = state.copyWith(

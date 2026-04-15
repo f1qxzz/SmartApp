@@ -63,6 +63,29 @@ function toMessagePayload(message, receiverId) {
   };
 }
 
+function buildLastMessagePreview(messageType, text) {
+  const normalizedText = String(text || '').trim();
+  const type = String(messageType || 'text').toLowerCase().trim();
+
+  if (type === 'text') {
+    return normalizedText;
+  }
+
+  if (type === 'image') {
+    return normalizedText ? `Gambar: ${normalizedText}` : 'Gambar';
+  }
+
+  if (type === 'audio' || type === 'voice') {
+    return 'Voice note';
+  }
+
+  if (type === 'file') {
+    return normalizedText ? `File: ${normalizedText}` : 'File';
+  }
+
+  return normalizedText || `[${type}]`;
+}
+
 async function findUserOrThrow(userId) {
   const user = await User.findOne({
     _id: userId,
@@ -216,7 +239,7 @@ async function sendMessage({
     attachmentUrl,
   });
 
-  chat.lastMessage = messageType === 'text' ? normalizedText : `[${messageType}]`;
+  chat.lastMessage = buildLastMessagePreview(messageType, normalizedText);
   chat.updatedAt = createdMessage.createdAt;
   await chat.save();
 

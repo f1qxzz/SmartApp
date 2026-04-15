@@ -33,8 +33,10 @@ abstract class AuthRepository {
   Future<UserEntity> updateProfile({
     required String username,
     required String email,
+    String? name,
     String? gender,
     String? avatar,
+    double? monthlyBudget,
   });
   Future<String> uploadAvatar(File file);
   Future<(UserEntity user, String token)> restoreSession();

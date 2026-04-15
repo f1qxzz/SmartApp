@@ -175,8 +175,10 @@ class AuthService {
   Future<UserEntity> updateProfile({
     required String username,
     required String email,
+    String? name,
     String? gender,
     String? avatar,
+    double? monthlyBudget,
   }) async {
     try {
       final response = await _dioClient.instance.put(
@@ -184,8 +186,10 @@ class AuthService {
         data: {
           'username': username,
           'email': email,
+          if (name != null) 'name': name,
           if (gender != null) 'gender': gender,
           if (avatar != null) 'avatar': avatar,
+          if (monthlyBudget != null) 'monthlyBudget': monthlyBudget,
         },
       );
 
