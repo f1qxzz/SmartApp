@@ -28,6 +28,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _dobCtrl = TextEditingController();
+  DateTime? _selectedDOB;
   final _formKey = GlobalKey<FormState>();
   ProviderSubscription<AuthState>? _authSubscription;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -52,6 +54,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _dobCtrl.dispose();
     super.dispose();
   }
 
@@ -109,6 +112,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text,
           gender: _selectedGender,
+          dateOfBirth: _selectedDOB,
           rememberMe: ref.read(authProvider).rememberMe,
         );
   }
@@ -193,6 +197,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         message: 'Terjadi kesalahan saat masuk dengan Google: $error',
         isError: true,
       );
+    }
+  }
+
+  Future<void> _selectDOB() async {
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDOB ?? DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: now,
+      helpText: 'Pilih Tanggal Lahir',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primary,
+              brightness: Theme.of(context).brightness,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDOB) {
+      setState(() {
+        _selectedDOB = picked;
+        _dobCtrl.text = '${picked.day}/${picked.month}/${picked.year}';
+      });
     }
   }
 
@@ -548,6 +581,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 }
                                 return null;
                               },
+                            ),
+                            const SizedBox(height: 14),
+                            GestureDetector(
+                              onTap: _selectDOB,
+                              child: AbsorbPointer(
+                                child: InputField(
+                                  hint: 'Tanggal Lahir',
+                                  controller: _dobCtrl,
+                                  prefixIcon: const Icon(
+                                    Icons.cake_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                  validator: (value) {
+                                    if (_isLogin) return null;
+                                    if (_selectedDOB == null) {
+                                      return 'Tanggal lahir wajib diisi';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 14),
                           ],

@@ -213,6 +213,7 @@ function buildAuthResponse(user) {
       avatar: user.avatar,
       gender: user.gender || '',
       monthlyBudget: Number(user.monthlyBudget || 0),
+      dateOfBirth: user.dateOfBirth,
     },
   };
 }
@@ -358,6 +359,7 @@ async function register(payload) {
       email,
       password: hashedPassword,
       gender,
+      dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : null,
       authProvider: 'local',
     });
   } catch (error) {
@@ -663,6 +665,14 @@ async function updateProfile(userId, payload) {
   user.gender = nextGender;
   user.avatar = nextAvatar;
   user.name = String(payload.name || user.name || nextUsername).trim() || nextUsername;
+  
+  if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth')) {
+    user.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth) : null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'monthlyBudget')) {
+    user.monthlyBudget = Number(payload.monthlyBudget || 0);
+  }
 
   await user.save();
 
@@ -674,6 +684,7 @@ async function updateProfile(userId, payload) {
     avatar: user.avatar || '',
     gender: user.gender || '',
     monthlyBudget: Number(user.monthlyBudget || 0),
+    dateOfBirth: user.dateOfBirth,
   };
 }
 

@@ -209,6 +209,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     String? gender,
+    DateTime? dateOfBirth,
     required bool rememberMe,
   }) async {
     state = state.copyWith(
@@ -251,6 +252,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: normalizedEmail,
         password: password,
         gender: normalizedGender.isEmpty ? null : normalizedGender,
+        dateOfBirth: dateOfBirth,
         rememberMe: rememberMe,
       );
       await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
@@ -380,6 +382,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? gender,
     String? avatar,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   }) async {
     if (!state.isAuthenticated || state.user == null || state.token == null) {
       state = state.copyWith(
@@ -432,6 +435,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         gender: normalizedGender,
         avatar: avatar,
         monthlyBudget: monthlyBudget,
+        dateOfBirth: dateOfBirth,
       );
       final refreshedProfile = await _refreshFromServerAndCache();
       state = state.copyWith(
@@ -467,6 +471,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: currentUser.email,
         gender: currentUser.gender,
         avatar: avatarUrl,
+        dateOfBirth: currentUser.dateOfBirth,
       );
     } catch (error) {
       state = state.copyWith(errorMessage: error.toString());

@@ -12,6 +12,7 @@ abstract class AuthRepository {
       required String email,
       required String password,
       String? gender,
+      DateTime? dateOfBirth,
       required bool rememberMe});
   Future<(UserEntity user, String token)> socialLogin({
     required String provider,
@@ -37,6 +38,7 @@ abstract class AuthRepository {
     String? gender,
     String? avatar,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   });
   Future<String> uploadAvatar(File file);
   Future<(UserEntity user, String token)> restoreSession();

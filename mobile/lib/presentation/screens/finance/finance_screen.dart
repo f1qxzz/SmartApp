@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -267,12 +268,29 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                         size: 18),
                                   ),
                             filled: true,
-                            fillColor: isDark
-                                ? AppColors.surfaceDark
-                                : AppColors.surfaceLight,
+                            fillColor: Colors.transparent,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.black.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.black.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.primary : AppColors.primary,
+                                width: 1.5,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 0),
@@ -533,7 +551,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 
   Future<void> _openBudgetDialog() async {
     final TextEditingController budgetController = TextEditingController(
-      text: ref.read(financeProvider).budget.toStringAsFixed(0),
+      text: AppFormatters.currencyNoSymbol(ref.read(financeProvider).budget),
     );
 
     final bool? shouldSave = await showDialog<bool>(
@@ -543,8 +561,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         content: TextField(
           controller: budgetController,
           keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            ThousandSeparatorFormatter(),
+          ],
           decoration: const InputDecoration(
             labelText: 'Budget (Rp)',
+            hintText: '0',
           ),
         ),
         actions: <Widget>[
@@ -566,7 +589,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     }
 
     try {
-      final value = double.parse(budgetController.text.trim());
+      final cleanText = budgetController.text.replaceAll('.', '').trim();
+      final value = double.parse(cleanText);
       await ref.read(financeProvider.notifier).setBudget(value);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

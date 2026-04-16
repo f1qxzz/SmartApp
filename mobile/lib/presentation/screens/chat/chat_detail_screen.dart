@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -9,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
@@ -58,6 +59,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   String _searchQuery = '';
   List<String> _searchMatchMessageIds = const <String>[];
   int _activeSearchMatchIndex = -1;
+  bool _isSending = false;
 
   @override
   void initState() {
@@ -384,8 +386,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: <Widget>[
@@ -582,6 +587,41 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
+  void _confirmDeleteMessage(ChatMessageEntity msg) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Pesan?'),
+        content: const Text('Pilih opsi penghapusan pesan.'),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteMessage(msg, false);
+            },
+            child: const Text('Hapus untuk saya', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteMessage(msg, true);
+            },
+            child: const Text('Hapus untuk semua', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteMessage(ChatMessageEntity msg, bool forEveryone) async {
+    await ref.read(chatProvider.notifier).deleteMessage(msg.id, msg.chatId, forEveryone: forEveryone);
+  }
+
   Widget _buildInputBar(BuildContext context, bool isDark, ChatState chatState) {
     final bool isLoading = chatState.isLoading;
     return SafeArea(
@@ -678,16 +718,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                   icon: Icon(
                                     _showEmojiPicker
                                         ? Icons.keyboard_rounded
-                                        : Icons.emoji_emotions_outlined,
+                                        : Icons.sentiment_satisfied_alt_rounded,
                                     color: isDark
                                         ? AppColors.textSecondaryDark
                                         : AppColors.textSecondary,
-                                    size: 22,
+                                    size: 24,
                                   ),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
-                                      minWidth: 38, minHeight: 38),
+                                      minWidth: 42, minHeight: 42),
                                 ),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: TextField(
                                     controller: _msgCtrl,
@@ -699,60 +740,59 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                           );
                                     },
                                     onSubmitted: (_) => _sendMessage(),
-                                    style: GoogleFonts.inter(fontSize: 14),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w400,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
                                     decoration: InputDecoration(
                                       hintText: 'Tulis pesan...',
                                       border: InputBorder.none,
-                                      filled: false,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      isDense: true,
                                       contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 10,
+                                        vertical: 12,
+                                        horizontal: 12,
                                       ),
                                       hintStyle: GoogleFonts.inter(
-                                        fontSize: 13,
+                                        fontSize: 15,
                                         color: isDark
-                                            ? AppColors.textSecondaryDark
+                                            ? AppColors.textSecondaryDark.withValues(alpha: 0.5)
                                             : AppColors.textTertiary,
                                       ),
                                     ),
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: () {
-                                    HapticFeedback.lightImpact();
-                                    _pickImage(ImageSource.gallery);
-                                  },
-                                  icon: Icon(
-                                    Icons.attach_file_rounded,
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
-                                    size: 21,
+                                if (_isSending)
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(width: 4),
+                                      _buildInputIcon(
+                                        Icons.more_horiz_rounded,
+                                        isDark,
+                                        onTap: _showAttachmentMenu,
+                                      ),
+                                    ],
                                   ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                      minWidth: 38, minHeight: 38),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    HapticFeedback.lightImpact();
-                                    _pickImage(ImageSource.camera);
-                                  },
-                                  icon: Icon(
-                                    Icons.camera_alt_outlined,
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
-                                    size: 21,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                      minWidth: 38, minHeight: 38),
-                                ),
-                                const SizedBox(width: 4),
-                              ],
+                                const SizedBox(width: 8),
+                                ],
+                              ),
                             ),
-                          ),
-                  ),
+                    ),
                   const SizedBox(width: 8),
                   _showMic
                       ? _isRecording
@@ -1202,6 +1242,49 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
   }
 
+  Future<void> _pickDocument() async {
+    try {
+      final FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+          'txt',
+          'ppt',
+          'pptx'
+        ],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+      final file = File(result.files.single.path!);
+
+      if (!mounted) return;
+
+      setState(() => _isSending = true);
+      final String url = await ref.read(chatProvider.notifier).uploadFile(file);
+      await ref.read(chatProvider.notifier).sendMessage(
+            text: result.files.single.name,
+            chatId: _chatId.isEmpty ? null : _chatId,
+            receiverId: widget.contact.userId,
+            type: 'document',
+            attachmentUrl: url,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      AppAlert.show(
+        context,
+        title: 'Gagal Memilih Dokumen',
+        message: e.toString(),
+        isError: true,
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
   void _stopTyping() {
     ref.read(chatProvider.notifier).setTyping(
           toUserId: widget.contact.userId,
@@ -1472,33 +1555,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  void _confirmDeleteMessage(ChatMessageEntity msg) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Pesan?'),
-        content: const Text('Pesan ini akan dihapus untuk Anda.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteMessage(msg);
-            },
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _deleteMessage(ChatMessageEntity msg) async {
-    await ref.read(chatProvider.notifier).deleteMessage(msg.id, msg.chatId);
-  }
-
   Widget _buildReplyBar(BuildContext context, bool isDark, ChatMessageEntity message) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1558,6 +1614,101 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         ],
       ),
     ).animate().slideY(begin: 1.0, end: 0, duration: 200.ms);
+  }
+  void _showAttachmentMenu() {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildMenuItemView(
+              icon: Icons.description_rounded,
+              label: 'Dokumen',
+              color: const Color(0xFF4A90E2),
+              onTap: () {
+                Navigator.pop(context);
+                _pickDocument();
+              },
+            ),
+            _buildMenuItemView(
+              icon: Icons.image_rounded,
+              label: 'Galeri Foto',
+              color: const Color(0xFF50C878),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            _buildMenuItemView(
+              icon: Icons.camera_alt_rounded,
+              label: 'Ambil Foto',
+              color: const Color(0xFFFF6B6B),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItemView({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputIcon(IconData icon, bool isDark, {required VoidCallback onTap}) {
+    return IconButton(
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      icon: Icon(
+        icon,
+        color: isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondary,
+        size: 22,
+      ),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 42),
+    );
   }
 }
 

@@ -156,13 +156,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
         ],
       ),
-      floatingActionButton: _QuickActionFabMenu(
-        isDark: isDark,
-        isOpen: _isQuickActionsOpen,
-        onToggle: _toggleQuickActions,
-        onAddTransaction: () => _runQuickAction(
-          () => _showAddTransaction(context),
-        ),
+      floatingActionButton: (_currentIndex == 2 || _currentIndex == 4) 
+        ? null 
+        : _QuickActionFabMenu(
+            isDark: isDark,
+            isOpen: _isQuickActionsOpen,
+            onToggle: _toggleQuickActions,
+            onAddTransaction: () => _runQuickAction(
+              () => _showAddTransaction(context),
+            ),
         onOpenChat: () => _runQuickAction(() => _updateTab(0)),
         onOpenDashboard: () => _runQuickAction(() => _updateTab(3)),
         onOpenAI: () => _runQuickAction(() => _updateTab(4)),

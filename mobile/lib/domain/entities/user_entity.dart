@@ -6,6 +6,7 @@ class UserEntity {
   final String avatar;
   final String gender;
   final double monthlyBudget;
+  final DateTime? dateOfBirth;
 
   const UserEntity({
     required this.id,
@@ -15,9 +16,15 @@ class UserEntity {
     this.avatar = '',
     this.gender = '',
     this.monthlyBudget = 0,
+    this.dateOfBirth,
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
+    DateTime? dob;
+    if (json['dateOfBirth'] != null) {
+      dob = DateTime.tryParse(json['dateOfBirth'].toString());
+    }
+
     return UserEntity(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       username: (json['username'] ?? '').toString(),
@@ -26,6 +33,7 @@ class UserEntity {
       avatar: (json['avatar'] ?? '').toString(),
       gender: (json['gender'] ?? '').toString(),
       monthlyBudget: double.tryParse(json['monthlyBudget']?.toString() ?? '0') ?? 0,
+      dateOfBirth: dob,
     );
   }
 
@@ -37,6 +45,7 @@ class UserEntity {
     String? avatar,
     String? gender,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -46,6 +55,7 @@ class UserEntity {
       avatar: avatar ?? this.avatar,
       gender: gender ?? this.gender,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
     );
   }
 
@@ -57,5 +67,6 @@ class UserEntity {
         'avatar': avatar,
         'gender': gender,
         'monthlyBudget': monthlyBudget,
+        'dateOfBirth': dateOfBirth?.toIso8601String(),
       };
 }

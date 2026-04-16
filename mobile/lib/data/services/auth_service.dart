@@ -74,6 +74,7 @@ class AuthService {
     required String email,
     required String password,
     String? gender,
+    DateTime? dateOfBirth,
     required bool rememberMe,
   }) async {
     try {
@@ -85,6 +86,7 @@ class AuthService {
           'email': email,
           'password': password,
           if (gender != null && gender.trim().isNotEmpty) 'gender': gender,
+          if (dateOfBirth != null) 'dateOfBirth': dateOfBirth.toIso8601String(),
           'rememberMe': rememberMe,
         },
       );
@@ -179,6 +181,7 @@ class AuthService {
     String? gender,
     String? avatar,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   }) async {
     try {
       final response = await _dioClient.instance.put(
@@ -190,6 +193,7 @@ class AuthService {
           if (gender != null) 'gender': gender,
           if (avatar != null) 'avatar': avatar,
           if (monthlyBudget != null) 'monthlyBudget': monthlyBudget,
+          if (dateOfBirth != null) 'dateOfBirth': dateOfBirth.toIso8601String(),
         },
       );
 

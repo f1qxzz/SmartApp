@@ -79,8 +79,8 @@ function buildLastMessagePreview(messageType, text) {
     return 'Voice note';
   }
 
-  if (type === 'file') {
-    return normalizedText ? `File: ${normalizedText}` : 'File';
+  if (type === 'file' || type === 'document') {
+    return normalizedText ? `Dokumen: ${normalizedText}` : 'Dokumen';
   }
 
   return normalizedText || `[${type}]`;

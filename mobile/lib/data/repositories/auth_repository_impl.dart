@@ -29,6 +29,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
     String? gender,
+    DateTime? dateOfBirth,
     required bool rememberMe,
   }) {
     return _authService.register(
@@ -36,6 +37,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
       gender: gender,
+      dateOfBirth: dateOfBirth,
       rememberMe: rememberMe,
     );
   }
@@ -137,6 +139,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? gender,
     String? avatar,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   }) {
     return _authService.updateProfile(
       username: username,
@@ -145,6 +148,7 @@ class AuthRepositoryImpl implements AuthRepository {
       gender: gender,
       avatar: avatar,
       monthlyBudget: monthlyBudget,
+      dateOfBirth: dateOfBirth,
     );
   }
 

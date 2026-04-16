@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
@@ -306,11 +307,13 @@ class ChatBubble extends StatelessWidget {
     final bool isVoiceMessage = normalizedType == 'voice' ||
         normalizedType == 'audio' ||
         _looksLikeVoiceAttachment(normalizedAttachment);
+    final bool isDocumentMessage = normalizedType == 'document' ||
+        _looksLikeDocumentAttachment(normalizedAttachment);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Align(
-        alignment: Alignment.centerRight,
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: _SwipeToReply(
           onReply: onReply,
           child: GestureDetector(
@@ -321,8 +324,10 @@ class ChatBubble extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Container(
+                  clipBehavior: isImageMessage ? Clip.antiAlias : Clip.none,
                   constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.78,
+                    maxWidth: MediaQuery.of(context).size.width *
+                        (isImageMessage || isDocumentMessage ? 0.74 : 0.78),
                   ),
                   padding: isImageMessage
                       ? EdgeInsets.zero
@@ -334,11 +339,11 @@ class ChatBubble extends StatelessWidget {
                     color: isMe
                         ? AppColors.chatPrimary
                         : (isDark ? AppColors.surfaceDark : Colors.white),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
-                      bottomRight: Radius.circular(6),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(20),
+                      topRight: const Radius.circular(20),
+                      bottomLeft: Radius.circular(isMe ? 20 : 6),
+                      bottomRight: Radius.circular(isMe ? 6 : 20),
                     ),
                     border: isMe
                         ? null
@@ -350,7 +355,7 @@ class ChatBubble extends StatelessWidget {
                           ),
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isMe ? 0.08 : 0.05),
+                        color: Colors.black.withValues(alpha: isImageMessage ? 0.08 : (isMe ? 0.08 : 0.05)),
                         blurRadius: isMe ? 8 : 4,
                         offset: const Offset(0, 3),
                       ),
@@ -385,7 +390,16 @@ class ChatBubble extends StatelessWidget {
                             isRead: isRead,
                           ),
                         ),
-                      if (!isImageMessage && !isVoiceMessage)
+                      if (isDocumentMessage)
+                        _DocumentContent(
+                          fileName: text,
+                          url: attachmentUrl,
+                          isMe: isMe,
+                          isDark: isDark,
+                          timestamp: timestamp,
+                          isRead: isRead,
+                        ),
+                      if (!isImageMessage && !isVoiceMessage && !isDocumentMessage)
                         _TextContent(
                           text: text,
                           isMe: isMe,
@@ -399,7 +413,8 @@ class ChatBubble extends StatelessWidget {
                 if (reactions != null && reactions!.isNotEmpty)
                   Positioned(
                     bottom: -10,
-                    right: -4,
+                    right: isMe ? -4 : null,
+                    left: isMe ? null : -4,
                     child: _ReactionBadge(
                       reactions: reactions!,
                       isMe: isMe,
@@ -442,6 +457,21 @@ class ChatBubble extends StatelessWidget {
         normalizedAttachment.contains('.webm') ||
         normalizedAttachment.contains('.mp4') ||
         normalizedAttachment.contains('audio/');
+  }
+
+  bool _looksLikeDocumentAttachment(String normalizedAttachment) {
+    if (normalizedAttachment.isEmpty) {
+      return false;
+    }
+    return normalizedAttachment.contains('.pdf') ||
+        normalizedAttachment.contains('.doc') ||
+        normalizedAttachment.contains('.docx') ||
+        normalizedAttachment.contains('.xls') ||
+        normalizedAttachment.contains('.xlsx') ||
+        normalizedAttachment.contains('.ppt') ||
+        normalizedAttachment.contains('.pptx') ||
+        normalizedAttachment.contains('.txt') ||
+        normalizedAttachment.contains('.csv');
   }
 }
 
@@ -1200,10 +1230,12 @@ class AppAlert {
           scale: curve,
           child: Opacity(
             opacity: anim1.value,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Material(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 48, left: 32, right: 32),
+                  child: Material(
                   color: Colors.transparent,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(28),
@@ -1282,8 +1314,9 @@ class AppAlert {
               ),
             ),
           ),
-        );
-      },
+        ),
+      );
+    },
     );
   }
 }
@@ -1605,6 +1638,9 @@ class _ImageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasCaption = text.trim().isNotEmpty;
+    final String timeStr = _formatTime(timestamp);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -1615,67 +1651,202 @@ class _ImageContent extends StatelessWidget {
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
-              maxHeight: 380,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: 200,
-                    height: 150,
-                    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                  );
-                },
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.72,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image area with gradient overlay
+            ClipRRect(
+              borderRadius: hasCaption
+                  ? const BorderRadius.vertical(top: Radius.circular(16))
+                  : BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 320,
+                      minHeight: 120,
+                      minWidth: 180,
+                    ),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        final double? progress =
+                            loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null;
+                        return Container(
+                          width: double.infinity,
+                          height: 200,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.04),
+                          child: Center(
+                            child: SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                value: progress,
+                                color: isMe ? Colors.white70 : AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: double.infinity,
+                          height: 160,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.04),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: isDark ? Colors.white38 : Colors.black26,
+                                size: 32,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Gagal memuat gambar',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark ? Colors.white38 : Colors.black26,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Gradient overlay at bottom for timestamp readability
+                  if (!hasCaption)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 48,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.45),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Timestamp overlay on image (only when no caption)
+                  if (!hasCaption)
+                    Positioned(
+                      right: 8,
+                      bottom: 6,
+                      child: _buildTimeBadge(timeStr, onImage: true),
+                    ),
+                ],
               ),
             ),
-          ),
-          if (text.trim().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
-              child: Text(
-                text,
-                style: GoogleFonts.inter(
-                  fontSize: 14.5,
-                  color: isMe ? Colors.white : (isDark ? Colors.white : AppColors.textPrimary),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _formatTime(timestamp),
+
+            // Caption area (below image, inside bubble)
+            if (hasCaption)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(11, 7, 11, 2),
+                child: Text(
+                  text,
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: isMe ? Colors.white70 : AppColors.textTertiary,
+                    fontSize: 13.5,
+                    height: 1.4,
+                    color: isMe
+                        ? Colors.white
+                        : (isDark ? Colors.white : AppColors.textPrimary),
                   ),
                 ),
-                if (isMe) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    isRead ? Icons.done_all_rounded : Icons.done_rounded,
-                    size: 14,
-                    color: isRead ? Colors.white : Colors.white70,
-                  ).animate(key: ValueKey(isRead)).fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
-                ],
-              ],
-            ),
+              ),
+
+            // Timestamp row (below caption, inside bubble)
+            if (hasCaption)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(11, 3, 8, 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Spacer(),
+                    _buildTimeBadge(timeStr, onImage: false),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeBadge(String timeStr, {required bool onImage}) {
+    final Color timeColor = onImage
+        ? Colors.white.withValues(alpha: 0.92)
+        : (isMe
+            ? Colors.white.withValues(alpha: 0.7)
+            : AppColors.textTertiary);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          timeStr,
+          style: GoogleFonts.inter(
+            fontSize: 10.5,
+            fontWeight: onImage ? FontWeight.w500 : FontWeight.w400,
+            color: timeColor,
+            shadows: onImage
+                ? [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 4,
+                    ),
+                  ]
+                : null,
+          ),
+        ),
+        if (isMe) ...[
+          const SizedBox(width: 3),
+          Icon(
+            isRead ? Icons.done_all_rounded : Icons.done_rounded,
+            size: 14,
+            color: onImage
+                ? (isRead
+                    ? const Color(0xFF53BDEB)
+                    : Colors.white.withValues(alpha: 0.85))
+                : (isRead ? Colors.white : Colors.white70),
+            shadows: onImage
+                ? [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 3,
+                    ),
+                  ]
+                : null,
           ),
         ],
-      ),
+      ],
     );
   }
 
@@ -1701,37 +1872,48 @@ class _TextContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    final String timeStr = _formatTime(timestamp);
+    final Widget metaRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          timeStr,
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            color: isMe ? Colors.white70 : AppColors.textTertiary,
+          ),
+        ),
+        if (isMe) ...[
+          const SizedBox(width: 4),
+          Icon(
+            isRead ? Icons.done_all_rounded : Icons.done_rounded,
+            size: 14,
+            color: isRead ? Colors.white : Colors.white70,
+          ),
+        ],
+      ],
+    );
+
+    // Use Wrap so Flutter naturally shrinks the bubble width to fit content
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      spacing: 8,
+      runSpacing: 2,
       children: [
         Text(
           text,
           style: GoogleFonts.inter(
             fontSize: 14.5,
             height: 1.4,
-            color: isMe ? Colors.white : (isDark ? Colors.white : AppColors.textPrimary),
+            color: isMe
+                ? Colors.white
+                : (isDark ? Colors.white : AppColors.textPrimary),
           ),
         ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _formatTime(timestamp),
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                color: isMe ? Colors.white70 : AppColors.textTertiary,
-              ),
-            ),
-            if (isMe) ...[
-              const SizedBox(width: 4),
-              Icon(
-                isRead ? Icons.done_all_rounded : Icons.done_rounded,
-                size: 14,
-                color: isRead ? Colors.white : Colors.white70,
-              ).animate(key: ValueKey(isRead)).fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
-            ],
-          ],
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: metaRow,
         ),
       ],
     );
@@ -1780,6 +1962,130 @@ class _FullScreenImage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DocumentContent extends StatelessWidget {
+  final String fileName;
+  final String url;
+  final bool isMe;
+  final bool isDark;
+  final DateTime timestamp;
+  final bool isRead;
+
+  const _DocumentContent({
+    required this.fileName,
+    required this.url,
+    required this.isMe,
+    required this.isDark,
+    required this.timestamp,
+    required this.isRead,
+  });
+
+  Future<void> _launchURL() async {
+    if (url.isEmpty) return;
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color metaColor = isMe ? Colors.white70 : AppColors.textTertiary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _launchURL,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isMe
+                ? Colors.white.withValues(alpha: 0.1)
+                : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isMe ? Colors.white : AppColors.chatPrimary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.description_rounded,
+                      color: isMe ? AppColors.chatPrimary : Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fileName,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isMe ? Colors.white : AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Klik untuk membuka',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: metaColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatTime(timestamp),
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      color: metaColor,
+                    ),
+                  ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                      size: 13,
+                      color: isRead ? Colors.white : Colors.white70,
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

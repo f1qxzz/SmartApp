@@ -24,12 +24,14 @@ class AuthUseCases {
       required String email,
       required String password,
       String? gender,
+      DateTime? dateOfBirth,
       required bool rememberMe}) {
     return _repository.register(
       username: username,
       email: email,
       password: password,
       gender: gender,
+      dateOfBirth: dateOfBirth,
       rememberMe: rememberMe,
     );
   }
@@ -79,6 +81,7 @@ class AuthUseCases {
     String? gender,
     String? avatar,
     double? monthlyBudget,
+    DateTime? dateOfBirth,
   }) =>
       _repository.updateProfile(
         username: username,
@@ -87,6 +90,7 @@ class AuthUseCases {
         gender: gender,
         avatar: avatar,
         monthlyBudget: monthlyBudget,
+        dateOfBirth: dateOfBirth,
       );
 
   Future<String> uploadAvatar(File file) => _repository.uploadAvatar(file);

@@ -69,6 +69,35 @@ class NotificationService {
       sound: true,
     );
 
+    // Create High Importance Channel for Android
+    if (!kIsWeb) {
+      final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        const chatChannel = AndroidNotificationChannel(
+          _chatChannelId,
+          'Pesan Chat',
+          description: 'Notifikasi pesan chat baru',
+          importance: Importance.max,
+          enableVibration: true,
+          playSound: true,
+          showBadge: true,
+        );
+        await androidImplementation.createNotificationChannel(chatChannel);
+        
+        const reminderChannel = AndroidNotificationChannel(
+          _reminderChannelId,
+          'Pengingat',
+          description: 'Notifikasi pengingat jadwal',
+          importance: Importance.max,
+          enableVibration: true,
+          playSound: true,
+          showBadge: true,
+        );
+        await androidImplementation.createNotificationChannel(reminderChannel);
+      }
+    }
+
     _initialized = true;
   }
 
@@ -95,16 +124,26 @@ class NotificationService {
     return const NotificationDetails(android: android, iOS: ios);
   }
 
-  NotificationDetails _chatNotificationDetails() {
-    const android = AndroidNotificationDetails(
+  NotificationDetails _chatNotificationDetails({String? groupKey}) {
+    final android = AndroidNotificationDetails(
       _chatChannelId,
       'Pesan Chat',
       channelDescription: 'Notifikasi pesan chat baru',
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
+      enableVibration: true,
+      vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+      groupKey: groupKey ?? 'chat_group',
+      setAsGroupSummary: groupKey == null,
+      styleInformation: const DefaultStyleInformation(true, true),
     );
-    const ios = DarwinNotificationDetails();
-    return const NotificationDetails(android: android, iOS: ios);
+    const ios = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      threadIdentifier: 'chat_group',
+    );
+    return NotificationDetails(android: android, iOS: ios);
   }
 
   NotificationDetails _reminderNotificationDetails() {
@@ -147,8 +186,17 @@ class NotificationService {
       _chatNotificationId(message.chatId),
       sender,
       preview,
-      _chatNotificationDetails(),
+      _chatNotificationDetails(groupKey: 'chat_${message.chatId}'),
       payload: 'chat:${message.chatId}',
+    );
+
+    // Show a summary notification for the whole chat group (Android requirement for grouping)
+    await _plugin.show(
+      _stableInt('chat_summary'),
+      'Pesan Baru',
+      'Kamu memiliki pesan baru',
+      _chatNotificationDetails(),
+      payload: 'chat_summary',
     );
   }
 

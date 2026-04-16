@@ -42,13 +42,13 @@ function sendAuthSuccess(res, statusCode, message, authPayload, rememberMe = fal
 }
 
 const register = asyncHandler(async (req, res) => {
-  const { username, email, password, gender, rememberMe } = req.body;
+  const { username, email, password, gender, dateOfBirth, rememberMe } = req.body;
 
   if (!username || !email || !password) {
     return sendError(res, 400, 'Username, email, dan password wajib diisi');
   }
 
-  const data = await authService.register({ username, email, password, gender });
+  const data = await authService.register({ username, email, password, gender, dateOfBirth });
   return sendAuthSuccess(res, 201, 'Register berhasil', data, rememberMe === true);
 });
 
@@ -130,12 +130,14 @@ const me = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { username, email, gender, avatar } = req.body;
+  const { username, email, gender, avatar, dateOfBirth, monthlyBudget } = req.body;
   const user = await authService.updateProfile(req.user._id, {
     username,
     email,
     gender,
     avatar,
+    dateOfBirth,
+    monthlyBudget,
   });
 
   return res.status(200).json({

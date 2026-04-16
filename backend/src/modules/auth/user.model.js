@@ -39,6 +39,7 @@ const userSchema = new mongoose.Schema(
     providerId: { type: String, default: '', trim: true, index: true },
     isSystem: { type: Boolean, default: false, index: true },
     monthlyBudget: { type: Number, default: 5000000, min: 0 },
+    dateOfBirth: { type: Date, default: null },
     tokenVersion: { type: Number, default: 0, min: 0 },
     resetPasswordToken: { type: String, default: '', trim: true, index: true },
     resetPasswordExpires: { type: Date, default: null, index: true },

@@ -89,7 +89,7 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
     super.initState();
     final initial = widget.initialValue;
     _titleCtrl.text = initial?.title ?? '';
-    _amountCtrl.text = initial != null ? initial.amount.toStringAsFixed(0) : '';
+    _amountCtrl.text = initial != null ? AppFormatters.currencyNoSymbol(initial.amount) : '';
     _descCtrl.text = initial?.description ?? '';
     _selectedDate = initial?.date ?? DateTime.now();
     _selectedCategory = initial?.categoryId ?? 'food';
@@ -219,6 +219,7 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                               keyboardType: TextInputType.number,
                               inputFormatters: <TextInputFormatter>[
                                 FilteringTextInputFormatter.digitsOnly,
+                                ThousandSeparatorFormatter(),
                               ],
                               style: GoogleFonts.poppins(
                                 fontSize: 24,
@@ -240,7 +241,8 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
                                 if (input.isEmpty) {
                                   return 'Jumlah wajib diisi';
                                 }
-                                final double? amount = double.tryParse(input);
+                                final cleanInput = input.replaceAll('.', '');
+                                final double? amount = double.tryParse(cleanInput);
                                 if (amount == null || amount <= 0) {
                                   return 'Jumlah tidak valid';
                                 }
@@ -486,7 +488,7 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
         title: _titleCtrl.text.trim(),
         categoryId: _selectedCategory,
         description: _descCtrl.text.trim(),
-        amount: double.parse(_amountCtrl.text.trim()),
+        amount: double.parse(_amountCtrl.text.replaceAll('.', '').trim()),
         date: _selectedDate,
       );
       await widget.onSubmit(value);

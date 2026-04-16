@@ -212,19 +212,64 @@ class ChatNotifier extends StateNotifier<ChatState> {
     String? attachmentUrl,
     String? replyToId,
   }) async {
-    final message = await _useCases.sendMessage(
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final targetChatId = (chatId != null && chatId.isNotEmpty) ? chatId : (receiverId ?? 'unknown');
+
+    // Create optimistic message
+    final tempMessage = ChatMessageEntity(
+      id: tempId,
+      chatId: targetChatId,
+      senderId: _currentUserId ?? 'me',
+      senderUsername: '',
+      senderAvatar: '',
       text: text,
-      chatId: chatId,
-      receiverId: receiverId,
       type: type,
-      attachmentUrl: attachmentUrl,
+      attachmentUrl: attachmentUrl ?? '',
+      createdAt: DateTime.now(),
       replyToId: replyToId,
+      replyToMessage: state.replyMessage,
     );
 
-    _appendMessage(message);
+    // Append immediately for instant real-time feel
+    _appendMessage(tempMessage);
     state = state.copyWith(clearReply: true);
-    await _refreshChatsSilent();
-    return message;
+
+    try {
+      final message = await _useCases.sendMessage(
+        text: text,
+        chatId: chatId,
+        receiverId: receiverId,
+        type: type,
+        attachmentUrl: attachmentUrl,
+        replyToId: replyToId,
+      );
+
+      // Replace temp message with the real one from server
+      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      final cId = message.chatId.isNotEmpty ? message.chatId : targetChatId;
+      final list = List<ChatMessageEntity>.from(map[cId] ?? const []);
+      
+      final index = list.indexWhere((m) => m.id == tempId);
+      if (index != -1) {
+        list[index] = message;
+      } else {
+        list.add(message); // fallback
+      }
+      map[cId] = list;
+      
+      state = state.copyWith(messagesByChatId: map);
+      await _refreshChatsSilent();
+      return message;
+    } catch (error) {
+      // Revert optimistic update on failure
+      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      final list = List<ChatMessageEntity>.from(map[targetChatId] ?? const []);
+      list.removeWhere((m) => m.id == tempId);
+      map[targetChatId] = list;
+      
+      state = state.copyWith(messagesByChatId: map, errorMessage: error.toString());
+      rethrow;
+    }
   }
 
   Future<void> addReaction(String messageId, String emoji) async {
@@ -255,9 +300,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   Future<String> uploadFile(File file) => _useCases.uploadFile(file);
 
-  Future<void> deleteMessage(String messageId, String chatId) async {
+  Future<void> deleteMessage(String messageId, String chatId, {bool forEveryone = true}) async {
     try {
-      await _useCases.deleteMessage(messageId);
+      if (forEveryone) {
+        await _useCases.deleteMessage(messageId);
+      }
 
       // Optimistic/Local update
       final map =

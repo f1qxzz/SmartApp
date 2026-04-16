@@ -13,6 +13,7 @@ import 'package:smartlife_app/core/storage/hive_boxes.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/url_helper.dart';
+import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/theme_provider.dart';
@@ -38,6 +39,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _budgetCtrl = TextEditingController();
+  final TextEditingController _dobCtrl = TextEditingController();
+  DateTime? _selectedDOB;
   final ImagePicker _imagePicker = ImagePicker();
 
   ProviderSubscription<AuthState>? _authSubscription;
@@ -76,12 +79,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (errorMessage != null &&
             errorMessage.isNotEmpty &&
             previous?.errorMessage != errorMessage) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
+          AppAlert.show(
+            context,
+            title: 'Ups! Terjadi Kesalahan',
+            message: errorMessage,
+            isError: true,
           );
           ref.read(authProvider.notifier).clearErrorMessage();
           return;
@@ -91,12 +93,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (successMessage != null &&
             successMessage.isNotEmpty &&
             previous?.successMessage != successMessage) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(successMessage),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
+          AppAlert.show(
+            context,
+            title: 'Berhasil',
+            message: successMessage,
+            isError: false,
           );
           ref.read(authProvider.notifier).clearSuccessMessage();
         }
@@ -149,6 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _budgetCtrl.dispose();
+    _dobCtrl.dispose();
     super.dispose();
   }
 
@@ -214,12 +216,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isSaving: _isSaving,
                   onSave: _isSaving || _isUploadingPhoto ? null : _saveProfile,
                   isDark: isDark,
+                  dobCtrl: _dobCtrl,
+                  onSelectDOB: _selectDOB,
                 ),
                 const SizedBox(height: 14),
                 _AccountInsightCard(
                   user: user,
                   genderLabel: _genderLabel(_toGenderValue(user.gender)),
                   genderIcon: _genderIcon(_toGenderValue(user.gender)),
+                  dobLabel: user.dateOfBirth != null
+                      ? '${user.dateOfBirth!.day}/${user.dateOfBirth!.month}/${user.dateOfBirth!.year}'
+                      : 'Belum diisi',
                   isDark: isDark,
                   onCopyUsername: () => _copyToClipboard(
                     label: 'Username',
@@ -284,8 +291,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _usernameCtrl.text = user.username;
     _nameCtrl.text = user.name;
     _emailCtrl.text = user.email;
-    _budgetCtrl.text = user.monthlyBudget.toStringAsFixed(0);
+    _budgetCtrl.text = AppFormatters.currencyNoSymbol(user.monthlyBudget);
     _selectedGender = _toGenderValue(user.gender);
+    _selectedDOB = user.dateOfBirth;
+    if (_selectedDOB != null) {
+      _dobCtrl.text =
+          '${_selectedDOB!.day}/${_selectedDOB!.month}/${_selectedDOB!.year}';
+    } else {
+      _dobCtrl.text = '';
+    }
     _lastSyncedAt = DateTime.now();
 
     if (mounted) {
@@ -294,15 +308,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _userSignature(UserEntity user) {
-    return <String>[
-      user.id,
-      user.username,
-      user.name,
-      user.email,
-      user.gender,
-      user.avatar,
-      user.monthlyBudget.toString(),
-    ].join('|');
+    return '${user.id}|${user.username}|${user.email}|${user.name}|${user.gender}|${user.avatar}|${user.monthlyBudget}|${user.dateOfBirth?.millisecondsSinceEpoch}';
+  }
+
+  Future<void> _selectDOB() async {
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDOB ?? DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: now,
+      helpText: 'Pilih Tanggal Lahir',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primary,
+              brightness: Theme.of(context).brightness,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDOB) {
+      setState(() {
+        _selectedDOB = picked;
+        _dobCtrl.text = '${picked.day}/${picked.month}/${picked.year}';
+      });
+    }
   }
 
   String _toGenderValue(String? raw) {
@@ -405,7 +440,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             name: _nameCtrl.text.trim(),
             email: _emailCtrl.text.trim(),
             gender: _selectedGender,
-            monthlyBudget: double.tryParse(_budgetCtrl.text) ?? 0,
+            monthlyBudget: double.tryParse(_budgetCtrl.text.replaceAll('.', '')) ?? 0,
+            dateOfBirth: _selectedDOB,
           );
       await _refreshProfile();
     } catch (_) {
@@ -904,6 +940,8 @@ class _EditProfileCard extends StatelessWidget {
   final String selectedGender;
   final ValueChanged<String> onSelectGender;
   final List<(String value, String label, IconData icon)> genderOptions;
+  final TextEditingController dobCtrl;
+  final VoidCallback onSelectDOB;
   final bool isSaving;
   final VoidCallback? onSave;
   final bool isDark;
@@ -917,6 +955,8 @@ class _EditProfileCard extends StatelessWidget {
     required this.selectedGender,
     required this.onSelectGender,
     required this.genderOptions,
+    required this.dobCtrl,
+    required this.onSelectDOB,
     required this.isSaving,
     required this.onSave,
     required this.isDark,
@@ -1064,7 +1104,10 @@ class _EditProfileCard extends StatelessWidget {
               controller: budgetCtrl,
               textInputAction: TextInputAction.done,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                ThousandSeparatorFormatter(),
+              ],
               decoration: const InputDecoration(
                 hintText: 'Masukkan target budget bulanan',
                 prefixIcon: Icon(Icons.account_balance_wallet_rounded, size: 20),
@@ -1075,6 +1118,31 @@ class _EditProfileCard extends StatelessWidget {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Tanggal Lahir',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color:
+                    isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 9),
+            GestureDetector(
+              onTap: onSelectDOB,
+              child: AbsorbPointer(
+                child: InputField(
+                  hint: 'Pilih Tanggal Lahir',
+                  controller: dobCtrl,
+                  prefixIcon: const Icon(
+                    Icons.cake_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 14),
             Text(
@@ -1160,6 +1228,7 @@ class _AccountInsightCard extends StatelessWidget {
   final UserEntity user;
   final String genderLabel;
   final IconData genderIcon;
+  final String dobLabel;
   final bool isDark;
   final VoidCallback onCopyUsername;
   final VoidCallback onCopyEmail;
@@ -1168,6 +1237,7 @@ class _AccountInsightCard extends StatelessWidget {
     required this.user,
     required this.genderLabel,
     required this.genderIcon,
+    required this.dobLabel,
     required this.isDark,
     required this.onCopyUsername,
     required this.onCopyEmail,
@@ -1213,6 +1283,12 @@ class _AccountInsightCard extends StatelessWidget {
             icon: genderIcon,
             label: 'Gender',
             value: genderLabel,
+            isDark: isDark,
+          ),
+          _InfoRow(
+            icon: Icons.cake_rounded,
+            label: 'Ulang Tahun',
+            value: dobLabel,
             isDark: isDark,
           ),
         ],

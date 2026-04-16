@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import 'package:smartlife_app/core/config/env_config.dart';
@@ -19,9 +20,20 @@ class SocketClient {
       io.OptionBuilder()
           .setTransports(['websocket'])
           .enableAutoConnect()
+          .enableReconnection()
+          .setReconnectionAttempts(10)
+          .setReconnectionDelay(2000)
           .setAuth({'token': token})
           .build(),
     );
+
+    _socket?.onConnect((_) {
+      debugPrint('[SOCKET] Connected to real-time server');
+    });
+
+    _socket?.onConnectError((err) {
+      debugPrint('[SOCKET] Connection error: $err');
+    });
   }
 
   void disconnect() {

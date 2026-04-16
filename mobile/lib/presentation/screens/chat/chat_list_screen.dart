@@ -147,7 +147,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.cardDark : Colors.white,
+                            color: Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isDark
