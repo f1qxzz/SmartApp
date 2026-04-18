@@ -13,74 +13,66 @@
 </p>
 
 <p align="center">
-  <b>SmartLife</b> adalah aplikasi mobile modern yang menyatukan manajemen keuangan, chat real-time, pengingat, dan asisten AI dalam satu pengalaman terpadu.
-  <br />
-  <i><b>SmartLife</b> is a modern mobile app that brings together personal finance, realtime chat, reminders, and AI assistance in one connected experience.</i>
+  <b>SmartLife</b> adalah *modern mobile app* yang menyatukan *personal finance*, *real-time chat*, pengingat, dan *AI assistance* dalam satu *connected experience* yang terpadu.
 </p>
 
 ---
 
 ## 🌟 Overview
 
-**SmartLife** bukan sekadar aplikasi pencatat keuangan biasa. Ini adalah ruang kerja manajemen hidup di mana pengguna dapat:
-**SmartLife** is not just a standard finance tracker. It is a life management workspace where users can:
+**SmartLife** bukan sekadar *standard finance tracker* biasa. Ini adalah *life management workspace* di mana pengguna bisa:
 
-- 💰 **Kelola pengeluaran & anggaran bulanan** | *Manage spending & monthly budget*
-- 🎯 **Monitor target tabungan & langganan** | *Monitor savings goals & recurring subscriptions*
-- 💬 **Chat real-time dengan dukungan multimedia** | *Chat in realtime with multimedia support*
-- 🤖 **Dapatkan insight keuangan berbasis AI** | *Get AI-powered financial insights*
-- 📊 **Tetap terorganisir dengan dasbor sentral** | *Stay organized with a central dashboard*
+- 💰 **Manage spending & budget bulanan** dengan praktis
+- 🎯 **Monitor savings goals & recurring subscriptions** secara *real-time*
+- 💬 **Chatting & sharing multimedia** secara instan
+- 🤖 **Dapatkan AI-powered financial insights** yang cerdas
+- 📊 **Tetap terorganisir** lewat satu *central dashboard* yang intuitif
 
 ---
 
 ## 🔥 Fitur Utama | Core Features
 
 ### 1. ⚡ Smart Dashboard
-Hub sentral untuk melihat status keuangan, pengingat, dan akses cepat asisten AI.
-*A central home for finance snapshots, reminders, and AI entry points.*
+Hub sentral untuk monitor *finance snapshot*, pengingat, dan akses cepat ke *AI entry points*.
 
 ### 2. 💳 Finance & Wealth
-Lacak transaksi secara detail, pantau progres budget, dan kelola target tabungan dari satu menu.
-*Track transactions, monitor budget progress, and handle savings goals from a single menu.*
+Lacak transaksi secara detail, pantau *budget progress*, dan kelola *savings goals* langsung dari satu menu.
 
 ### 3. 💬 Realtime Chat
-Pesan instan dengan Socket.io, pencarian pesan, reaksi, share gambar, pesan suara, dan status online.
-*One-to-one messaging with Socket.io, search, reactions, image/voice sharing, and online state.*
+*One-to-one messaging* menggunakan Socket.io dengan fitur pencarian, reaksi, *share multimedia*, dan *online status indicator*.
 
 ### 4. 🧠 SmartLife AI
-Asisten finansial cerdas yang didukung oleh Gemini untuk memberikan saran berdasarkan konteks transaksi Anda.
-*AI financial assistant powered by Gemini to give actionable advice based on your transactions.*
+*Smart financial assistant* yang didukung Gemini untuk memberikan *actionable advice* berdasarkan konteks transaksi kamu.
 
 ### 5. 🔐 Auth & Security
-Alur autentikasi bersih dengan dukungan Google Sign-In dan tampilan modern yang aman.
-*Clean authentication flow with Google Sign-In and a secure, modern UI.*
+Alur autentikasi yang *clean* dengan dukungan Google Sign-In dan desain UI yang *secure* serta modern.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### 📱 Mobile (Frontend)
-- **Flutter & Dart**
-- **Riverpod** (State Management)
-- **Hive** (Local Storage)
-- **Socket.IO Client**
-- **Flutter Animate**
+- **Framework**: Flutter & Dart
+- **State Management**: Riverpod (Functional & Reactive)
+- **Local Database**: Hive (Lightning Fast)
+- **Networking**: Client Socket.IO & Dio
+- **Animations**: Flutter Animate
 
 ### 💻 Backend (API)
-- **Node.js & Express.js**
-- **MongoDB** (Mongoose)
-- **Socket.io** (Real-time)
-- **Gemini AI API**
-- **JWT & Bcrypt**
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB dengan Mongoose
+- **Real-time**: Socket.io Server
+- **AI Engine**: Gemini AI API
+- **Auth**: JWT & Bcrypt encryption
 
 ---
 
 ## 🚀 Getting Started | Cara Memulai
 
 ### 1. Prasyarat | Prerequisites
-- Flutter SDK 3.x
-- Node.js 18+
-- MongoDB Atlas / Local
+- Flutter SDK 3.x & Dart SDK
+- Node.js 18+ (Recommended)
+- MongoDB Atlas atau Local
 - Gemini API Key
 
 ### 2. Instalasi | Installation
@@ -89,12 +81,12 @@ Alur autentikasi bersih dengan dukungan Google Sign-In dan tampilan modern yang 
 git clone https://github.com/f1qxzz/SmartApp.git
 cd SmartApp
 
-# Build & Run Backend
+# Run Backend
 cd backend
 npm install
 npm run dev
 
-# Build & Run Mobile
+# Run Mobile
 cd ../mobile
 flutter pub get
 flutter run
@@ -103,9 +95,9 @@ flutter run
 ---
 
 ## 💎 Key Highlights
-- **Clean Architecture**: Kode yang terstruktur dan mudah dikembangkan.
-- **Glassmorphism UI**: Antarmuka transparan yang premium dan modern.
-- **Fluid Animations**: Animasi halus menggunakan `flutter_animate`.
+- **Clean Architecture**: Kode terstruktur yang gampang di-*maintain* dan di-skala.
+- **Glassmorphism UI**: Tampilan transparan yang memberikan kesan premium & *modern vibe*.
+- **Fluid Animations**: Transisi yang *smooth* berkat `flutter_animate`.
 
 ---
 
