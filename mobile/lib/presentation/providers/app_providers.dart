@@ -11,11 +11,13 @@ import 'package:smartlife_app/data/services/ai_service.dart';
 import 'package:smartlife_app/data/services/auth_service.dart';
 import 'package:smartlife_app/data/services/chat_service.dart';
 import 'package:smartlife_app/data/services/finance_service.dart';
+import 'package:smartlife_app/data/services/smarthome_service.dart';
 import 'package:smartlife_app/data/services/user_service.dart';
 import 'package:smartlife_app/domain/repositories/ai_repository.dart';
 import 'package:smartlife_app/domain/repositories/auth_repository.dart';
 import 'package:smartlife_app/domain/repositories/chat_repository.dart';
 import 'package:smartlife_app/domain/repositories/finance_repository.dart';
+import 'package:smartlife_app/domain/repositories/smarthome_repository.dart';
 import 'package:smartlife_app/domain/repositories/user_repository.dart';
 import 'package:smartlife_app/domain/usecases/ai_usecases.dart';
 import 'package:smartlife_app/domain/usecases/auth_usecases.dart';
@@ -45,6 +47,10 @@ final userServiceProvider = Provider<UserService>((ref) {
   return UserService(ref.read(dioClientProvider));
 });
 
+final smartHomeServiceProvider = Provider<SmartHomeService>((ref) {
+  return SmartHomeService();
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(ref.read(authServiceProvider));
 });
@@ -63,6 +69,10 @@ final aiRepositoryProvider = Provider<AiRepository>((ref) {
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepositoryImpl(ref.read(userServiceProvider));
+});
+
+final smartHomeRepositoryProvider = Provider<SmartHomeRepository>((ref) {
+  return SmartHomeRepositoryImpl(ref.read(smartHomeServiceProvider));
 });
 
 final authUseCasesProvider = Provider<AuthUseCases>((ref) {

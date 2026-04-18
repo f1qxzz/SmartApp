@@ -17,17 +17,11 @@ class SmartHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _SmartHomeScreenState extends ConsumerState<SmartHomeScreen> {
-  // State variables preserved from original
-  bool _isMainLightOn = true;
-  double _lightBrightness = 0.8;
-  double _acTemp = 22.0;
-  bool _isAcOn = true;
-  bool _isDoorLocked = true;
-  bool _isCctvActive = true;
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final homeState = ref.watch(smartHomeProvider);
+    final homeNotifier = ref.read(smartHomeProvider.notifier);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -83,19 +77,19 @@ class _SmartHomeScreenState extends ConsumerState<SmartHomeScreen> {
                     children: [
                       Expanded(
                         child: LightControlCard(
-                          isOn: _isMainLightOn,
-                          brightness: _lightBrightness,
-                          onToggle: (v) => setState(() => _isMainLightOn = v),
-                          onBrightnessChanged: (v) => setState(() => _lightBrightness = v),
+                          isOn: homeState.isMainLightOn,
+                          brightness: homeState.lightBrightness,
+                          onToggle: homeNotifier.toggleMainLight,
+                          onBrightnessChanged: homeNotifier.setLightBrightness,
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: SecurityControlCard(
-                          isLocked: _isDoorLocked,
+                          isLocked: homeState.isDoorLocked,
                           onTap: () {
                             HapticFeedback.vibrate();
-                            setState(() => _isDoorLocked = !_isDoorLocked);
+                            homeNotifier.toggleDoorLock();
                           },
                         ),
                       ),
@@ -105,20 +99,20 @@ class _SmartHomeScreenState extends ConsumerState<SmartHomeScreen> {
                   const SizedBox(height: 16),
 
                   ClimateControlCard(
-                    isOn: _isAcOn,
-                    temp: _acTemp,
-                    onToggle: () => setState(() => _isAcOn = !_isAcOn),
-                    onTempUp: () => setState(() => _acTemp++),
-                    onTempDown: () => setState(() => _acTemp--),
+                    isOn: homeState.isAcOn,
+                    temp: homeState.acTemp,
+                    onToggle: homeNotifier.toggleAc,
+                    onTempUp: () => homeNotifier.updateAcTemp(homeState.acTemp + 1),
+                    onTempDown: () => homeNotifier.updateAcTemp(homeState.acTemp - 1),
                   ).animate().fadeIn(delay: 700.ms, duration: 600.ms).slideY(begin: 0.1),
 
                   const SizedBox(height: 16),
 
                   CctvControlCard(
-                    isActive: _isCctvActive,
+                    isActive: homeState.isCctvActive,
                     onTap: () {
                       HapticFeedback.selectionClick();
-                      setState(() => _isCctvActive = !_isCctvActive);
+                      homeNotifier.toggleCctv();
                     },
                   ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.1),
                 ],

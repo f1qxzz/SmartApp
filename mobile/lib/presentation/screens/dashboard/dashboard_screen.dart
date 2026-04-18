@@ -14,6 +14,7 @@ import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
 import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
+import 'package:smartlife_app/presentation/providers/smarthome_provider.dart';
 import 'package:smartlife_app/presentation/screens/ai/ai_screen.dart';
 
 import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
@@ -165,6 +166,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           .slideY(begin: 0.1),
                       const SizedBox(height: 20),
 
+                      // Smart Home Status
+                      _buildHomeStatusBento(isDark)
+                          .animate()
+                          .fadeIn(delay: 450.ms, duration: 600.ms)
+                          .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
                       // Detailed Charts
                       TrendChart(
                         spots: weeklySeries.spots,
@@ -192,6 +200,92 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHomeStatusBento(bool isDark) {
+    final homeState = ref.watch(smartHomeProvider);
+
+    return InkWell(
+      onTap: _openSmartHome,
+      borderRadius: BorderRadius.circular(32),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (homeState.isDoorLocked ? Colors.green : Colors.red)
+                    .withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                homeState.isDoorLocked
+                    ? Icons.lock_outline_rounded
+                    : Icons.lock_open_rounded,
+                color: homeState.isDoorLocked ? Colors.green : Colors.red,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Smart Home Status',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white60 : Colors.black45,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    homeState.isDoorLocked ? 'Rumah Terkunci Aman' : 'Pintu Tidak Terkunci!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: homeState.isMainLightOn
+                    ? Colors.amber.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 14,
+                    color: homeState.isMainLightOn ? Colors.amber : Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    homeState.isMainLightOn ? 'ON' : 'OFF',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: homeState.isMainLightOn ? Colors.amber : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
