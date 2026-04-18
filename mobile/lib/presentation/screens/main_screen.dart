@@ -13,7 +13,7 @@ import 'package:smartlife_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:smartlife_app/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:smartlife_app/presentation/screens/finance/finance_screen.dart';
 import 'package:smartlife_app/presentation/screens/profile/profile_screen.dart';
-import 'package:smartlife_app/presentation/screens/smarthome/smart_home_screen.dart';
+import 'package:smartlife_app/presentation/screens/life_hub/life_hub_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
@@ -165,7 +165,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               onOpenFinance: () => _runQuickAction(() => _updateTab(1)),
               onOpenDashboard: () => _runQuickAction(() => _updateTab(2)),
               onOpenProfile: () => _runQuickAction(() => _updateTab(3)),
-              onOpenSmartHome: () => _runQuickAction(_openSmartHome),
+              onOpenLifeHub: () => _runQuickAction(_openLifeHub),
             ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
@@ -237,11 +237,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  void _openSmartHome() {
+  void _openLifeHub() {
     Navigator.push<void>(
       context,
       AppRoute<void>(
-        builder: (_) => const SmartHomeScreen(),
+        builder: (_) => const LifeHubScreen(),
       ),
     );
   }
@@ -278,7 +278,7 @@ class _QuickActionFabMenu extends StatelessWidget {
   final VoidCallback onOpenFinance;
   final VoidCallback onOpenDashboard;
   final VoidCallback onOpenProfile;
-  final VoidCallback onOpenSmartHome;
+  final VoidCallback onOpenLifeHub;
 
   const _QuickActionFabMenu({
     required this.isDark,
@@ -289,7 +289,7 @@ class _QuickActionFabMenu extends StatelessWidget {
     required this.onOpenFinance,
     required this.onOpenDashboard,
     required this.onOpenProfile,
-    required this.onOpenSmartHome,
+    required this.onOpenLifeHub,
   });
 
   @override
@@ -337,10 +337,10 @@ class _QuickActionFabMenu extends StatelessWidget {
         _buildAnimatedAction(
           order: 4,
           child: _QuickActionChip(
-            label: 'Smart Home',
-            icon: Icons.home_rounded,
+            label: 'Life Hub',
+            icon: Icons.rocket_launch_rounded,
             isDark: isDark,
-            onTap: onOpenSmartHome,
+            onTap: onOpenLifeHub,
           ),
         ),
         _buildAnimatedAction(

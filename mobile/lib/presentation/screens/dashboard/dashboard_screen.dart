@@ -13,12 +13,12 @@ import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
+import 'package:smartlife_app/presentation/providers/life_hub_provider.dart';
 import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
-import 'package:smartlife_app/presentation/providers/smarthome_provider.dart';
 import 'package:smartlife_app/presentation/screens/ai/ai_screen.dart';
 
 import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
-import 'package:smartlife_app/presentation/screens/smarthome/smart_home_screen.dart';
+import 'package:smartlife_app/presentation/screens/life_hub/life_hub_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
@@ -166,8 +166,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           .slideY(begin: 0.1),
                       const SizedBox(height: 20),
 
-                      // Smart Home Status
-                      _buildHomeStatusBento(isDark)
+                      // Life Hub Status
+                      _buildLifeHubStatusBento(isDark)
                           .animate()
                           .fadeIn(delay: 450.ms, duration: 600.ms)
                           .slideY(begin: 0.1),
@@ -204,11 +204,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildHomeStatusBento(bool isDark) {
-    final homeState = ref.watch(smartHomeProvider);
+  Widget _buildLifeHubStatusBento(bool isDark) {
+    final lifeHubState = ref.watch(lifeHubProvider);
+    final completedHabits = lifeHubState.habits.where((h) => h.isCompletedToday).length;
+    final totalHabits = lifeHubState.habits.length;
+    final progress = totalHabits == 0 ? 0.0 : completedHabits / totalHabits;
 
     return InkWell(
-      onTap: _openSmartHome,
+      onTap: _openLifeHub,
       borderRadius: BorderRadius.circular(32),
       child: Container(
         padding: const EdgeInsets.all(24),
@@ -218,19 +221,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: (homeState.isDoorLocked ? Colors.green : Colors.red)
-                    .withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                homeState.isDoorLocked
-                    ? Icons.lock_outline_rounded
-                    : Icons.lock_open_rounded,
-                color: homeState.isDoorLocked ? Colors.green : Colors.red,
-              ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 4,
+                    backgroundColor: Colors.white10,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
+                Icon(
+                  Icons.rocket_launch_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ],
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -238,7 +247,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Smart Home Status',
+                    'Daily Motivation',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -247,7 +256,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    homeState.isDoorLocked ? 'Rumah Terkunci Aman' : 'Pintu Tidak Terkunci!',
+                    progress >= 1.0 ? 'All Habits Done! 🏆' : '$completedHabits habits completed',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -257,33 +266,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: homeState.isMainLightOn
-                    ? Colors.amber.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline_rounded,
-                    size: 14,
-                    color: homeState.isMainLightOn ? Colors.amber : Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    homeState.isMainLightOn ? 'ON' : 'OFF',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: homeState.isMainLightOn ? Colors.amber : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
           ],
         ),
       ),
@@ -321,11 +304,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Future<void> _openSmartHome() async {
+  Future<void> _openLifeHub() async {
     await Navigator.push<void>(
       context,
       AppRoute<void>(
-          builder: (BuildContext context) => const SmartHomeScreen()),
+          builder: (BuildContext context) => const LifeHubScreen()),
     );
   }
 
@@ -572,7 +555,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       (label: 'Reminders', icon: Icons.notifications_none_rounded, color: const Color(0xFFF59E0B), onTap: _openReminderCenter),
       (label: 'Analytics', icon: Icons.bar_chart_rounded, color: const Color(0xFF10B981), onTap: _openAnalyticsSheet),
       (label: 'Smart AI', icon: Icons.auto_awesome_rounded, color: const Color(0xFFEC4899), onTap: _openSmartAi),
-      (label: 'Smart Home', icon: Icons.home_filled, color: const Color(0xFF38BDF8), onTap: _openSmartHome),
+      (label: 'Life Hub', icon: Icons.rocket_launch_rounded, color: const Color(0xFFF472B6), onTap: _openLifeHub),
     ];
 
     return SingleChildScrollView(
