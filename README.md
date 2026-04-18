@@ -13,39 +13,39 @@
 </p>
 
 <p align="center">
-  <b>SmartLife</b> adalah *modern mobile app* yang menyatukan *personal finance*, *real-time chat*, pengingat, dan *AI assistance* dalam satu *connected experience* yang terpadu.
+  <b>SmartLife</b> adalah modern mobile app yang menyatukan personal finance, real-time chat, pengingat, dan AI assistance dalam satu connected experience yang terpadu.
 </p>
 
 ---
 
 ## 🌟 Overview
 
-**SmartLife** bukan sekadar *standard finance tracker* biasa. Ini adalah *life management workspace* di mana pengguna bisa:
+**SmartLife** bukan sekadar standard finance tracker biasa. Ini adalah life management workspace di mana pengguna bisa:
 
 - 💰 **Manage spending & budget bulanan** dengan praktis
-- 🎯 **Monitor savings goals & recurring subscriptions** secara *real-time*
+- 🎯 **Monitor savings goals & recurring subscriptions** secara real-time
 - 💬 **Chatting & sharing multimedia** secara instan
 - 🤖 **Dapatkan AI-powered financial insights** yang cerdas
-- 📊 **Tetap terorganisir** lewat satu *central dashboard* yang intuitif
+- 📊 **Tetap terorganisir** lewat satu central dashboard yang intuitif
 
 ---
 
 ## 🔥 Fitur Utama | Core Features
 
 ### 1. ⚡ Smart Dashboard
-Hub sentral untuk monitor *finance snapshot*, pengingat, dan akses cepat ke *AI entry points*.
+Hub sentral untuk monitor finance snapshot, pengingat, dan akses cepat ke AI entry points.
 
 ### 2. 💳 Finance & Wealth
-Lacak transaksi secara detail, pantau *budget progress*, dan kelola *savings goals* langsung dari satu menu.
+Lacak transaksi secara detail, pantau budget progress, dan kelola savings goals langsung dari satu menu.
 
 ### 3. 💬 Realtime Chat
-*One-to-one messaging* menggunakan Socket.io dengan fitur pencarian, reaksi, *share multimedia*, dan *online status indicator*.
+One-to-one messaging menggunakan Socket.io dengan fitur pencarian, reaksi, share multimedia, dan online status indicator.
 
 ### 4. 🧠 SmartLife AI
-*Smart financial assistant* yang didukung Gemini untuk memberikan *actionable advice* berdasarkan konteks transaksi kamu.
+Smart financial assistant yang didukung Gemini untuk memberikan actionable advice berdasarkan konteks transaksi kamu.
 
 ### 5. 🔐 Auth & Security
-Alur autentikasi yang *clean* dengan dukungan Google Sign-In dan desain UI yang *secure* serta modern.
+Alur autentikasi yang clean dengan dukungan Google Sign-In dan desain UI yang secure serta modern.
 
 ---
 
@@ -95,9 +95,9 @@ flutter run
 ---
 
 ## 💎 Key Highlights
-- **Clean Architecture**: Kode terstruktur yang gampang di-*maintain* dan di-skala.
-- **Glassmorphism UI**: Tampilan transparan yang memberikan kesan premium & *modern vibe*.
-- **Fluid Animations**: Transisi yang *smooth* berkat `flutter_animate`.
+- **Clean Architecture**: Kode terstruktur yang gampang di-maintain dan di-skala.
+- **Glassmorphism UI**: Tampilan transparan yang memberikan kesan premium & modern vibe.
+- **Fluid Animations**: Transisi yang smooth berkat flutter_animate.
 
 ---
 
