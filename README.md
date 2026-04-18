@@ -16,6 +16,12 @@
   <b>SmartLife</b> adalah modern mobile app yang menyatukan personal finance, real-time chat, pengingat, dan AI assistance dalam satu connected experience yang terpadu.
 </p>
 
+<p align="center">
+  <a href="https://github.com/f1qxzz/SmartApp/releases/latest">
+    <img src="https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
+  </a>
+</p>
+
 ---
 
 ## 🌟 Overview

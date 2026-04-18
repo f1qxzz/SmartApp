@@ -14,6 +14,12 @@
   <i><b>SmartLife</b> is a modern superapp that combines smart finance management, real-time communication, and AI assistance in one stunning premium interface.</i>
 </p>
 
+<p align="center">
+  <a href="https://github.com/f1qxzz/SmartApp/releases/latest">
+    <img src="https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
+  </a>
+</p>
+
 ---
 
 ## 🚀 Fitur Utama | Key Features
