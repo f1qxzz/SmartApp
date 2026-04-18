@@ -27,6 +27,7 @@ function toChatUser(user) {
     id: String(user._id),
     username: user.username,
     avatar: user.avatar || '',
+    role: user.role || 'user',
     isOnline: isUserOnline(String(user._id)),
     lastSeen: lastSeen ? lastSeen.toISOString() : null,
   };
@@ -54,6 +55,7 @@ function toMessagePayload(message, receiverId) {
       _id: String(message.senderId._id || message.senderId),
       username: message.senderId.username || '',
       avatar: message.senderId.avatar || '',
+      role: message.senderId.role || 'user',
     },
     receiverId: String(receiverId),
     text: message.text || '',
@@ -91,7 +93,7 @@ async function findUserOrThrow(userId) {
     _id: userId,
     isSystem: { $ne: true },
     username: { $exists: true, $ne: '' },
-  }).select('_id username avatar');
+  }).select('_id username avatar role');
 
   if (!user) {
     throw createHttpError(404, 'User tidak ditemukan');
@@ -114,7 +116,7 @@ async function searchUsers(currentUserId, keyword) {
   }
 
   const users = await User.find(query)
-    .select('_id username avatar')
+    .select('_id username avatar role')
     .sort({ username: 1 })
     .limit(20);
 
@@ -127,7 +129,7 @@ async function getChats(currentUserId) {
   })
     .populate({
       path: 'participants',
-      select: '_id username avatar isSystem',
+      select: '_id username avatar role isSystem',
       match: {
         isSystem: { $ne: true },
         username: { $exists: true, $ne: '' },
@@ -185,7 +187,7 @@ async function getMessages(currentUserId, chatId) {
   await getChatById(currentUserId, chatId);
 
   const messages = await Message.find({ chatId: toObjectId(chatId) })
-    .populate('senderId', '_id username avatar')
+    .populate('senderId', '_id username avatar role')
     .sort({ createdAt: 1 });
 
   return messages.map((message) => ({
@@ -195,6 +197,7 @@ async function getMessages(currentUserId, chatId) {
       _id: String(message.senderId._id || ''),
       username: message.senderId.username || '',
       avatar: message.senderId.avatar || '',
+      role: message.senderId.role || 'user',
     },
     text: message.text || '',
     messageType: message.messageType,
@@ -245,7 +248,7 @@ async function sendMessage({
 
   const message = await Message.findById(createdMessage._id).populate(
     'senderId',
-    '_id username avatar'
+    '_id username avatar role'
   );
 
   return toMessagePayload(message, targetUserId);

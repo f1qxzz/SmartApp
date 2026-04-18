@@ -50,3 +50,4 @@
 ❌ Bug: fitur dinonaktifkan permanen sesuai permintaan
 💡 Solusi: endpoint, dependency, env, dan UI Apple sudah dihapus
 ----------------------------------------
+

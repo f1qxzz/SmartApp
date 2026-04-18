@@ -21,6 +21,7 @@ class AuthUseCases {
 
   Future<(UserEntity, String)> register(
       {required String username,
+      required String name,
       required String email,
       required String password,
       String? gender,
@@ -28,6 +29,7 @@ class AuthUseCases {
       required bool rememberMe}) {
     return _repository.register(
       username: username,
+      name: name,
       email: email,
       password: password,
       gender: gender,
@@ -80,8 +82,14 @@ class AuthUseCases {
     String? name,
     String? gender,
     String? avatar,
+    String? role,
     double? monthlyBudget,
     DateTime? dateOfBirth,
+    String? socialGithub,
+    String? socialInstagram,
+    String? socialDiscord,
+    String? socialTelegram,
+    String? socialSpotify,
   }) =>
       _repository.updateProfile(
         username: username,
@@ -89,8 +97,14 @@ class AuthUseCases {
         name: name,
         gender: gender,
         avatar: avatar,
+        role: role,
         monthlyBudget: monthlyBudget,
         dateOfBirth: dateOfBirth,
+        socialGithub: socialGithub,
+        socialInstagram: socialInstagram,
+        socialDiscord: socialDiscord,
+        socialTelegram: socialTelegram,
+        socialSpotify: socialSpotify,
       );
 
   Future<String> uploadAvatar(File file) => _repository.uploadAvatar(file);
@@ -98,4 +112,7 @@ class AuthUseCases {
   Future<void> logout() => _repository.logout();
 
   Future<(UserEntity, String)> restoreSession() => _repository.restoreSession();
+
+  Future<UserEntity> getPublicProfile(String userId) =>
+      _repository.getPublicProfile(userId);
 }

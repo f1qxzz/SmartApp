@@ -28,26 +28,40 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  bool _isSyncing = false;
 
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await _configureTimezone();
+    try {
+      await _configureTimezone();
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
 
-    await _plugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
-    );
+      await _plugin.initialize(
+        const InitializationSettings(
+          android: androidSettings,
+          iOS: iosSettings,
+        ),
+      );
+
+      // Create channels but don't request permissions here
+      await _setupChannels();
+
+      _initialized = true;
+    } catch (e) {
+      debugPrint('[NOTIF] initialize failed: $e');
+    }
+  }
+
+  Future<void> requestPermissions() async {
+    await initialize();
 
     final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -68,37 +82,36 @@ class NotificationService {
       badge: true,
       sound: true,
     );
+  }
 
-    // Create High Importance Channel for Android
-    if (!kIsWeb) {
-      final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      if (androidImplementation != null) {
-        const chatChannel = AndroidNotificationChannel(
-          _chatChannelId,
-          'Pesan Chat',
-          description: 'Notifikasi pesan chat baru',
-          importance: Importance.max,
-          enableVibration: true,
-          playSound: true,
-          showBadge: true,
-        );
-        await androidImplementation.createNotificationChannel(chatChannel);
-        
-        const reminderChannel = AndroidNotificationChannel(
-          _reminderChannelId,
-          'Pengingat',
-          description: 'Notifikasi pengingat jadwal',
-          importance: Importance.max,
-          enableVibration: true,
-          playSound: true,
-          showBadge: true,
-        );
-        await androidImplementation.createNotificationChannel(reminderChannel);
-      }
+  Future<void> _setupChannels() async {
+    if (kIsWeb) return;
+
+    final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      const chatChannel = AndroidNotificationChannel(
+        _chatChannelId,
+        'Pesan Chat',
+        description: 'Notifikasi pesan chat baru',
+        importance: Importance.max,
+        enableVibration: true,
+        playSound: true,
+        showBadge: true,
+      );
+      await androidImplementation.createNotificationChannel(chatChannel);
+
+      const reminderChannel = AndroidNotificationChannel(
+        _reminderChannelId,
+        'Pengingat',
+        description: 'Notifikasi pengingat jadwal',
+        importance: Importance.max,
+        enableVibration: true,
+        playSound: true,
+        showBadge: true,
+      );
+      await androidImplementation.createNotificationChannel(reminderChannel);
     }
-
-    _initialized = true;
   }
 
   Future<void> _configureTimezone() async {
@@ -164,14 +177,18 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    await initialize();
-    await _plugin.show(
-      _authNotificationId,
-      title,
-      body,
-      _authNotificationDetails(),
-      payload: 'auth:success',
-    );
+    try {
+      await initialize();
+      await _plugin.show(
+        _authNotificationId,
+        title,
+        body,
+        _authNotificationDetails(),
+        payload: 'auth:success',
+      );
+    } catch (e) {
+      debugPrint('[NOTIF] showAuthSuccess failed (likely icon error): $e');
+    }
   }
 
   Future<void> showChatMessage(ChatMessageEntity message) async {
@@ -182,22 +199,26 @@ class NotificationService {
         : message.senderUsername.trim();
     final preview = _chatPreview(message);
 
-    await _plugin.show(
-      _chatNotificationId(message.chatId),
-      sender,
-      preview,
-      _chatNotificationDetails(groupKey: 'chat_${message.chatId}'),
-      payload: 'chat:${message.chatId}',
-    );
+    try {
+      await _plugin.show(
+        _chatNotificationId(message.chatId),
+        sender,
+        preview,
+        _chatNotificationDetails(groupKey: 'chat_${message.chatId}'),
+        payload: 'chat:${message.chatId}',
+      );
 
-    // Show a summary notification for the whole chat group (Android requirement for grouping)
-    await _plugin.show(
-      _stableInt('chat_summary'),
-      'Pesan Baru',
-      'Kamu memiliki pesan baru',
-      _chatNotificationDetails(),
-      payload: 'chat_summary',
-    );
+      // Show a summary notification for the whole chat group (Android requirement for grouping)
+      await _plugin.show(
+        _stableInt('chat_summary'),
+        'Pesan Baru',
+        'Kamu memiliki pesan baru',
+        _chatNotificationDetails(),
+        payload: 'chat_summary',
+      );
+    } catch (e) {
+      debugPrint('[NOTIF] showChatMessage failed: $e');
+    }
   }
 
   String _chatPreview(ChatMessageEntity message) {
@@ -268,15 +289,19 @@ class NotificationService {
     required DateTime scheduledAt,
     required String payload,
   }) async {
-    await _plugin.zonedSchedule(
-      notificationId,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledAt, tz.local),
-      _reminderNotificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      payload: payload,
-    );
+    try {
+      await _plugin.zonedSchedule(
+        notificationId,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledAt, tz.local),
+        _reminderNotificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('[NOTIF] zonedSchedule failed: $e');
+    }
   }
 
   String _formatTimeLabel(DateTime dateTime) {
@@ -286,11 +311,15 @@ class NotificationService {
   }
 
   Future<void> cancelReminder(String reminderId) async {
-    await initialize();
-    await _plugin.cancel(_reminderDueNotificationId(reminderId));
-    await _plugin.cancel(_reminderSoonNotificationId(reminderId));
-    // Backward compatibility: old one-shot reminder ID.
-    await _plugin.cancel(_reminderNotificationId(reminderId));
+    try {
+      await initialize();
+      await _plugin.cancel(_reminderDueNotificationId(reminderId));
+      await _plugin.cancel(_reminderSoonNotificationId(reminderId));
+      // Backward compatibility: old one-shot reminder ID.
+      await _plugin.cancel(_reminderNotificationId(reminderId));
+    } catch (e) {
+      debugPrint('[NOTIF] cancelReminder failed: $e');
+    }
   }
 
   Future<void> syncReminderNotifications(List<ReminderEntity> reminders) async {
@@ -340,38 +369,46 @@ class NotificationService {
   }
 
   Future<void> syncReminderNotificationsFromStorage() async {
-    await initialize();
-    final box = Hive.box(HiveBoxes.reminders);
-    final activeUserId = _activeUserId();
-    if (activeUserId == null || activeUserId.isEmpty) {
-      await syncReminderNotifications(const []);
-      return;
-    }
+    if (_isSyncing) return;
+    _isSyncing = true;
+    try {
+      await initialize();
+      final box = Hive.box(HiveBoxes.reminders);
+      final activeUserId = _activeUserId();
+      if (activeUserId == null || activeUserId.isEmpty) {
+        await syncReminderNotifications(const []);
+        return;
+      }
 
-    final reminders = <ReminderEntity>[];
-    for (final raw in box.values) {
-      Map<String, dynamic>? map;
-      if (raw is String) {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map) {
-          map = Map<String, dynamic>.from(decoded);
+      final reminders = <ReminderEntity>[];
+      for (final raw in box.values) {
+        Map<String, dynamic>? map;
+        if (raw is String) {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map) {
+            map = Map<String, dynamic>.from(decoded);
+          }
+        } else if (raw is Map) {
+          map = Map<String, dynamic>.from(raw);
         }
-      } else if (raw is Map) {
-        map = Map<String, dynamic>.from(raw);
+
+        if (map == null) {
+          continue;
+        }
+
+        final ownerId = (map['userId'] ?? '').toString().trim();
+        if (ownerId.isNotEmpty && ownerId != activeUserId) {
+          continue;
+        }
+        reminders.add(ReminderEntity.fromJson(map));
       }
 
-      if (map == null) {
-        continue;
-      }
-
-      final ownerId = (map['userId'] ?? '').toString().trim();
-      if (ownerId.isNotEmpty && ownerId != activeUserId) {
-        continue;
-      }
-      reminders.add(ReminderEntity.fromJson(map));
+      await syncReminderNotifications(reminders);
+    } catch (e) {
+      debugPrint('[NOTIF] sync from storage failed: $e');
+    } finally {
+      _isSyncing = false;
     }
-
-    await syncReminderNotifications(reminders);
   }
 
   String? _activeUserId() {

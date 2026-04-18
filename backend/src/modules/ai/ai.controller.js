@@ -21,6 +21,28 @@ const chatWithAI = asyncHandler(async (req, res) => {
   });
 });
 
+const handleSummarizeChat = asyncHandler(async (req, res) => {
+  const { chatId } = req.body;
+
+  if (!chatId) {
+    return res.status(400).json({ success: false, message: 'chatId is required' });
+  }
+
+  const summary = await aiService.summarizeChat({
+    chatId,
+    userId: req.user._id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      summary,
+    },
+  });
+});
+
 module.exports = {
   chatWithAI,
+  handleSummarizeChat,
 };
+

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -58,7 +59,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          _AiBackground(isDark: isDark),
+          const _MeshBackground(),
+          const _NoiseOverlay(),
           Column(
             children: <Widget>[
               _AiHeader(
@@ -107,126 +109,132 @@ class _AIScreenState extends ConsumerState<AIScreen> {
   }
 
   Widget _buildInputBar(bool isDark, bool isLoading, bool showSuggestions) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 8,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: MediaQuery.of(context).padding.bottom + 8,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (showSuggestions) ...<Widget>[
-            SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _suggestions.map((suggestion) {
-                  return GestureDetector(
-                    onTap: () => _sendMessage(suggestion.$2),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.surfaceDark
-                            : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.dividerLight),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(suggestion.$1,
-                              size: 14, color: AppColors.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            suggestion.$2,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+          decoration: BoxDecoration(
+            color: isDark 
+                ? const Color(0xFF0F172A).withValues(alpha: 0.7) 
+                : Colors.white.withValues(alpha: 0.7),
+            border: Border(
+              top: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
               ),
             ),
-            const SizedBox(height: 10),
-          ],
-          Row(
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color:
-                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(24),
+              if (showSuggestions) ...<Widget>[
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: _suggestions.map((suggestion) {
+                      return GestureDetector(
+                        onTap: () => _sendMessage(suggestion.$2),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.dividerLight),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(suggestion.$1,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                suggestion.$2,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  child: TextField(
-                    controller: _msgCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Tanya sesuatu tentang keuanganmu...',
-                      border: InputBorder.none,
-                      filled: false,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 14),
-                      hintStyle: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textTertiary,
+                ),
+                const SizedBox(height: 10),
+              ],
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: _msgCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Tanya sesuatu tentang keuanganmu...',
+                          border: InputBorder.none,
+                          filled: false,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 14),
+                          hintStyle: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textTertiary,
+                          ),
+                        ),
+                        style: GoogleFonts.inter(fontSize: 14),
+                        onSubmitted: (value) => _sendMessage(value),
                       ),
                     ),
-                    style: GoogleFonts.inter(fontSize: 14),
-                    onSubmitted: (value) => _sendMessage(value),
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: isLoading ? null : () => _sendMessage(_msgCtrl.text),
-                child: Opacity(
-                  opacity: isLoading ? 0.6 : 1,
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.gradientPrimary,
-                      shape: BoxShape.circle,
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          color: Color(0x557C7E9D),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: isLoading ? null : () => _sendMessage(_msgCtrl.text),
+                    child: Opacity(
+                      opacity: isLoading ? 0.6 : 1,
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.gradientPrimary,
+                          shape: BoxShape.circle,
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x557C7E9D),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
+                        child: const Icon(Icons.send_rounded,
+                            color: Colors.white, size: 20),
+                      ),
                     ),
-                    child: const Icon(Icons.send_rounded,
-                        color: Colors.white, size: 20),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -237,6 +245,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       return;
     }
 
+    HapticFeedback.lightImpact();
     _msgCtrl.clear();
     await ref.read(aiProvider.notifier).ask(cleanText);
     _scrollToBottom();
@@ -304,87 +313,95 @@ class _AiHeader extends StatelessWidget {
         right: 20,
         bottom: 14,
       ),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.dividerLight,
-          ),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                gradient: AppColors.gradientPrimary,
-                shape: BoxShape.circle,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF1E293B).withValues(alpha: 0.7)
+                  : Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.3),
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 22),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('SmartLife AI', style: AppTextStyles.heading3(context)),
-                  Text(
-                    'Asisten insight keuangan real-time',
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('SmartLife AI', style: AppTextStyles.heading3(context)),
+                      Text(
+                        'Asisten insight keuangan real-time',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${budgetPct.toStringAsFixed(0)}% budget',
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: AppColors.secondary,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${budgetPct.toStringAsFixed(0)}% budget',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onClear,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color:
-                        isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                const SizedBox(width: 8),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onClear,
                     borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color:
+                            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.cleaning_services_rounded, size: 18),
+                    ),
                   ),
-                  child: const Icon(Icons.cleaning_services_rounded, size: 18),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -533,22 +550,40 @@ class _AiBubble extends StatelessWidget {
                   gradient: isAi ? null : AppColors.gradientPrimary,
                   color: isAi
                       ? (isDark
-                          ? AppColors.surfaceDark
-                          : AppColors.surfaceLight)
+                          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                          : Colors.white.withValues(alpha: 0.9))
                       : null,
                   borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isAi ? 4 : 18),
-                    bottomRight: Radius.circular(isAi ? 18 : 4),
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isAi ? 4 : 20),
+                    bottomRight: Radius.circular(isAi ? 20 : 4),
                   ),
+                  border: isAi 
+                      ? Border.all(
+                          color: isDark 
+                              ? Colors.white.withValues(alpha: 0.05) 
+                              : Colors.black.withValues(alpha: 0.02),
+                        )
+                      : null,
                   boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: (isAi ? Colors.black : AppColors.primary)
-                          .withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
+                    if (isAi) ...[
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ] else
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
                   ],
                 ),
                 child: Column(
@@ -617,36 +652,102 @@ class _AiLoadingBubble extends StatelessWidget {
   }
 }
 
-class _AiBackground extends StatelessWidget {
-  final bool isDark;
-
-  const _AiBackground({required this.isDark});
+class _MeshBackground extends StatelessWidget {
+  const _MeshBackground();
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-        ),
-        Positioned(
-          top: -120,
-          left: -70,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: <Color>[
-                  AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.12),
-                  AppColors.secondary.withValues(alpha: isDark ? 0.14 : 0.08),
-                ],
-              ),
-            ),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      child: Stack(
+        children: [
+          // Dynamic Blobs
+          _Blob(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1),
+            size: 400,
+            initialOffset: const Offset(-100, -100),
+            animationDuration: 15.seconds,
+          ),
+          _Blob(
+            color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.12 : 0.08),
+            size: 350,
+            initialOffset: const Offset(200, 100),
+            animationDuration: 20.seconds,
+            begin: 0.2,
+          ),
+          _Blob(
+            color: const Color(0xFFEC4899).withValues(alpha: isDark ? 0.1 : 0.06),
+            size: 300,
+            initialOffset: const Offset(50, 400),
+            animationDuration: 18.seconds,
+            begin: 0.4,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Blob extends StatelessWidget {
+  final Color color;
+  final double size;
+  final Offset initialOffset;
+  final Duration animationDuration;
+  final double begin;
+
+  const _Blob({
+    required this.color,
+    required this.size,
+    required this.initialOffset,
+    required this.animationDuration,
+    this.begin = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: initialOffset.dx,
+      top: initialOffset.dy,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withValues(alpha: 0)],
           ),
         ),
-      ],
+      )
+          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+          .move(
+            begin: Offset.zero,
+            end: const Offset(50, 80),
+            duration: animationDuration,
+            curve: Curves.easeInOut,
+          )
+          .scaleXY(begin: 1, end: 1.2, duration: animationDuration),
+    );
+  }
+}
+
+class _NoiseOverlay extends StatelessWidget {
+  const _NoiseOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.03,
+      child: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: NetworkImage(
+              'https://www.transparenttextures.com/patterns/carbon-fibre.png',
+            ),
+            repeat: ImageRepeat.repeat,
+          ),
+        ),
+      ),
     );
   }
 }

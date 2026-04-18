@@ -8,4 +8,7 @@ class AiRepositoryImpl implements AiRepository {
 
   @override
   Future<String> ask(String message) => _aiService.ask(message);
+
+  @override
+  Future<String> summarizeChat(String chatId) => _aiService.summarizeChat(chatId);
 }

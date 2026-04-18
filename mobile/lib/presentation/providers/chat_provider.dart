@@ -446,7 +446,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _typingSub = _useCases.onTyping().listen((event) {
       final fromUserId = (event['fromUserId'] ?? '').toString();
       final isTyping = event['isTyping'] == true;
-      if (fromUserId.isEmpty) {
+      
+      // Ignore if it's from current user to prevent "echo" on their screen
+      if (fromUserId.isEmpty || fromUserId == _currentUserId) {
         return;
       }
 

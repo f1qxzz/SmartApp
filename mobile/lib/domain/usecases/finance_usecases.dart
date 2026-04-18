@@ -1,5 +1,7 @@
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/domain/entities/finance_stats_entity.dart';
+import 'package:smartlife_app/domain/entities/savings_goal_entity.dart';
+import 'package:smartlife_app/domain/entities/subscription_entity.dart';
 import 'package:smartlife_app/domain/repositories/finance_repository.dart';
 
 class FinanceUseCases {
@@ -36,4 +38,16 @@ class FinanceUseCases {
 
   Future<double> setBudget(double monthlyBudget) =>
       _repository.setBudget(monthlyBudget);
+
+  // --- Savings Goals ---
+  Future<List<SavingsGoalEntity>> getSavingsGoals() => _repository.getSavingsGoals();
+  Future<SavingsGoalEntity> createSavingsGoal(SavingsGoalEntity goal) => _repository.createSavingsGoal(goal);
+  Future<SavingsGoalEntity> updateSavingsGoal(String id, SavingsGoalEntity goal) => _repository.updateSavingsGoal(id, goal);
+  Future<void> deleteSavingsGoal(String id) => _repository.deleteSavingsGoal(id);
+
+  // --- Subscriptions ---
+  Future<List<SubscriptionEntity>> getSubscriptions() => _repository.getSubscriptions();
+  Future<SubscriptionEntity> createSubscription(SubscriptionEntity sub) => _repository.createSubscription(sub);
+  Future<SubscriptionEntity> updateSubscription(String id, SubscriptionEntity sub) => _repository.updateSubscription(id, sub);
+  Future<void> deleteSubscription(String id) => _repository.deleteSubscription(id);
 }

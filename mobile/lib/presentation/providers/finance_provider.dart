@@ -7,8 +7,13 @@ import 'package:smartlife_app/domain/usecases/finance_usecases.dart';
 import 'package:smartlife_app/presentation/providers/app_providers.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 
+import 'package:smartlife_app/domain/entities/savings_goal_entity.dart';
+import 'package:smartlife_app/domain/entities/subscription_entity.dart';
+
 class FinanceState {
   final List<FinanceEntryEntity> entries;
+  final List<SavingsGoalEntity> goals;
+  final List<SubscriptionEntity> subscriptions;
   final FinanceStatsEntity? stats;
   final bool isLoading;
   final String? errorMessage;
@@ -19,6 +24,8 @@ class FinanceState {
 
   const FinanceState({
     this.entries = const [],
+    this.goals = const [],
+    this.subscriptions = const [],
     this.stats,
     this.isLoading = false,
     this.errorMessage,
@@ -59,6 +66,8 @@ class FinanceState {
 
   FinanceState copyWith({
     List<FinanceEntryEntity>? entries,
+    List<SavingsGoalEntity>? goals,
+    List<SubscriptionEntity>? subscriptions,
     FinanceStatsEntity? stats,
     bool? isLoading,
     String? errorMessage,
@@ -70,6 +79,8 @@ class FinanceState {
   }) {
     return FinanceState(
       entries: entries ?? this.entries,
+      goals: goals ?? this.goals,
+      subscriptions: subscriptions ?? this.subscriptions,
       stats: stats ?? this.stats,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -119,16 +130,22 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
         _useCases.getEntries(),
         _useCases.stats(),
         _useCases.getBudget(),
+        _useCases.getSavingsGoals(),
+        _useCases.getSubscriptions(),
       ]);
 
       final entries = results[0] as List<FinanceEntryEntity>;
       final stats = results[1] as FinanceStatsEntity;
       final budget = results[2] as double;
+      final goals = results[3] as List<SavingsGoalEntity>;
+      final subscriptions = results[4] as List<SubscriptionEntity>;
 
       state = state.copyWith(
         entries: entries,
         stats: stats,
         monthlyBudget: budget,
+        goals: goals,
+        subscriptions: subscriptions,
         isLoading: false,
       );
     } catch (error) {
@@ -188,6 +205,106 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     try {
       final budget = await _useCases.setBudget(monthlyBudget);
       state = state.copyWith(monthlyBudget: budget);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  // --- Savings Goals ---
+  Future<void> createSavingsGoal({
+    required String title,
+    required double targetAmount,
+    double currentAmount = 0,
+    DateTime? deadline,
+    String color = '#6366F1',
+    String icon = 'wallet_rounded',
+  }) async {
+    final goal = SavingsGoalEntity(
+      id: '',
+      userId: _activeUserId ?? '',
+      title: title.trim(),
+      targetAmount: targetAmount,
+      currentAmount: currentAmount,
+      deadline: deadline,
+      color: color,
+      icon: icon,
+    );
+
+    try {
+      await _useCases.createSavingsGoal(goal);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> updateSavingsGoal(SavingsGoalEntity goal) async {
+    try {
+      await _useCases.updateSavingsGoal(goal.id, goal);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSavingsGoal(String id) async {
+    try {
+      await _useCases.deleteSavingsGoal(id);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  // --- Subscriptions ---
+  Future<void> createSubscription({
+    required String name,
+    required double amount,
+    String billingCycle = 'monthly',
+    String icon = 'card_giftcard_rounded',
+    String color = '#6366F1',
+    String status = 'active',
+    DateTime? nextBillingDate,
+  }) async {
+    final sub = SubscriptionEntity(
+      id: '',
+      userId: _activeUserId ?? '',
+      name: name.trim(),
+      amount: amount,
+      billingCycle: billingCycle,
+      icon: icon,
+      color: color,
+      status: status,
+      nextBillingDate: nextBillingDate,
+    );
+
+    try {
+      await _useCases.createSubscription(sub);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> updateSubscription(SubscriptionEntity sub) async {
+    try {
+      await _useCases.updateSubscription(sub.id, sub);
+      await load(silent: true);
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSubscription(String id) async {
+    try {
+      await _useCases.deleteSubscription(id);
       await load(silent: true);
     } catch (error) {
       state = state.copyWith(errorMessage: error.toString());

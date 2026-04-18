@@ -20,6 +20,7 @@ class CustomButton extends StatefulWidget {
   final Widget? icon;
   final double? width;
   final Gradient? gradient;
+  final Color? textColor;
 
   const CustomButton({
     super.key,
@@ -30,6 +31,7 @@ class CustomButton extends StatefulWidget {
     this.icon,
     this.width,
     this.gradient,
+    this.textColor,
   });
 
   @override
@@ -150,9 +152,10 @@ class _CustomButtonState extends State<CustomButton>
                               Text(
                                 widget.text,
                                 style: AppTextStyles.button.copyWith(
-                                  color: widget.isOutlined
-                                      ? AppColors.primary
-                                      : Colors.white,
+                                  color: widget.textColor ??
+                                      (widget.isOutlined
+                                          ? AppColors.primary
+                                          : Colors.white),
                                 ),
                               ),
                             ],
@@ -178,6 +181,8 @@ class InputField extends StatefulWidget {
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
   final int? maxLines;
+  final bool readOnly;
+  final List<TextInputFormatter>? inputFormatters;
 
   const InputField({
     super.key,
@@ -190,6 +195,8 @@ class InputField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.maxLines = 1,
+    this.readOnly = false,
+    this.inputFormatters,
   });
 
   @override
@@ -241,6 +248,8 @@ class _InputFieldState extends State<InputField> {
           validator: widget.validator,
           onChanged: widget.onChanged,
           maxLines: widget.maxLines,
+          readOnly: widget.readOnly,
+          inputFormatters: widget.inputFormatters,
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -273,6 +282,7 @@ class ChatBubble extends StatelessWidget {
   final bool isMe;
   final DateTime timestamp;
   final bool isRead;
+  final String senderRole;
   final String? avatarUrl;
   final String type;
   final String attachmentUrl;
@@ -289,6 +299,7 @@ class ChatBubble extends StatelessWidget {
     required this.timestamp,
     this.isRead = false,
     this.avatarUrl,
+    this.senderRole = 'user',
     this.type = 'text',
     this.attachmentUrl = '',
     this.onLongPress,
@@ -365,6 +376,33 @@ class ChatBubble extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      if (!isMe && (senderRole == 'owner' || senderRole == 'staff' || senderRole == 'developer' || senderRole == 'admin'))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 5, left: 1),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (senderRole == 'owner' || senderRole == 'developer') ...[
+                                const Icon(Icons.verified_rounded, color: Color(0xFFFFD700), size: 14),
+                                const SizedBox(width: 4),
+                              ] else if (senderRole == 'staff' || senderRole == 'admin') ...[
+                                const Icon(Icons.verified_rounded, color: Color(0xFF6366F1), size: 14),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                senderRole.toUpperCase(),
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: senderRole == 'owner' || senderRole == 'developer'
+                                      ? const Color(0xFFFFD700)
+                                      : const Color(0xFF6366F1),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       if (replyToMessage != null)
                         _ReplyPreview(
                           message: replyToMessage!,
@@ -1213,17 +1251,15 @@ class AppAlert {
     bool isError = false,
     Duration? duration,
   }) async {
-    HapticFeedback.lightImpact();
+    HapticFeedback.heavyImpact();
 
     await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, anim1, anim2) {
-        return const SizedBox.shrink();
-      },
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, anim1, anim2, child) {
         final curve = Curves.easeOutBack.transform(anim1.value);
         return Transform.scale(
@@ -1231,82 +1267,322 @@ class AppAlert {
           child: Opacity(
             opacity: anim1.value,
             child: Align(
-              alignment: Alignment.topCenter,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 48, left: 32, right: 32),
-                  child: Material(
+              alignment: Alignment.center,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Material(
                   color: Colors.transparent,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.cardDark.withValues(alpha: 0.85)
-                              : Colors.white.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: (isError ? AppColors.error : AppColors.success)
+                            .withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isError ? AppColors.error : AppColors.primary)
+                              .withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
                             color: (isError ? AppColors.error : AppColors.success)
-                                .withValues(alpha: 0.35),
-                            width: 1.5,
+                                .withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                            color: isError ? AppColors.error : AppColors.success,
+                            size: 32,
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: (isError ? AppColors.error : AppColors.success)
-                                    .withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                isError ? Icons.close_rounded : Icons.check_rounded,
-                                color: isError ? AppColors.error : AppColors.success,
-                                size: 36,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              title,
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              message,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondary,
-                                height: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: CustomButton(
-                                text: 'OK',
-                                onPressed: () => Navigator.of(context).pop(),
-                                gradient: isError
-                                    ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFB91C1C)])
-                                    : AppColors.gradientPrimary,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 20),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
                         ),
+                        const SizedBox(height: 10),
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        CustomButton(
+                          text: 'Lanjutkan',
+                          onPressed: () => Navigator.of(context).pop(),
+                          gradient: isError
+                              ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFF991B1B)])
+                              : AppColors.gradientPrimary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A premium floating toast notification with glassmorphism, slide-up animation,
+/// progress bar countdown, and swipe-to-dismiss.
+class SmartToast {
+  static OverlayEntry? _currentEntry;
+
+  static void show(
+    BuildContext context, {
+    required String message,
+    bool isError = false,
+    Duration duration = const Duration(seconds: 3),
+    IconData? icon,
+  }) {
+    dismiss();
+    HapticFeedback.mediumImpact();
+
+    final overlay = Overlay.of(context);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _SmartToastWidget(
+        message: message,
+        isError: isError,
+        isDark: isDark,
+        duration: duration,
+        icon: icon,
+        onDismiss: () {
+          entry.remove();
+          _currentEntry = null;
+        },
+      ),
+    );
+
+    _currentEntry = entry;
+    overlay.insert(entry);
+  }
+
+  static void dismiss() {
+    _currentEntry?.remove();
+    _currentEntry = null;
+  }
+}
+
+class _SmartToastWidget extends StatefulWidget {
+  final String message;
+  final bool isError;
+  final bool isDark;
+  final Duration duration;
+  final IconData? icon;
+  final VoidCallback onDismiss;
+
+  const _SmartToastWidget({
+    required this.message,
+    required this.isError,
+    required this.isDark,
+    required this.duration,
+    required this.onDismiss,
+    this.icon,
+  });
+
+  @override
+  State<_SmartToastWidget> createState() => _SmartToastWidgetState();
+}
+
+class _SmartToastWidgetState extends State<_SmartToastWidget>
+    with TickerProviderStateMixin {
+  late final AnimationController _slideController;
+  late final AnimationController _progressController;
+  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+
+    _progressController = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
+    );
+
+    _slideController.forward();
+    _progressController.forward();
+
+    _progressController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _dismissWithAnimation();
+      }
+    });
+  }
+
+  void _dismissWithAnimation() async {
+    await _slideController.reverse();
+    if (mounted) widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = widget.isError
+        ? const Color(0xFFEF4444)
+        : const Color(0xFF22C55E);
+    final bgColor = widget.isDark
+        ? const Color(0xFF1E293B).withValues(alpha: 0.92)
+        : const Color(0xFF0F172A).withValues(alpha: 0.92);
+
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 16,
+      left: 16,
+      right: 16,
+      child: Center(
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Dismissible(
+              key: UniqueKey(),
+              direction: DismissDirection.down,
+              onDismissed: (_) => widget.onDismiss(),
+              child: FractionallySizedBox(
+                widthFactor: 0.88,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    widget.icon ??
+                                        (widget.isError
+                                            ? Icons.error_outline_rounded
+                                            : Icons.check_circle_outline_rounded),
+                                    color: accentColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    widget.message,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.92),
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          AnimatedBuilder(
+                            animation: _progressController,
+                            builder: (context, _) {
+                              return Container(
+                                height: 2.5,
+                                width: double.infinity,
+                                color: Colors.white.withValues(alpha: 0.05),
+                                alignment: Alignment.centerLeft,
+                                child: FractionallySizedBox(
+                                  widthFactor: 1 - _progressController.value,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          accentColor,
+                                          accentColor.withValues(alpha: 0.4),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1315,8 +1591,7 @@ class AppAlert {
             ),
           ),
         ),
-      );
-    },
+      ),
     );
   }
 }
@@ -2085,6 +2360,57 @@ class _DocumentContent extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class GlassContainer extends StatelessWidget {
+  final Widget child;
+  final double? width;
+  final double? height;
+  final double borderRadius;
+  final double blur;
+  final Color? color;
+  final BoxBorder? border;
+  final EdgeInsetsGeometry? padding;
+
+  const GlassContainer({
+    super.key,
+    required this.child,
+    this.width,
+    this.height,
+    this.borderRadius = 20,
+    this.blur = 12,
+    this.color,
+    this.border,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          width: width,
+          height: height,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: color ?? (isDark 
+                ? Colors.white.withValues(alpha: 0.07) 
+                : Colors.white.withValues(alpha: 0.15)),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: border ?? Border.all(
+              color: isDark 
+                  ? Colors.white.withValues(alpha: 0.12) 
+                  : Colors.white.withValues(alpha: 0.3),
+            ),
+          ),
+          child: child,
         ),
       ),
     );

@@ -42,13 +42,13 @@ function sendAuthSuccess(res, statusCode, message, authPayload, rememberMe = fal
 }
 
 const register = asyncHandler(async (req, res) => {
-  const { username, email, password, gender, dateOfBirth, rememberMe } = req.body;
+  const { username, name, email, password, gender, dateOfBirth, rememberMe } = req.body;
 
-  if (!username || !email || !password) {
-    return sendError(res, 400, 'Username, email, dan password wajib diisi');
+  if ((!username && !name) || !email || !password) {
+    return sendError(res, 400, 'Nama lengkap, email, dan password wajib diisi');
   }
 
-  const data = await authService.register({ username, email, password, gender, dateOfBirth });
+  const data = await authService.register({ username, name, email, password, gender, dateOfBirth });
   return sendAuthSuccess(res, 201, 'Register berhasil', data, rememberMe === true);
 });
 
@@ -130,14 +130,24 @@ const me = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { username, email, gender, avatar, dateOfBirth, monthlyBudget } = req.body;
+  const {
+    username, email, gender, avatar, dateOfBirth, monthlyBudget, name,
+    socialGithub, socialInstagram, socialDiscord, socialTelegram, socialSpotify
+  } = req.body;
+  
   const user = await authService.updateProfile(req.user._id, {
     username,
     email,
+    name,
     gender,
     avatar,
     dateOfBirth,
     monthlyBudget,
+    socialGithub,
+    socialInstagram,
+    socialDiscord,
+    socialTelegram,
+    socialSpotify,
   });
 
   return res.status(200).json({
@@ -157,6 +167,20 @@ const logout = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserPublicProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return sendError(res, 400, 'User ID wajib diisi');
+  }
+
+  const profile = await authService.getPublicProfile(id);
+  return res.status(200).json({
+    success: true,
+    data: { user: profile },
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -166,5 +190,6 @@ module.exports = {
   resetPassword,
   me,
   updateProfile,
+  getUserPublicProfile,
   logout,
 };

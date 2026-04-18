@@ -71,6 +71,7 @@ class AuthService {
 
   Future<(UserEntity, String)> register({
     required String username,
+    required String name,
     required String email,
     required String password,
     String? gender,
@@ -78,11 +79,12 @@ class AuthService {
     required bool rememberMe,
   }) async {
     try {
-      debugPrint('[AUTH][API] POST /auth/register username=$username');
+      debugPrint('[AUTH][API] POST /auth/register email=$email');
       final response = await _dioClient.instance.post(
         '/auth/register',
         data: {
           'username': username,
+          'name': name,
           'email': email,
           'password': password,
           if (gender != null && gender.trim().isNotEmpty) 'gender': gender,
@@ -180,8 +182,14 @@ class AuthService {
     String? name,
     String? gender,
     String? avatar,
+    String? role,
     double? monthlyBudget,
     DateTime? dateOfBirth,
+    String? socialGithub,
+    String? socialInstagram,
+    String? socialDiscord,
+    String? socialTelegram,
+    String? socialSpotify,
   }) async {
     try {
       final response = await _dioClient.instance.put(
@@ -192,8 +200,14 @@ class AuthService {
           if (name != null) 'name': name,
           if (gender != null) 'gender': gender,
           if (avatar != null) 'avatar': avatar,
+          if (role != null) 'role': role,
           if (monthlyBudget != null) 'monthlyBudget': monthlyBudget,
           if (dateOfBirth != null) 'dateOfBirth': dateOfBirth.toIso8601String(),
+          if (socialGithub != null) 'socialGithub': socialGithub,
+          if (socialInstagram != null) 'socialInstagram': socialInstagram,
+          if (socialDiscord != null) 'socialDiscord': socialDiscord,
+          if (socialTelegram != null) 'socialTelegram': socialTelegram,
+          if (socialSpotify != null) 'socialSpotify': socialSpotify,
         },
       );
 
@@ -242,6 +256,20 @@ class AuthService {
       final response = await _dioClient.instance.get('/auth/me');
       return _parseAuthResponse(response);
     } catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<UserEntity> getPublicProfile(String userId) async {
+    try {
+      debugPrint('[AUTH][API] GET /auth/users/$userId');
+      final response = await _dioClient.instance.get('/auth/users/$userId');
+      final root = _asMap(response.data);
+      final payload = root['data'] is Map ? _asMap(root['data']) : root;
+      final userRaw = payload['user'] ?? root['user'] ?? payload;
+      return UserEntity.fromJson(_asMap(userRaw));
+    } on DioException catch (error) {
+      debugPrint('[AUTH][API] /auth/users/$userId failed: $error');
       throw ApiException.fromDio(error);
     }
   }

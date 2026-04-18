@@ -9,11 +9,14 @@ class ChatConversationEntity {
   final DateTime updatedAt;
   final int unreadCount;
 
+  final String role;
+
   const ChatConversationEntity({
     required this.chatId,
     required this.userId,
     required this.username,
     required this.avatar,
+    this.role = 'user',
     required this.isOnline,
     this.lastSeen,
     required this.lastMessage,
@@ -43,6 +46,7 @@ class ChatConversationEntity {
       userId: (userMap['id'] ?? userMap['_id'] ?? '').toString(),
       username: (userMap['username'] ?? userMap['name'] ?? '').toString(),
       avatar: (userMap['avatar'] ?? '').toString(),
+      role: (userMap['role'] ?? 'user').toString(),
       isOnline: userMap['isOnline'] == true,
       lastSeen: parsedLastSeen,
       lastMessage: (json['lastMessage'] ?? '').toString(),
@@ -56,6 +60,7 @@ class ChatConversationEntity {
     String? userId,
     String? username,
     String? avatar,
+    String? role,
     bool? isOnline,
     DateTime? lastSeen,
     String? lastMessage,
@@ -67,6 +72,7 @@ class ChatConversationEntity {
       userId: userId ?? this.userId,
       username: username ?? this.username,
       avatar: avatar ?? this.avatar,
+      role: role ?? this.role,
       isOnline: isOnline ?? this.isOnline,
       lastSeen: lastSeen ?? this.lastSeen,
       lastMessage: lastMessage ?? this.lastMessage,

@@ -1,5 +1,5 @@
+import 'dart:ui' as ui;
 import 'dart:math' as math;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,8 +14,20 @@ import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
 import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
+import 'package:smartlife_app/presentation/screens/ai/ai_screen.dart';
+
 import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
+import 'package:smartlife_app/presentation/screens/smarthome/smart_home_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
+import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
+
+// New Modular Widgets
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/dashboard_background.dart';
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/dashboard_header.dart';
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/balance_card.dart';
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/stat_cards.dart';
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/trend_charts.dart';
+import 'package:smartlife_app/presentation/screens/dashboard/widgets/ai_insight_cards.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -31,6 +43,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final financeState = ref.watch(financeProvider);
+    
     if (financeState.isLoading) {
       return Scaffold(
         body: Container(
@@ -61,128 +74,134 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _buildWeeklySeries(transactions);
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF0F121F), const Color(0xFF1E2235)]
-                : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
-          ),
-        ),
-        child: RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: _refreshDashboard,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            slivers: <Widget>[
-              // Premium Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 20,
-                    left: 24,
-                    right: 24,
-                    bottom: 24,
+      body: Stack(
+        children: [
+          DashboardBackground(isDark: isDark),
+          RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: _refreshDashboard,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: <Widget>[
+                // Header (Greeting & AI Status)
+                SliverToBoxAdapter(
+                  child: SafeArea(
+                    bottom: false,
+                    child: DashboardHeader(
+                      isDark: isDark,
+                      greeting: _getGreeting(),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+
+                // Main Content
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Search Bar & Actions
+                      _buildSearchBar(isDark)
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: -0.1),
+                      const SizedBox(height: 24),
+
+                      _buildQuickActions(isDark)
+                          .animate()
+                          .fadeIn(delay: 100.ms, duration: 600.ms),
+                      const SizedBox(height: 28),
+
+                      // Main Balance Module
+                      AppBalanceCard(
+                        totalSpent: totalSpent,
+                        budgetUsage: budgetUsage,
+                        isDark: isDark,
+                      ).animate()
+                       .fadeIn(duration: 800.ms)
+                       .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutCubic),
+                      const SizedBox(height: 20),
+
+                      // Stat Grid
+                      Row(
                         children: [
-                          Text(
-                            'Smart Dash',
-                            style: GoogleFonts.poppins(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          Expanded(
+                            child: StatCard(
+                              title: 'Transaksi',
+                              value: '$totalTransactions',
+                              icon: Icons.swap_vert_rounded,
+                              gradient: AppColors.gradientPrimary,
+                              isDark: isDark,
                             ),
                           ),
-                          Text(
-                            'Your financial pulse is stable',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: isDark ? Colors.white60 : const Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: StatCard(
+                              title: 'Reminders',
+                              value: '${ref.watch(reminderProvider).reminders.where((r) => !r.isCompleted).length}',
+                              icon: Icons.notifications_active_rounded,
+                              gradient: AppColors.gradientChatHeader,
+                              isDark: isDark,
                             ),
                           ),
                         ],
-                      ),
-                      _buildTopDateBadge(isDark),
-                    ],
+                      ).animate()
+                       .fadeIn(delay: 200.ms, duration: 600.ms)
+                       .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
+                      // Savings Goal
+                      _buildSavingsGoalBento(isDark)
+                          .animate()
+                          .fadeIn(delay: 300.ms, duration: 600.ms)
+                          .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
+                      // Insight Spotlight
+                      const InsightCard(isDark: true) // Forced dark for premium feel
+                          .animate()
+                          .fadeIn(delay: 400.ms, duration: 600.ms)
+                          .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
+                      // Detailed Charts
+                      TrendChart(
+                        spots: weeklySeries.spots,
+                        isDark: isDark,
+                        maxY: math.max(100000.0, weeklySeries.spots.fold<double>(0, (max, spot) => math.max(max, spot.y)) * 1.3),
+                      ).animate()
+                       .fadeIn(delay: 500.ms, duration: 600.ms)
+                       .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
+                      _buildCategoryBentoCard(categoryData, isDark)
+                          .animate()
+                          .fadeIn(delay: 600.ms, duration: 600.ms)
+                          .slideY(begin: 0.1),
+                      const SizedBox(height: 20),
+
+                      _buildRemindersBento(isDark)
+                          .animate()
+                          .fadeIn(delay: 700.ms, duration: 600.ms)
+                          .slideY(begin: 0.1),
+                    ]),
                   ),
                 ),
-              ),
-
-              // Bento Grid Content
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Row 1: Main Balance Card (Large)
-                    _buildMainBalanceCard(totalSpent, budgetUsage, isDark)
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .scale(begin: const Offset(0.95, 0.95)),
-                    const SizedBox(height: 16),
-
-                    // Row 2: Two Small Grid Items
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMiniStatCard(
-                            'Transaksi',
-                            '$totalTransactions',
-                            Icons.swap_vert_rounded,
-                            AppColors.gradientPrimary,
-                            isDark,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildMiniStatCard(
-                            'Reminder',
-                            '${ref.watch(reminderProvider).reminders.where((r) => !r.isCompleted).length}',
-                            Icons.notifications_active_rounded,
-                            AppColors.gradientSecondary,
-                            isDark,
-                          ),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideY(begin: 0.1),
-                    const SizedBox(height: 16),
-
-                    // Row 3: Weekly Trend (Wide)
-                    _buildWeeklyTrendCard(weeklySeries, isDark)
-                        .animate()
-                        .fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.1),
-                    const SizedBox(height: 16),
-
-                    // Row 4: Category Distribution (Glassy Card)
-                    _buildCategoryBentoCard(categoryData, isDark)
-                        .animate()
-                        .fadeIn(delay: 300.ms, duration: 600.ms).slideY(begin: 0.1),
-                    const SizedBox(height: 16),
-
-                    // Row 5: Recent Reminders Bento
-                    _buildRemindersBento(isDark)
-                        .animate()
-                        .fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.1),
-                    
-                    const SizedBox(height: 100),
-                  ]),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Selamat Pagi';
+    if (hour < 15) return 'Selamat Siang';
+    if (hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
   }
 
   Future<void> _refreshDashboard() async {
@@ -190,6 +209,161 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ref.read(financeProvider.notifier).load(silent: true),
       ref.read(reminderProvider.notifier).loadReminders(),
     ]);
+  }
+
+  Future<void> _openSmartAi() async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(builder: (BuildContext context) => const AIScreen()),
+    );
+  }
+
+
+
+  Future<void> _openReminderCenter() async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(builder: (BuildContext context) => const ReminderScreen()),
+    );
+  }
+
+  Future<void> _openSmartHome() async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(
+          builder: (BuildContext context) => const SmartHomeScreen()),
+    );
+  }
+
+  Future<void> _openAddExpenseSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TransactionFormSheet(
+        title: 'Catat Pengeluaran',
+        submitLabel: 'Simpan',
+        onSubmit: (value) async {
+          final messenger = ScaffoldMessenger.of(context);
+          try {
+            await ref.read(financeProvider.notifier).create(
+                  title: value.title,
+                  amount: value.amount,
+                  category: value.categoryId,
+                  description: value.description,
+                  date: value.date,
+                );
+          } catch (_) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Gagal menambahkan transaksi')),
+            );
+            return;
+          }
+
+          if (!mounted) return;
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Transaksi berhasil ditambahkan')),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _openAnalyticsSheet() async {
+    final state = ref.read(financeProvider);
+    final transactions = state.entries;
+    final categories = _buildCategoryData(transactions, state.totalSpent);
+    final topCategory = categories.isEmpty ? null : categories.first;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF111827) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Ringkasan Analitik',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Dashboard dan SmartLife AI sekarang saling terhubung dari sini.',
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _MetricTile(
+                label: 'Total Pengeluaran',
+                value: AppFormatters.currency(state.totalSpent),
+                icon: Icons.payments_rounded,
+                color: const Color(0xFF6366F1),
+              ),
+              const SizedBox(height: 12),
+              _MetricTile(
+                label: 'Sisa Budget',
+                value: AppFormatters.currency(state.remainingBudget),
+                icon: Icons.savings_rounded,
+                color: const Color(0xFF22C55E),
+              ),
+              const SizedBox(height: 12),
+              _MetricTile(
+                label: 'Kategori Terbesar',
+                value: topCategory == null
+                    ? 'Belum ada data'
+                    : '${topCategory.name} • ${AppFormatters.currency(topCategory.amount)}',
+                icon: Icons.pie_chart_rounded,
+                color: const Color(0xFFF59E0B),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: CustomButton(
+                  text: 'Buka SmartLife AI',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _openSmartAi();
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildLoadingView(BuildContext context) {
@@ -225,49 +399,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           sliver: SliverList(
             delegate: SliverChildListDelegate(
               const [
-                LoadingSkeleton(
-                  width: double.infinity,
-                  height: 206,
-                  borderRadius: 32,
-                ),
+                LoadingSkeleton(width: double.infinity, height: 206, borderRadius: 32),
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(
-                      child: LoadingSkeleton(
-                        width: double.infinity,
-                        height: 136,
-                        borderRadius: 28,
-                      ),
-                    ),
+                    Expanded(child: LoadingSkeleton(width: double.infinity, height: 136, borderRadius: 28)),
                     SizedBox(width: 16),
-                    Expanded(
-                      child: LoadingSkeleton(
-                        width: double.infinity,
-                        height: 136,
-                        borderRadius: 28,
-                      ),
-                    ),
+                    Expanded(child: LoadingSkeleton(width: double.infinity, height: 136, borderRadius: 28)),
                   ],
                 ),
                 SizedBox(height: 16),
-                LoadingSkeleton(
-                  width: double.infinity,
-                  height: 238,
-                  borderRadius: 32,
-                ),
+                LoadingSkeleton(width: double.infinity, height: 238, borderRadius: 32),
                 SizedBox(height: 16),
-                LoadingSkeleton(
-                  width: double.infinity,
-                  height: 216,
-                  borderRadius: 32,
-                ),
-                SizedBox(height: 16),
-                LoadingSkeleton(
-                  width: double.infinity,
-                  height: 174,
-                  borderRadius: 32,
-                ),
+                LoadingSkeleton(width: double.infinity, height: 216, borderRadius: 32),
                 SizedBox(height: 100),
               ],
             ),
@@ -277,182 +421,192 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildTopDateBadge(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white12 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.calendar_today_rounded, 
-               size: 16, 
-               color: isDark ? AppColors.primaryLight : AppColors.primary),
-          const SizedBox(width: 8),
-          Text(
-            AppFormatters.monthYear(DateTime.now()),
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+  Widget _buildSearchBar(bool isDark) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
             ),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black38, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  readOnly: true,
+                  onTap: _openSmartAi,
+                  decoration: InputDecoration(
+                    hintText: 'Tanya AI apa saja...',
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: isDark ? Colors.white24 : Colors.black26,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: _openSmartAi,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.mic_none_rounded, color: Colors.white, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMainBalanceCard(double totalSpent, double budgetUsage, bool isDark) {
+  Widget _buildQuickActions(bool isDark) {
+    final actions = [
+      (label: 'Add Expense', icon: Icons.add_rounded, color: const Color(0xFF6366F1), onTap: _openAddExpenseSheet),
+      (label: 'Reminders', icon: Icons.notifications_none_rounded, color: const Color(0xFFF59E0B), onTap: _openReminderCenter),
+      (label: 'Analytics', icon: Icons.bar_chart_rounded, color: const Color(0xFF10B981), onTap: _openAnalyticsSheet),
+      (label: 'Smart AI', icon: Icons.auto_awesome_rounded, color: const Color(0xFFEC4899), onTap: _openSmartAi),
+      (label: 'Smart Home', icon: Icons.home_filled, color: const Color(0xFF38BDF8), onTap: _openSmartHome),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: actions.map((action) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  action.onTap();
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: action.color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        child: Icon(action.icon, color: action.color, size: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        action.label,
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSavingsGoalBento(bool isDark) {
+    final financeState = ref.watch(financeProvider);
+    final goal = financeState.goals.firstOrNull;
+
+    if (goal == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.add_task_rounded, color: AppColors.primary),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Siapkan Tabungan', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                Text('Buat target keuangan pertamamu', style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white60 : const Color(0xFF64748B))),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final double progress = goal.progress;
+    final Color goalColor = Color(int.parse(goal.color.replaceFirst('#', '0xFF')));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: AppColors.gradientPrimary,
+        color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total Pengeluaran',
-                style: GoogleFonts.inter(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+          SizedBox(
+            width: 80, height: 80,
+            child: Stack(
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: 70, height: 70,
+                    child: CircularProgressIndicator(
+                      value: progress, strokeWidth: 8,
+                      backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                      valueColor: AlwaysStoppedAnimation<Color>(goalColor),
+                    ),
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.account_balance_wallet_rounded, 
-                                 color: Colors.white, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppFormatters.currency(totalSpent),
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
+                Center(child: Text('${(progress * 100).toInt()}%', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B)))),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Budget Usage',
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '${(budgetUsage * 100).toStringAsFixed(0)}%',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: budgetUsage,
-                        minHeight: 8,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
+                    Icon(Icons.stars_rounded, color: goalColor, size: 14),
+                    const SizedBox(width: 6),
+                    Text('SAVINGS GOAL', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: goalColor)),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniStatCard(String title, String value, IconData icon, Gradient gradient, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: Colors.white, size: 18),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
-            ),
-          ),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-              fontWeight: FontWeight.w500,
+                const SizedBox(height: 4),
+                Text(goal.title, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                const SizedBox(height: 2),
+                Text('Target: ${AppFormatters.currency(goal.targetAmount)}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white60 : const Color(0xFF64748B))),
+              ],
             ),
           ),
         ],
@@ -460,401 +614,221 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildWeeklyTrendCard(dynamic weeklySeries, bool isDark) {
-    final double maxWeeklyValue = (weeklySeries.spots as List<FlSpot>).fold<double>(
-      0,
-      (double maxValue, FlSpot spot) => math.max(maxValue, spot.y),
-    );
-    final double maxChartY = math.max(100000.0, maxWeeklyValue * 1.3);
-    final double intervalY = maxChartY / 4;
-
+  Widget _buildCategoryBentoCard(List<({String name, double amount, double percentage, Color color})> categoryData, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Text('Spending Mix', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+          const SizedBox(height: 20),
+          if (categoryData.isEmpty) const Center(child: Text('No data available'))
+          else Row(
             children: [
-              Text(
-                'Weekly Trend',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                ),
-              ),
-              Icon(Icons.insights_rounded, 
-                   color: isDark ? Colors.white24 : Colors.black12),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 160,
-            child: LineChart(
-              LineChartData(
-                minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: maxChartY,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: intervalY,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (value, _) {
-                        final int index = value.toInt();
-                        if (index < 0 || index >= weeklySeries.labels.length) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            weeklySeries.labels[index],
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
+              SizedBox(
+                width: 120, height: 120,
+                child: PieChart(
+                  PieChartData(
+                    sectionsSpace: 4, centerSpaceRadius: 34,
+                    sections: categoryData.asMap().entries.map((entry) {
+                      final int index = entry.key;
+                      final data = entry.value;
+                      final bool isTouched = index == _touchedPieIndex;
+                      return PieChartSectionData(
+                        color: data.color, value: data.percentage * 100,
+                        title: isTouched ? '${(data.percentage * 100).toStringAsFixed(0)}%' : '',
+                        radius: isTouched ? 48.0 : 40.0,
+                        titleStyle: GoogleFonts.poppins(fontSize: isTouched ? 16 : 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      );
+                    }).toList(),
+                    pieTouchData: PieTouchData(
+                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                        setState(() {
+                          if (!event.isInterestedForInteractions || pieTouchResponse == null || pieTouchResponse.touchedSection == null) {
+                            _touchedPieIndex = -1;
+                            return;
+                          }
+                          _touchedPieIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                        });
                       },
                     ),
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: weeklySeries.spots,
-                    isCurved: true,
-                    curveSmoothness: 0.4,
-                    gradient: AppColors.gradientPrimary,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.2),
-                          AppColors.primary.withValues(alpha: 0),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  children: categoryData.take(3).map((data) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: data.color, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(data.name, style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : const Color(0xFF475569), fontWeight: FontWeight.w500))),
+                          Text('${(data.percentage * 100).toStringAsFixed(0)}%', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
                         ],
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryBentoCard(List<dynamic> categoryData, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Spending Mix',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (categoryData.isEmpty)
-            const Center(child: Text('No data available'))
-          else
-            Row(
-              children: [
-                SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: PieChart(
-                    PieChartData(
-                      sectionsSpace: 4,
-                      centerSpaceRadius: 34,
-                      sections: categoryData.asMap().entries.map((entry) {
-                        final int index = entry.key;
-                        final dynamic data = entry.value;
-                        final bool isTouched = index == _touchedPieIndex;
-                        final double titleSize = isTouched ? 16 : 12;
-                        final double radius = isTouched ? 48.0 : 40.0;
-
-                        return PieChartSectionData(
-                          color: data.color,
-                          value: data.percentage * 100,
-                          title: isTouched ? '${(data.percentage * 100).toStringAsFixed(0)}%' : '',
-                          radius: radius,
-                          titleStyle: GoogleFonts.poppins(
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        );
-                      }).toList(),
-                      pieTouchData: PieTouchData(
-                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                          setState(() {
-                            if (!event.isInterestedForInteractions ||
-                                pieTouchResponse == null ||
-                                pieTouchResponse.touchedSection == null) {
-                              _touchedPieIndex = -1;
-                              return;
-                            }
-                            final int newIndex =
-                                pieTouchResponse.touchedSection!.touchedSectionIndex;
-                            if (newIndex != _touchedPieIndex) {
-                              _touchedPieIndex = newIndex;
-                              if (newIndex != -1) {
-                                HapticFeedback.lightImpact();
-                              }
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    children: categoryData.take(3).map((data) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(color: data.color, shape: BoxShape.circle),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                data.name,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${(data.percentage * 100).toStringAsFixed(0)}%',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : const Color(0xFF1E293B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
         ],
       ),
     );
   }
 
   Widget _buildRemindersBento(bool isDark) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final reminderState = ref.watch(reminderProvider);
-        final pending = reminderState.reminders.where((r) => !r.isCompleted).toList();
+    final reminderState = ref.watch(reminderProvider);
+    final pending = reminderState.reminders.where((r) => !r.isCompleted).toList();
 
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2235) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2235) : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Upcoming',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      AppRoute<void>(
-                        builder: (context) => const ReminderScreen(),
-                        beginOffset: const Offset(0, 0.06),
-                      ),
-                    ),
-                    child: Text('View All', 
-                         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                ],
+              Text('Upcoming', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+              TextButton(
+                onPressed: _openReminderCenter,
+                child: Text('View All', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
               ),
-              const SizedBox(height: 12),
-              if (pending.isEmpty)
-                Text('All clear for today! 🚀', 
-                     style: GoogleFonts.inter(color: Colors.grey, fontSize: 13))
-              else
-                ...pending.take(2).map((reminder) => Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.alarm_rounded, color: AppColors.primary, size: 16),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              reminder.title,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: isDark ? Colors.white : const Color(0xFF1E293B),
-                              ),
-                            ),
-                            Text(
-                              AppFormatters.timeOnly(reminder.dateTime),
-                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          if (pending.isEmpty) Text('All clear for today! 🚀', style: GoogleFonts.inter(color: Colors.grey, fontSize: 13))
+          else ...pending.take(2).map((reminder) => Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(20)),
+            child: Row(
+              children: [
+                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.alarm_rounded, color: AppColors.primary, size: 16)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(reminder.title, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                      Text(AppFormatters.timeOnly(reminder.dateTime), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
     );
   }
 
   List<({String name, double amount, double percentage, Color color})>
       _buildCategoryData(List<FinanceEntryEntity> transactions, double totalSpent) {
-    if (transactions.isEmpty || totalSpent <= 0) {
-      return <({String name, double amount, double percentage, Color color})>[];
+    if (transactions.isEmpty || totalSpent <= 0) return [];
+    final Map<String, double> totals = {};
+    for (final tx in transactions) {
+      totals.update(tx.category, (v) => v + tx.amount, ifAbsent: () => tx.amount);
     }
-
-    final Map<String, double> totalsByCategory = <String, double>{};
-    for (final FinanceEntryEntity tx in transactions) {
-      totalsByCategory.update(
-        tx.category,
-        (double value) => value + tx.amount,
-        ifAbsent: () => tx.amount,
-      );
-    }
-
-    final List<({String name, double amount, double percentage, Color color})> result =
-        financeCategories.map((FinanceCategory category) {
-      final double amount = totalsByCategory[category.id] ?? 0;
-      return (
-        name: category.name,
-        amount: amount,
-        percentage: amount / totalSpent,
-        color: category.color,
-      );
+    final result = financeCategories.map((cat) {
+      final amount = totals[cat.id] ?? 0;
+      return (name: cat.name, amount: amount, percentage: amount / totalSpent, color: cat.color);
     }).where((item) => item.amount > 0).toList();
-
     result.sort((a, b) => b.amount.compareTo(a.amount));
     return result.take(5).toList();
   }
 
-  ({List<FlSpot> spots, List<String> labels}) _buildWeeklySeries(
-    List<FinanceEntryEntity> transactions,
-  ) {
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    final List<DateTime> dates = List<DateTime>.generate(
-      7,
-      (int index) => today.subtract(Duration(days: 6 - index)),
-    );
-    final List<double> totals = List<double>.filled(7, 0);
-
-    for (final FinanceEntryEntity tx in transactions) {
-      final DateTime txDate = DateTime(tx.date.year, tx.date.month, tx.date.day);
-      for (int i = 0; i < dates.length; i++) {
+  ({List<FlSpot> spots, List<String> labels}) _buildWeeklySeries(List<FinanceEntryEntity> transactions) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dates = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
+    final totals = List.filled(7, 0.0);
+    for (final tx in transactions) {
+      final txDate = DateTime(tx.date.year, tx.date.month, tx.date.day);
+      for (int i = 0; i < 7; i++) {
         if (txDate == dates[i]) {
           totals[i] += tx.amount;
           break;
         }
       }
     }
-
-    final List<FlSpot> spots = List<FlSpot>.generate(
-      7,
-      (int index) => FlSpot(index.toDouble(), totals[index]),
+    return (
+      spots: List.generate(7, (i) => FlSpot(i.toDouble(), totals[i])),
+      labels: dates.map((d) => AppFormatters.weekDayShort(d)).toList(),
     );
-    final List<String> labels =
-        dates.map((DateTime date) => AppFormatters.weekDayShort(date)).toList();
+  }
+}
 
-    return (spots: spots, labels: labels);
+class _MetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _MetricTile({required this.label, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
+                const SizedBox(height: 4),
+                Text(value, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class LoadingSkeleton extends StatelessWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const LoadingSkeleton({super.key, required this.width, required this.height, required this.borderRadius});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: width, height: height,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1.5.seconds, color: isDark ? Colors.white12 : Colors.black12);
   }
 }

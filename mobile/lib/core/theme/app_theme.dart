@@ -3,16 +3,16 @@ import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Soft palette from design reference
-  static const softCream = Color(0xFFFFFDF6);
-  static const softLilac = Color(0xFFE2D4E0);
-  static const softBlueGrayLight = Color(0xFF949AB1);
-  static const softBlueGray = Color(0xFF7C7E9D);
-  static const softNavy = Color(0xFF4C5372);
-  static const softPurple = Color(0xFF6C4EFF);
-  static const softMutedPurple = Color(0xFF8C90A8);
-  static const softHeaderGray = Color(0xFF8A8FA3);
-  static const softHeaderDark = Color(0xFF7C8298);
+  // SmartLife auth-aligned palette
+  static const softCream = Color(0xFFF4F7FF);
+  static const softLilac = Color(0xFFDCE6FF);
+  static const softBlueGrayLight = Color(0xFF8EA7FF);
+  static const softBlueGray = Color(0xFF4B67D1);
+  static const softNavy = Color(0xFF223A74);
+  static const softPurple = Color(0xFF6D8DFF);
+  static const softMutedPurple = Color(0xFF7A90C8);
+  static const softHeaderGray = Color(0xFF6E7FA3);
+  static const softHeaderDark = Color(0xFF31508D);
 
   // Primary palette
   static const primary = softBlueGray;
@@ -20,12 +20,12 @@ class AppColors {
   static const primaryDark = softNavy;
 
   // Secondary
-  static const secondary = softLilac;
-  static const secondaryLight = Color(0xFFEDE2EC);
+  static const secondary = Color(0xFFB9CAFF);
+  static const secondaryLight = Color(0xFFEAF0FF);
 
   // Accent
-  static const accent = Color(0xFFB8AFC4);
-  static const accentLight = Color(0xFFD7CFE0);
+  static const accent = Color(0xFF9FB6FF);
+  static const accentLight = Color(0xFFDCE7FF);
 
   // Semantic
   static const success = Color(0xFF22C55E);
@@ -38,61 +38,62 @@ class AppColors {
   // Light mode
   static const backgroundLight = softCream;
   static const cardLight = Color(0xFFFFFFFF);
-  static const surfaceLight = Color(0xFFF5EFF6);
+  static const surfaceLight = Color(0xFFF8FAFF);
   static const textPrimary = softNavy;
-  static const textSecondary = softBlueGray;
-  static const textTertiary = softBlueGrayLight;
-  static const dividerLight = Color(0xFFE8E2EC);
+  static const textSecondary = softHeaderGray;
+  static const textTertiary = Color(0xFF9AA9C6);
+  static const textLight = softNavy;
+  static const dividerLight = Color(0xFFDCE6FF);
 
   // Dark mode
-  static const backgroundDark = Color(0xFF2E334B);
-  static const cardDark = Color(0xFF3A4060);
-  static const surfaceDark = Color(0xFF464D70);
-  static const textPrimaryDark = Color(0xFFFDFBF7);
-  static const textSecondaryDark = Color(0xFFD8CCDB);
-  static const dividerDark = Color(0xFF5C6387);
+  static const backgroundDark = Color(0xFF0F172A);
+  static const cardDark = Color(0xFF16233F);
+  static const surfaceDark = Color(0xFF203055);
+  static const textPrimaryDark = Color(0xFFF5F8FF);
+  static const textSecondaryDark = Color(0xFFB8C6E6);
+  static const dividerDark = Color(0xFF33486F);
 
   // Gradients
   static const gradientPrimary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [softBlueGray, softBlueGrayLight],
+    colors: [Color(0xFF4B67D1), Color(0xFF6D8DFF)],
   );
 
   static const gradientSecondary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [softLilac, softBlueGrayLight],
+    colors: [Color(0xFF9DB3FF), Color(0xFFDCE6FF)],
   );
 
   static const gradientAccent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [softCream, softLilac],
+    colors: [Color(0xFFF8FAFF), Color(0xFFEAF0FF)],
   );
 
   static const gradientDark = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF3A4060), Color(0xFF4C5372)],
+    colors: [Color(0xFF16233F), Color(0xFF223A74)],
   );
 
   static const gradientChatHeader = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [softHeaderGray, softHeaderDark],
+    colors: [Color(0xFF4B67D1), Color(0xFF31508D)],
   );
 
   // Category colors
   static const categoryColors = [
-    Color(0xFF7C7E9D),
-    Color(0xFF949AB1),
-    Color(0xFFE2D4E0),
-    Color(0xFF4C5372),
-    Color(0xFFB5B0C8),
-    Color(0xFFA6ABC3),
-    Color(0xFFCBBED0),
-    Color(0xFF6F7697),
+    Color(0xFF4B67D1),
+    Color(0xFF6D8DFF),
+    Color(0xFF9DB3FF),
+    Color(0xFF223A74),
+    Color(0xFF7A90C8),
+    Color(0xFFB9CAFF),
+    Color(0xFF8CA2E0),
+    Color(0xFF31508D),
   ];
 }
 

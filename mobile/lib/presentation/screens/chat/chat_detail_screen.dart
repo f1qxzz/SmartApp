@@ -22,6 +22,7 @@ import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/chat_provider.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_user_profile_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_image_preview_screen.dart';
+import 'package:smartlife_app/presentation/providers/ai_provider.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
 import 'package:flutter/foundation.dart' as foundation;
@@ -123,8 +124,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     _latestMessages = messages;
     _pruneMessageItemKeys(messages);
     _syncSearchMatches(messages);
-    final bool isTyping =
-        ref.read(chatProvider.notifier).isTypingFrom(widget.contact.userId);
+    final bool isTyping = chatState.typingFrom[widget.contact.userId] == true;
 
     ref.listen<ChatState>(chatProvider, (ChatState? previous, ChatState next) {
       if (!mounted) {
@@ -189,12 +189,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             }
 
                             final ChatMessageEntity msg = messages[index];
-                            final bool isMatched = _matchesSearch(msg, _searchQuery);
+                            final bool isMatched =
+                                _matchesSearch(msg, _searchQuery);
                             final bool isActiveMatch =
                                 _currentSearchMatchId == msg.id;
                             return Container(
                               key: _messageItemKey(msg.id),
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
                               decoration: BoxDecoration(
                                 color: isActiveMatch
                                     ? AppColors.primary.withValues(
@@ -208,7 +210,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: isActiveMatch
                                     ? Border.all(
-                                        color: AppColors.primary.withValues(alpha: 0.5),
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.5),
                                         width: 1.2,
                                       )
                                     : null,
@@ -219,6 +222,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                 type: msg.type,
                                 attachmentUrl: msg.attachmentUrl,
                                 isMe: msg.senderId == currentUserId,
+                                senderRole: msg.senderRole,
                                 timestamp: msg.createdAt,
                                 avatarUrl:
                                     msg.senderId == currentUserId || lowDataMode
@@ -226,7 +230,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                         : widget.contact.avatar,
                                 reactions: msg.reactions,
                                 replyToMessage: msg.replyToMessage,
-                                onReply: () => ref.read(chatProvider.notifier).setReplyMessage(msg),
+                                onReply: () => ref
+                                    .read(chatProvider.notifier)
+                                    .setReplyMessage(msg),
                                 onLongPress: (position) =>
                                     _showReactionMenu(msg, position),
                               ),
@@ -246,15 +252,26 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       textEditingController: _msgCtrl,
                       onEmojiSelected: (category, emoji) {},
                       config: emoji.Config(
-                        bottomActionBarConfig: const emoji.BottomActionBarConfig(showBackspaceButton: false, showSearchViewButton: false),
+                        bottomActionBarConfig:
+                            const emoji.BottomActionBarConfig(
+                                showBackspaceButton: false,
+                                showSearchViewButton: false),
                         categoryViewConfig: emoji.CategoryViewConfig(
-                          backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF0ECF4),
+                          backgroundColor: isDark
+                              ? AppColors.backgroundDark
+                              : const Color(0xFFF0ECF4),
                           indicatorColor: AppColors.primary,
                           iconColorSelected: AppColors.primary,
                         ),
                         emojiViewConfig: emoji.EmojiViewConfig(
-                           backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF0ECF4),
-                           emojiSizeMax: 28 * (foundation.defaultTargetPlatform == TargetPlatform.iOS ? 1.30 : 1.0),
+                          backgroundColor: isDark
+                              ? AppColors.backgroundDark
+                              : const Color(0xFFF0ECF4),
+                          emojiSizeMax: 28 *
+                              (foundation.defaultTargetPlatform ==
+                                      TargetPlatform.iOS
+                                  ? 1.30
+                                  : 1.0),
                         ),
                       ),
                     ),
@@ -264,7 +281,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             ),
             _ScrollToBottomButton(
               scrollCtrl: _scrollCtrl,
-              show: _scrollCtrl.hasClients && _scrollCtrl.offset < _scrollCtrl.position.maxScrollExtent - 200,
+              show: _scrollCtrl.hasClients &&
+                  _scrollCtrl.offset <
+                      _scrollCtrl.position.maxScrollExtent - 200,
             ),
           ],
         ),
@@ -278,6 +297,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     bool isTyping,
     bool lowDataMode,
   ) {
+    final bool hasSearchQuery = _searchQuery.isNotEmpty;
+    final bool hasSearchResults = _searchMatchMessageIds.isNotEmpty;
+    final Color searchPanelColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.14);
+
     return Container(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 8,
@@ -286,7 +311,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         bottom: 12,
       ),
       decoration: BoxDecoration(
-        gradient: isDark ? AppColors.gradientDark : AppColors.gradientChatHeader,
+        gradient:
+            isDark ? AppColors.gradientDark : AppColors.gradientChatHeader,
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.12),
@@ -301,7 +327,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           Row(
             children: <Widget>[
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, size: 22, color: Colors.white),
+                icon: const Icon(Icons.arrow_back_rounded,
+                    size: 22, color: Colors.white),
                 onPressed: _handleBackPressed,
               ),
               InkWell(
@@ -312,11 +339,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     CircleAvatar(
                       radius: 20,
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      backgroundImage: lowDataMode || widget.contact.avatar.isEmpty
-                          ? null
-                          : NetworkImage(widget.contact.avatar),
+                      backgroundImage:
+                          lowDataMode || widget.contact.avatar.isEmpty
+                              ? null
+                              : NetworkImage(widget.contact.avatar),
                       child: lowDataMode || widget.contact.avatar.isEmpty
-                          ? const Icon(Icons.person, color: Colors.white, size: 20)
+                          ? const Icon(Icons.person,
+                              color: Colors.white, size: 20)
                           : null,
                     ),
                     if (widget.contact.isOnline)
@@ -346,13 +375,28 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(
-                        widget.contact.username,
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            widget.contact.username,
+                            style: GoogleFonts.poppins(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (widget.contact.role == 'owner' ||
+                              widget.contact.role == 'developer') ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.verified_rounded,
+                                color: Color(0xFFFFD700), size: 16),
+                          ] else if (widget.contact.role == 'staff' ||
+                              widget.contact.role == 'admin') ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.verified_rounded,
+                                color: Color(0xFF6366F1), size: 16),
+                          ],
+                        ],
                       ),
                       Text(
                         isTyping
@@ -370,105 +414,183 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 ),
               ),
               _isSearchMode
-                  ? IconButton(
-                      tooltip: 'Tutup pencarian',
-                      onPressed: _closeSearchMode,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const SizedBox(width: 12)
                   : _buildActionMenu(context),
             ],
           ),
           if (_isSearchMode) ...[
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: <Widget>[
-                  const Icon(
-                    Icons.search_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      focusNode: _searchFocusNode,
-                      onChanged: _onSearchChanged,
-                      textInputAction: TextInputAction.search,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 13,
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Cari di percakapan...',
-                        hintStyle: GoogleFonts.inter(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          fontSize: 13,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.softHeaderGray,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchCtrl,
+                            focusNode: _searchFocusNode,
+                            onChanged: _onSearchChanged,
+                            textInputAction: TextInputAction.search,
+                            style: GoogleFonts.inter(
+                              color: AppColors.textPrimary,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              hintText: 'Cari di percakapan...',
+                              hintStyle: GoogleFonts.inter(
+                                color: AppColors.textTertiary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (hasSearchQuery)
+                          GestureDetector(
+                            onTap: _clearSearchQuery,
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: const BoxDecoration(
+                                color: AppColors.secondaryLight,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: AppColors.primary,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _closeSearchMode,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: searchPanelColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Tutup',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  if (_searchQuery.isNotEmpty)
-                    IconButton(
-                      tooltip: 'Hapus kata kunci',
-                      onPressed: _clearSearchQuery,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 10),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Expanded(
-                  child: Text(
-                    _searchQuery.isEmpty
-                        ? 'Masukkan kata kunci'
-                        : _searchMatchMessageIds.isEmpty
-                            ? 'Tidak ada hasil'
-                            : '${_activeSearchMatchIndex + 1} dari ${_searchMatchMessageIds.length}',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: Colors.white.withValues(alpha: 0.9),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: searchPanelColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Text(
+                      !hasSearchQuery
+                          ? 'Ketik kata kunci untuk mencari pesan'
+                          : !hasSearchResults
+                              ? 'Tidak ada hasil ditemukan'
+                              : '${_activeSearchMatchIndex + 1} dari ${_searchMatchMessageIds.length} hasil',
+                      style: GoogleFonts.inter(
+                        fontSize: 11.8,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.92),
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Hasil sebelumnya',
-                  onPressed: _searchMatchMessageIds.length > 1
-                      ? _goToPreviousSearchMatch
-                      : null,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_up_rounded,
-                    color: Colors.white,
+                if (hasSearchResults) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: searchPanelColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Hasil sebelumnya',
+                          onPressed: _searchMatchMessageIds.length > 1
+                              ? _goToPreviousSearchMatch
+                              : null,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 18,
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                        IconButton(
+                          tooltip: 'Hasil berikutnya',
+                          onPressed: _searchMatchMessageIds.length > 1
+                              ? _goToNextSearchMatch
+                              : null,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Hasil berikutnya',
-                  onPressed: _searchMatchMessageIds.length > 1
-                      ? _goToNextSearchMatch
-                      : null,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Colors.white,
-                  ),
-                ),
+                ],
               ],
             ),
           ],
@@ -479,10 +601,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   Widget _buildActionMenu(BuildContext context) {
     final bool isMuted = HiveService.getUserScopedAppBool(
-      HiveBoxes.prefChatNotifications,
-      userId: ref.read(authProvider).user?.id ?? '',
-      fallback: true,
-    ) == false;
+          HiveBoxes.prefChatNotifications,
+          userId: ref.read(authProvider).user?.id ?? '',
+          fallback: true,
+        ) ==
+        false;
 
     return PopupMenuButton<String>(
       onSelected: (value) async {
@@ -501,6 +624,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             break;
           case 'search':
             _openSearchMode();
+            break;
+          case 'summarize':
+            _handleSummarize();
             break;
           case 'delete':
             _confirmDeleteConversation();
@@ -544,6 +670,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             ],
           ),
         ),
+        if (ref.read(authProvider).user?.role == 'owner' ||
+            ref.read(authProvider).user?.role == 'staff' ||
+            ref.read(authProvider).user?.role == 'developer')
+          const PopupMenuItem(
+            value: 'summarize',
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded,
+                    color: AppColors.primary, size: 20),
+                SizedBox(width: 12),
+                Text('Ringkas Percakapan'),
+              ],
+            ),
+          ),
         const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'delete',
@@ -560,6 +700,116 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 8,
     );
+  }
+
+  void _handleSummarize() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: GlassContainer(
+          width: 80,
+          height: 80,
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+
+    final summary = await ref.read(aiProvider.notifier).summarizeChat(_chatId);
+
+    if (mounted) Navigator.pop(context); // Close loading
+
+    if (summary == null || summary.isEmpty) return;
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                  : Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Colors.white, size: 24),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Ringkasan AI',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      summary,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        height: 1.6,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Tutup'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ).animate().scaleXY(
+              begin: 0.9,
+              end: 1,
+              curve: Curves.easeOutBack,
+              duration: 300.ms,
+            ),
+      );
+    }
   }
 
   void _confirmDeleteConversation() {
@@ -604,14 +854,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               Navigator.pop(context);
               _deleteMessage(msg, false);
             },
-            child: const Text('Hapus untuk saya', style: TextStyle(color: Colors.red)),
+            child: const Text('Hapus untuk saya',
+                style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _deleteMessage(msg, true);
             },
-            child: const Text('Hapus untuk semua', style: TextStyle(color: Colors.red)),
+            child: const Text('Hapus untuk semua',
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -619,37 +871,44 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   Future<void> _deleteMessage(ChatMessageEntity msg, bool forEveryone) async {
-    await ref.read(chatProvider.notifier).deleteMessage(msg.id, msg.chatId, forEveryone: forEveryone);
+    await ref
+        .read(chatProvider.notifier)
+        .deleteMessage(msg.id, msg.chatId, forEveryone: forEveryone);
   }
 
-  Widget _buildInputBar(BuildContext context, bool isDark, ChatState chatState) {
+  Widget _buildInputBar(
+      BuildContext context, bool isDark, ChatState chatState) {
     final bool isLoading = chatState.isLoading;
+    final Color shellColor = isDark
+        ? const Color(0xFF1A2238).withValues(alpha: 0.86)
+        : Colors.white.withValues(alpha: 0.88);
+    final Color shellBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.76);
+    final Color fieldColor = isDark
+        ? Colors.white.withValues(alpha: 0.05)
+        : const Color(0xFFF6F8FC).withValues(alpha: 0.92);
+    final Color fieldBorderColor =
+        isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE4EBF7);
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E2235).withValues(alpha: 0.75)
-                    : Colors.white.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.black.withValues(alpha: 0.05),
-                  width: 1,
-                ),
-                boxShadow: [
+                color: shellColor,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: shellBorderColor),
+                boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.08),
+                    blurRadius: 26,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
@@ -659,293 +918,246 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   if (chatState.replyMessage != null)
                     _buildReplyBar(context, isDark, chatState.replyMessage!),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: <Widget>[
                       Expanded(
-                        child: _isRecording
-                            ? Row(
-                                children: [
-                                  const SizedBox(width: 14),
-                                  const Icon(Icons.mic_rounded,
-                                      color: Colors.red, size: 20)
-                                  .animate(
-                                      onPlay: (controller) => controller.repeat())
-                                  .fade(duration: 500.ms)
-                                  .then()
-                                  .fade(duration: 500.ms),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Perekaman ${_formatDuration(_recordDuration)}',
-                                style: GoogleFonts.inter(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                _isSendingVoice
-                                    ? 'Mengirim...'
-                                    : 'Kirim / Batal',
-                                style: GoogleFonts.inter(
-                                  color: AppColors.textTertiary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                            ],
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : const Color(0xFFF1F2F6).withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(26),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                const SizedBox(width: 4),
-                                IconButton(
-                                  onPressed: () {
-                                    HapticFeedback.lightImpact();
-                                    if (_showEmojiPicker) {
-                                      _focusNode.requestFocus();
-                                      setState(() => _showEmojiPicker = false);
-                                    } else {
-                                      _focusNode.unfocus();
-                                      setState(() => _showEmojiPicker = true);
-                                    }
-                                  },
-                                  icon: Icon(
-                                    _showEmojiPicker
-                                        ? Icons.keyboard_rounded
-                                        : Icons.sentiment_satisfied_alt_rounded,
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
-                                    size: 24,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                      minWidth: 42, minHeight: 42),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _msgCtrl,
-                                    focusNode: _focusNode,
-                                    onChanged: (String value) {
-                                      ref.read(chatProvider.notifier).setTyping(
-                                            toUserId: widget.contact.userId,
-                                            isTyping: value.trim().isNotEmpty,
-                                          );
-                                    },
-                                    onSubmitted: (_) => _sendMessage(),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w400,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Tulis pesan...',
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                        horizontal: 12,
-                                      ),
-                                      hintStyle: GoogleFonts.inter(
-                                        fontSize: 15,
-                                        color: isDark
-                                            ? AppColors.textSecondaryDark.withValues(alpha: 0.5)
-                                            : AppColors.textTertiary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (_isSending)
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const SizedBox(width: 4),
-                                      _buildInputIcon(
-                                        Icons.more_horiz_rounded,
-                                        isDark,
-                                        onTap: _showAttachmentMenu,
-                                      ),
-                                    ],
-                                  ),
-                                const SizedBox(width: 8),
-                                ],
-                              ),
-                            ),
-                    ),
-                  const SizedBox(width: 8),
-                  _showMic
-                      ? _isRecording
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(100),
-                                    onTap: () {
-                                      HapticFeedback.mediumImpact();
-                                      if (!_isSendingVoice) _cancelRecording();
-                                    },
-                                    child: Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: const BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: <Color>[
-                                            Color(0xFFE55A5A),
-                                            Color(0xFFC43B3B),
-                                          ],
-                                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          constraints: const BoxConstraints(minHeight: 58),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: fieldColor,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: fieldBorderColor),
+                          ),
+                          child: _isRecording
+                              ? Row(
+                                  children: <Widget>[
+                                    Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.red.withValues(alpha: 0.10),
                                         shape: BoxShape.circle,
-                                        boxShadow: <BoxShadow>[
-                                          BoxShadow(
-                                            color: Color(0x66D94A4A),
-                                            blurRadius: 10,
-                                            offset: Offset(0, 4),
+                                      ),
+                                      child: const Icon(
+                                        Icons.mic_rounded,
+                                        color: Color(0xFFD64B4B),
+                                        size: 20,
+                                      )
+                                          .animate(
+                                            onPlay: (controller) =>
+                                                controller.repeat(),
+                                          )
+                                          .fade(duration: 500.ms)
+                                          .then()
+                                          .fade(duration: 500.ms),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Text(
+                                            'Merekam suara',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFFD64B4B),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _isSendingVoice
+                                                ? 'Mengirim voice note...'
+                                                : _formatDuration(
+                                                    _recordDuration),
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w500,
+                                              color: isDark
+                                                  ? AppColors.textSecondaryDark
+                                                  : AppColors.textSecondary,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.white,
-                                        size: 22,
+                                    ),
+                                    Text(
+                                      _isSendingVoice
+                                          ? 'Mohon tunggu'
+                                          : 'Kirim',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondary,
                                       ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(100),
-                                    onTap: () {
-                                      HapticFeedback.mediumImpact();
-                                      if (!_isSendingVoice) {
-                                        _stopAndSendRecording();
-                                      }
-                                    },
-                                    child: Opacity(
-                                      opacity: _isSendingVoice ? 0.65 : 1,
-                                      child: Container(
-                                        width: 44,
-                                        height: 44,
-                                        decoration: const BoxDecoration(
-                                          gradient:
-                                              AppColors.gradientChatHeader,
-                                          shape: BoxShape.circle,
-                                          boxShadow: <BoxShadow>[
-                                            BoxShadow(
-                                              color: Color(0x33000000),
-                                              blurRadius: 10,
-                                              offset: Offset(0, 4),
-                                            ),
-                                          ],
+                                    const SizedBox(width: 8),
+                                  ],
+                                )
+                              : Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: <Widget>[
+                                    _buildComposerIconButton(
+                                      icon: _showEmojiPicker
+                                          ? Icons.keyboard_rounded
+                                          : Icons
+                                              .sentiment_satisfied_alt_rounded,
+                                      isDark: isDark,
+                                      isActive: _showEmojiPicker,
+                                      onTap: _toggleEmojiPicker,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _msgCtrl,
+                                        focusNode: _focusNode,
+                                        minLines: 1,
+                                        maxLines: 4,
+                                        textInputAction:
+                                            TextInputAction.newline,
+                                        onChanged: (String value) {
+                                          ref
+                                              .read(chatProvider.notifier)
+                                              .setTyping(
+                                                toUserId: widget.contact.userId,
+                                                isTyping:
+                                                    value.trim().isNotEmpty,
+                                              );
+                                        },
+                                        onSubmitted: (_) => _sendMessage(),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF172033),
+                                          height: 1.35,
                                         ),
-                                        child: _isSendingVoice
-                                            ? const Padding(
-                                                padding: EdgeInsets.all(12),
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2.2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                              Color>(
-                                                          Colors.white),
-                                                ),
-                                              )
-                                            : const Icon(
-                                                Icons.send_rounded,
-                                                color: Colors.white,
-                                                size: 20,
-                                              ),
+                                        decoration: InputDecoration(
+                                          hintText: 'Tulis pesan...',
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          hintStyle: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark
+                                                ? AppColors.textSecondaryDark
+                                                    .withValues(alpha: 0.58)
+                                                : const Color(0xFF99A4B8),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(100),
-                                onTap: () {
-                                  HapticFeedback.mediumImpact();
-                                  _startRecording();
-                                },
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.chatPrimary,
-                                    shape: BoxShape.circle,
-                                    boxShadow: <BoxShadow>[
-                                      BoxShadow(
-                                        color: Color(0x22000000),
-                                        blurRadius: 10,
-                                        offset: Offset(0, 4),
+                                    const SizedBox(width: 10),
+                                    if (_isSending)
+                                      Container(
+                                        width: 42,
+                                        height: 42,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.10),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(11),
+                                        child: const CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      _buildComposerIconButton(
+                                        icon: Icons.add_rounded,
+                                        isDark: isDark,
+                                        onTap: _showAttachmentMenu,
                                       ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _showMic
+                          ? _isRecording
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    _buildComposerPrimaryButton(
+                                      icon: Icons.close_rounded,
+                                      gradient: const LinearGradient(
+                                        colors: <Color>[
+                                          Color(0xFFE46B6B),
+                                          Color(0xFFC64545),
+                                        ],
+                                      ),
+                                      shadowColor: const Color(0x55D65454),
+                                      onTap: _isSendingVoice
+                                          ? null
+                                          : () {
+                                              HapticFeedback.mediumImpact();
+                                              _cancelRecording();
+                                            },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildComposerPrimaryButton(
+                                      icon: Icons.send_rounded,
+                                      gradient: AppColors.gradientChatHeader,
+                                      shadowColor:
+                                          Colors.black.withValues(alpha: 0.16),
+                                      isLoading: _isSendingVoice,
+                                      onTap: _isSendingVoice
+                                          ? null
+                                          : () {
+                                              HapticFeedback.mediumImpact();
+                                              _stopAndSendRecording();
+                                            },
+                                    ),
+                                  ],
+                                )
+                              : _buildComposerPrimaryButton(
+                                  icon: Icons.mic_rounded,
+                                  gradient: const LinearGradient(
+                                    colors: <Color>[
+                                      Color(0xFF7B94D8),
+                                      Color(0xFF5E77C5),
                                     ],
                                   ),
-                                  child: const Icon(
-                                    Icons.mic_rounded,
-                                    color: Colors.white,
-                                    size: 22,
-                                  ),
-                                ),
-                              ),
-                            )
-                      : Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(100),
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              if (!isLoading) {
-                                _sendMessage();
-                              }
-                            },
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: const BoxDecoration(
-                                gradient: AppColors.gradientPrimary,
-                                shape: BoxShape.circle,
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.send_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+                                  shadowColor: const Color(0x44657BCF),
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    _startRecording();
+                                  },
+                                )
+                          : _buildComposerPrimaryButton(
+                              icon: Icons.arrow_upward_rounded,
+                              gradient: AppColors.gradientPrimary,
+                              shadowColor: Colors.black.withValues(alpha: 0.16),
+                              onTap: isLoading
+                                  ? null
+                                  : () {
+                                      HapticFeedback.mediumImpact();
+                                      _sendMessage();
+                                    },
                             ),
-                          ),
-                        ),
                     ],
                   ),
                 ],
@@ -955,6 +1167,18 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         ),
       ),
     );
+  }
+
+  void _toggleEmojiPicker() {
+    HapticFeedback.lightImpact();
+    if (_showEmojiPicker) {
+      _focusNode.requestFocus();
+      setState(() => _showEmojiPicker = false);
+      return;
+    }
+
+    _focusNode.unfocus();
+    setState(() => _showEmojiPicker = true);
   }
 
   Future<void> _sendMessage() async {
@@ -1160,7 +1384,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       return;
     }
 
-    final nextIndex = (_activeSearchMatchIndex + 1) % _searchMatchMessageIds.length;
+    final nextIndex =
+        (_activeSearchMatchIndex + 1) % _searchMatchMessageIds.length;
     _jumpToSearchMatch(nextIndex);
   }
 
@@ -1176,7 +1401,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   Future<void> _scrollToMessageById(String messageId) async {
-    final BuildContext? itemContext = _messageItemKeys[messageId]?.currentContext;
+    final BuildContext? itemContext =
+        _messageItemKeys[messageId]?.currentContext;
     if (itemContext == null) {
       return;
     }
@@ -1499,8 +1725,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     try {
       _recordTimer?.cancel();
       stopPath = await _recorder.stop();
-    } catch (_) {
-    }
+    } catch (_) {}
 
     final Set<String> paths = <String>{
       if (stopPath != null && stopPath.trim().isNotEmpty) stopPath.trim(),
@@ -1514,8 +1739,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         if (await file.exists()) {
           await file.delete();
         }
-      } catch (_) {
-      }
+      } catch (_) {}
     }
 
     if (!mounted) {
@@ -1543,7 +1767,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   void _showReactionMenu(ChatMessageEntity msg, Offset position) {
     final bool isMe = msg.senderId == ref.read(authProvider).user?.id;
-    
+
     ReactionMenu.show(
       context,
       position: position,
@@ -1555,13 +1779,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  Widget _buildReplyBar(BuildContext context, bool isDark, ChatMessageEntity message) {
+  Widget _buildReplyBar(
+      BuildContext context, bool isDark, ChatMessageEntity message) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark 
-          ? Colors.white.withValues(alpha: 0.05) 
-          : Colors.black.withValues(alpha: 0.03),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         border: Border(
           bottom: BorderSide(
             color: isDark ? Colors.white10 : Colors.black12,
@@ -1609,15 +1834,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             icon: const Icon(Icons.close_rounded, size: 20),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            onPressed: () => ref.read(chatProvider.notifier).clearReplyMessage(),
+            onPressed: () =>
+                ref.read(chatProvider.notifier).clearReplyMessage(),
           ),
         ],
       ),
     ).animate().slideY(begin: 1.0, end: 0, duration: 200.ms);
   }
+
   void _showAttachmentMenu() {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1693,21 +1920,87 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  Widget _buildInputIcon(IconData icon, bool isDark, {required VoidCallback onTap}) {
-    return IconButton(
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      icon: Icon(
-        icon,
-        color: isDark
-            ? AppColors.textSecondaryDark
-            : AppColors.textSecondary,
-        size: 22,
+  Widget _buildComposerIconButton({
+    required IconData icon,
+    required bool isDark,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    final Color backgroundColor = isActive
+        ? AppColors.primary.withValues(alpha: isDark ? 0.26 : 0.14)
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.92));
+
+    final Color borderColor = isActive
+        ? AppColors.primary.withValues(alpha: 0.28)
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : const Color(0xFFE6ECF6));
+
+    final Color iconColor = isActive
+        ? (isDark ? Colors.white : AppColors.primary)
+        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: Icon(icon, color: iconColor, size: 21),
+        ),
       ),
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 42),
+    );
+  }
+
+  Widget _buildComposerPrimaryButton({
+    required IconData icon,
+    required Gradient gradient,
+    required Color shadowColor,
+    required VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Opacity(
+          opacity: onTap == null ? 0.55 : 1,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              shape: BoxShape.circle,
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Icon(icon, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1821,8 +2114,9 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
   }
 
   void _listener() {
-    final bool shouldShow = widget.scrollCtrl.hasClients && 
-        widget.scrollCtrl.offset < widget.scrollCtrl.position.maxScrollExtent - 400;
+    final bool shouldShow = widget.scrollCtrl.hasClients &&
+        widget.scrollCtrl.offset <
+            widget.scrollCtrl.position.maxScrollExtent - 400;
     if (_visible != shouldShow) {
       setState(() => _visible = shouldShow);
     }
@@ -1847,7 +2141,8 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
               curve: Curves.easeOutCubic,
             );
           },
-          child: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
+          child: const Icon(Icons.keyboard_arrow_down_rounded,
+              color: Colors.white, size: 28),
         ),
       ),
     );

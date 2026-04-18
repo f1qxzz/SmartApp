@@ -77,6 +77,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             .where((ChatConversationEntity chat) => chat.unreadCount > 0)
             .toList()
         : sourceItems;
+    final int unreadMessagesCount = chatState.chats.fold<int>(
+      0,
+      (total, chat) => total + chat.unreadCount,
+    );
     final List<ChatConversationEntity> onlineUsers =
         chatState.chats.where((chat) => chat.isOnline).toList();
 
@@ -209,6 +213,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                             _FilterToggleChip(
                               icon: Icons.mark_chat_unread_rounded,
                               label: 'Belum dibaca',
+                              badgeCount: unreadMessagesCount,
                               isActive: _showUnreadOnly,
                               onTap: () {
                                 setState(() {
@@ -276,15 +281,22 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           padding: EdgeInsets.only(bottom: 16),
                           child: Row(
                             children: [
-                              LoadingSkeleton(width: 52, height: 52, borderRadius: 26),
+                              LoadingSkeleton(
+                                  width: 52, height: 52, borderRadius: 26),
                               SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    LoadingSkeleton(width: 120, height: 16, borderRadius: 4),
+                                    LoadingSkeleton(
+                                        width: 120,
+                                        height: 16,
+                                        borderRadius: 4),
                                     SizedBox(height: 8),
-                                    LoadingSkeleton(width: double.infinity, height: 12, borderRadius: 4),
+                                    LoadingSkeleton(
+                                        width: double.infinity,
+                                        height: 12,
+                                        borderRadius: 4),
                                   ],
                                 ),
                               ),
@@ -654,12 +666,14 @@ class _StatTag extends StatelessWidget {
 class _FilterToggleChip extends StatelessWidget {
   final IconData icon;
   final String label;
+  final int badgeCount;
   final bool isActive;
   final VoidCallback onTap;
 
   const _FilterToggleChip({
     required this.icon,
     required this.label,
+    this.badgeCount = 0,
     required this.isActive,
     required this.onTap,
   });
@@ -713,6 +727,34 @@ class _FilterToggleChip extends StatelessWidget {
                           : AppColors.textSecondary),
                 ),
               ),
+              if (badgeCount > 0) ...<Widget>[
+                const SizedBox(width: 8),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 22),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? Colors.white.withValues(alpha: 0.22)
+                        : AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isActive
+                          ? Colors.white.withValues(alpha: 0.16)
+                          : AppColors.primary.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  child: Text(
+                    badgeCount > 99 ? '99+' : '$badgeCount',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -764,7 +806,8 @@ class _OnlineUserChip extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       child: lowDataMode || avatarUrl.isEmpty
                           ? Container(
-                              key: ValueKey(avatarUrl.isEmpty ? 'default' : avatarUrl),
+                              key: ValueKey(
+                                  avatarUrl.isEmpty ? 'default' : avatarUrl),
                               color: isDark ? AppColors.cardDark : Colors.white,
                               child: const Icon(Icons.person_rounded),
                             )
@@ -862,7 +905,9 @@ class _ConversationCard extends StatelessWidget {
                         onTap: onProfileTap,
                         borderRadius: BorderRadius.circular(24),
                         child: CircleAvatar(
-                          key: ValueKey(item.avatar.isNotEmpty ? item.avatar : item.userId),
+                          key: ValueKey(item.avatar.isNotEmpty
+                              ? item.avatar
+                              : item.userId),
                           radius: 24,
                           backgroundColor: isDark
                               ? AppColors.surfaceDark
@@ -909,19 +954,36 @@ class _ConversationCard extends StatelessWidget {
                         Row(
                           children: <Widget>[
                             Expanded(
-                              child: Text(
-                                item.username,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: item.unreadCount > 0
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimary,
-                                ),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      item.username,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        fontWeight: item.unreadCount > 0
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                        color: isDark
+                                            ? AppColors.textPrimaryDark
+                                            : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (item.role == 'owner' ||
+                                      item.role == 'developer') ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.verified_rounded,
+                                        color: Color(0xFFFFD700), size: 14),
+                                  ] else if (item.role == 'staff' ||
+                                      item.role == 'admin') ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.verified_rounded,
+                                        color: Color(0xFF6366F1), size: 14),
+                                  ],
+                                ],
                               ),
                             ),
                             Text(
@@ -1024,7 +1086,15 @@ class _ConversationCard extends StatelessWidget {
       return 'Kemarin';
     }
     if (diff.inDays < 7) {
-      const List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      const List<String> days = [
+        'Sen',
+        'Sel',
+        'Rab',
+        'Kam',
+        'Jum',
+        'Sab',
+        'Min'
+      ];
       return days[dt.weekday - 1];
     }
     return '${dt.day}/${dt.month}/${dt.year % 100}';

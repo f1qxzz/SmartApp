@@ -10,6 +10,7 @@ const chatRoutes = require('./modules/chat/chat.routes');
 const financeRoutes = require('./modules/finance/finance.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 const uploadRoutes = require('./modules/upload/upload.routes');
+const userRoutes = require('./modules/user/user.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -65,6 +66,7 @@ app.use('/', chatRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
 
 app.use((_, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

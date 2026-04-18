@@ -6,4 +6,5 @@ class AiUseCases {
   final AiRepository _repository;
 
   Future<String> ask(String message) => _repository.ask(message);
+  Future<String> summarizeChat(String chatId) => _repository.summarizeChat(chatId);
 }

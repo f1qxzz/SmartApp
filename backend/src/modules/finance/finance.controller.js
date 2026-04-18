@@ -57,6 +57,46 @@ const setBudget = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, data: budget, message: 'Budget berhasil diperbarui' });
 });
 
+const getSavingsGoals = asyncHandler(async (req, res) => {
+  const goals = await financeService.listSavingsGoals(req.user._id);
+  return res.status(200).json({ success: true, data: goals });
+});
+
+const createSavingsGoal = asyncHandler(async (req, res) => {
+  const goal = await financeService.createSavingsGoal(req.user._id, req.body);
+  return res.status(201).json({ success: true, data: goal });
+});
+
+const updateSavingsGoal = asyncHandler(async (req, res) => {
+  const updated = await financeService.updateSavingsGoal(req.user._id, req.params.id, req.body);
+  return res.status(200).json({ success: true, data: updated });
+});
+
+const deleteSavingsGoal = asyncHandler(async (req, res) => {
+  await financeService.deleteSavingsGoal(req.user._id, req.params.id);
+  return res.status(200).json({ success: true, message: 'Goal deleted' });
+});
+
+const getSubscriptions = asyncHandler(async (req, res) => {
+  const subs = await financeService.listSubscriptions(req.user._id);
+  return res.status(200).json({ success: true, data: subs });
+});
+
+const createSubscription = asyncHandler(async (req, res) => {
+  const sub = await financeService.createSubscription(req.user._id, req.body);
+  return res.status(201).json({ success: true, data: sub });
+});
+
+const updateSubscription = asyncHandler(async (req, res) => {
+  const updated = await financeService.updateSubscription(req.user._id, req.params.id, req.body);
+  return res.status(200).json({ success: true, data: updated });
+});
+
+const deleteSubscription = asyncHandler(async (req, res) => {
+  await financeService.deleteSubscription(req.user._id, req.params.id);
+  return res.status(200).json({ success: true, message: 'Subscription deleted' });
+});
+
 module.exports = {
   getFinance,
   createFinance,
@@ -66,4 +106,12 @@ module.exports = {
   exportCsv,
   getBudget,
   setBudget,
+  getSavingsGoals,
+  createSavingsGoal,
+  updateSavingsGoal,
+  deleteSavingsGoal,
+  getSubscriptions,
+  createSubscription,
+  updateSubscription,
+  deleteSubscription,
 };

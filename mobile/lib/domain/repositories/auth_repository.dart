@@ -9,6 +9,7 @@ abstract class AuthRepository {
       required bool rememberMe});
   Future<(UserEntity user, String token)> register(
       {required String username,
+      required String name,
       required String email,
       required String password,
       String? gender,
@@ -37,9 +38,16 @@ abstract class AuthRepository {
     String? name,
     String? gender,
     String? avatar,
+    String? role,
     double? monthlyBudget,
     DateTime? dateOfBirth,
+    String? socialGithub,
+    String? socialInstagram,
+    String? socialDiscord,
+    String? socialTelegram,
+    String? socialSpotify,
   });
   Future<String> uploadAvatar(File file);
   Future<(UserEntity user, String token)> restoreSession();
+  Future<UserEntity> getPublicProfile(String userId);
 }

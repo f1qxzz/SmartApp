@@ -6,14 +6,17 @@ import 'package:smartlife_app/data/repositories/ai_repository_impl.dart';
 import 'package:smartlife_app/data/repositories/auth_repository_impl.dart';
 import 'package:smartlife_app/data/repositories/chat_repository_impl.dart';
 import 'package:smartlife_app/data/repositories/finance_repository_impl.dart';
+import 'package:smartlife_app/data/repositories/user_repository_impl.dart';
 import 'package:smartlife_app/data/services/ai_service.dart';
 import 'package:smartlife_app/data/services/auth_service.dart';
 import 'package:smartlife_app/data/services/chat_service.dart';
 import 'package:smartlife_app/data/services/finance_service.dart';
+import 'package:smartlife_app/data/services/user_service.dart';
 import 'package:smartlife_app/domain/repositories/ai_repository.dart';
 import 'package:smartlife_app/domain/repositories/auth_repository.dart';
 import 'package:smartlife_app/domain/repositories/chat_repository.dart';
 import 'package:smartlife_app/domain/repositories/finance_repository.dart';
+import 'package:smartlife_app/domain/repositories/user_repository.dart';
 import 'package:smartlife_app/domain/usecases/ai_usecases.dart';
 import 'package:smartlife_app/domain/usecases/auth_usecases.dart';
 import 'package:smartlife_app/domain/usecases/chat_usecases.dart';
@@ -38,6 +41,10 @@ final aiServiceProvider = Provider<AiService>((ref) {
   return AiService(ref.read(dioClientProvider));
 });
 
+final userServiceProvider = Provider<UserService>((ref) {
+  return UserService(ref.read(dioClientProvider));
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(ref.read(authServiceProvider));
 });
@@ -52,6 +59,10 @@ final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return AiRepositoryImpl(ref.read(aiServiceProvider));
+});
+
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  return UserRepositoryImpl(ref.read(userServiceProvider));
 });
 
 final authUseCasesProvider = Provider<AuthUseCases>((ref) {

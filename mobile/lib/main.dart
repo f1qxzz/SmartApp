@@ -13,9 +13,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await HiveService.init();
-  await NotificationService.instance.initialize();
-  await NotificationService.instance.syncReminderNotificationsFromStorage();
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -23,7 +20,20 @@ Future<void> main() async {
       statusBarBrightness: Brightness.dark,
     ),
   );
+
   runApp(const ProviderScope(child: SmartLifeApp()));
+
+  // Run non-essential boot tasks in the background
+  _backgroundBootTasks();
+}
+
+Future<void> _backgroundBootTasks() async {
+  try {
+    await NotificationService.instance.initialize();
+    await NotificationService.instance.syncReminderNotificationsFromStorage();
+  } catch (e) {
+    debugPrint('[BOOT] Background tasks failed: $e');
+  }
 }
 
 class SmartLifeApp extends ConsumerWidget {

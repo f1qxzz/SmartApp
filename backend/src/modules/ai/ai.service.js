@@ -21,10 +21,11 @@ function buildPrompt(financeData, userQuestion) {
     '',
     `Pertanyaan user: ${userQuestion}`,
     '',
-    'Instruksi:',
-    '- Berikan analisis singkat, jelas, dan actionable dalam Bahasa Indonesia.',
-    '- Jika ada pola boros, sebutkan kategorinya.',
-    '- Berikan 3 saran konkret yang realistis.',
+    'Instruksi Penting:',
+    '- Format jawaban: HARUS berbentuk teks paragraf biasa. DILARANG KERAS menggunakan tanda bintang (*) atau format markdown apapun.',
+    '- Jawaban harus RINGKAS tapi sangat DETAIL (high information density). Langsung ke poin permasalahan tanpa kata pengantar bertele-tele.',
+    '- Jika ada pola boros, sebutkan kategorinya dengan spesifik dan angka pengeluarannya.',
+    '- Berikan 3 saran konkret yang realistis menggunakan format penomoran angka biasa (1. 2. 3.).',
   ].join('\n');
 }
 
@@ -138,6 +139,69 @@ function buildFallbackAnswer({ financeSummary, reason }) {
   return lines.join('\n');
 }
 
+async function summarizeChat({ chatId, userId }) {
+  // 1. Fetch the last 50 messages from this chat
+  const messages = await require('../chat/message.model')
+    .find({ chatId })
+    .populate('senderId', 'username role')
+    .sort({ createdAt: -1 })
+    .limit(50);
+
+  if (messages.length === 0) {
+    return 'Belum ada percakapan yang bisa diringkas.';
+  }
+
+  // 2. Reverse to get chronological order and format for prompt
+  const chatTranscript = messages
+    .reverse()
+    .map((msg) => {
+      const sender = msg.senderId?.username || 'Unknown';
+      const role = msg.senderId?.role || 'user';
+      return `[${role.toUpperCase()}] ${sender}: ${msg.text}`;
+    })
+    .join('\n');
+
+  // 3. Build prompt
+  const prompt = [
+    'Kamu adalah asisten pengelola percakapan SmartLife.',
+    'Tugasmu: ringkas percakapan berikut menjadi poin-poin penting yang actionable dalam Bahasa Indonesia.',
+    'Fokus pada: permintaan user, solusi yang diberikan staff/owner, dan status akhir (selesai/menunggu).',
+    '',
+    'Berikut transkrip percakapan:',
+    chatTranscript,
+    '',
+    'Instruksi Output:',
+    '- DILARANG KERAS menggunakan tanda bintang (*) atau format markdown. Gunakan penomoran angka biasa (1., 2., 3.).',
+    '- Buat menjadi ringkas tapi sangat detail (maksimal 5 poin).',
+    '- Gunakan nada profesional namun ramah.',
+  ].join('\n');
+
+  // 4. Call Gemini
+  if (!process.env.GEMINI_API_KEY) {
+    return 'Gagal membuat ringkasan: API Key belum dikonfigurasi.';
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const modelCandidates = getModelCandidates();
+
+  for (const modelName of modelCandidates) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const outputText = result.response.text() || '';
+
+      if (outputText.trim()) {
+        return outputText.trim();
+      }
+    } catch (error) {
+      // Continue to next model if fails
+    }
+  }
+
+  return 'Maaf, sistem AI sedang sibuk. Gagal membuat ringkasan saat ini.';
+}
+
 module.exports = {
   askAI,
+  summarizeChat,
 };

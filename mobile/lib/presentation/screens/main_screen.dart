@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/storage/hive_boxes.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
-import 'package:smartlife_app/presentation/screens/ai/ai_screen.dart';
-import 'package:smartlife_app/presentation/screens/calculator/calculator_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:smartlife_app/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:smartlife_app/presentation/screens/finance/finance_screen.dart';
 import 'package:smartlife_app/presentation/screens/profile/profile_screen.dart';
+import 'package:smartlife_app/presentation/screens/smarthome/smart_home_screen.dart';
+import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -33,9 +34,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   final List<Widget> _screens = const <Widget>[
     ChatListScreen(),
     FinanceScreen(),
-    CalculatorScreen(),
     DashboardScreen(),
-    AIScreen(),
     ProfileScreen(),
   ];
 
@@ -51,7 +50,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         if (_activeTabUserId != nextUserId) {
           _loadInitialTab(userId: next.user?.id, refreshUi: true);
         }
-        _showRegisterSuccess(next);
+        _handleAuthFeedback(next);
       },
       fireImmediately: true,
     );
@@ -99,7 +98,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     super.dispose();
   }
 
-  void _showRegisterSuccess(AuthState next) {
+  void _handleAuthFeedback(AuthState next) {
     if (!mounted) {
       return;
     }
@@ -115,14 +114,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message,
-            style: GoogleFonts.inter(fontSize: 13),
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppAlert.show(
+        context,
+        title: 'Selamat Datang!',
+        message: message,
+        isError: false,
       );
 
       ref.read(authProvider.notifier).clearSuccessMessage();
@@ -156,20 +152,21 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
         ],
       ),
-      floatingActionButton: (_currentIndex == 2 || _currentIndex == 4) 
-        ? null 
-        : _QuickActionFabMenu(
-            isDark: isDark,
-            isOpen: _isQuickActionsOpen,
-            onToggle: _toggleQuickActions,
-            onAddTransaction: () => _runQuickAction(
-              () => _showAddTransaction(context),
+      floatingActionButton: _currentIndex == 2
+          ? null
+          : _QuickActionFabMenu(
+              isDark: isDark,
+              isOpen: _isQuickActionsOpen,
+              onToggle: _toggleQuickActions,
+              onAddTransaction: () => _runQuickAction(
+                () => _showAddTransaction(context),
+              ),
+              onOpenChat: () => _runQuickAction(() => _updateTab(0)),
+              onOpenFinance: () => _runQuickAction(() => _updateTab(1)),
+              onOpenDashboard: () => _runQuickAction(() => _updateTab(2)),
+              onOpenProfile: () => _runQuickAction(() => _updateTab(3)),
+              onOpenSmartHome: () => _runQuickAction(_openSmartHome),
             ),
-        onOpenChat: () => _runQuickAction(() => _updateTab(0)),
-        onOpenDashboard: () => _runQuickAction(() => _updateTab(3)),
-        onOpenAI: () => _runQuickAction(() => _updateTab(4)),
-        onOpenProfile: () => _runQuickAction(() => _updateTab(5)),
-      ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTap: _updateTab,
@@ -240,6 +237,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
+  void _openSmartHome() {
+    Navigator.push<void>(
+      context,
+      AppRoute<void>(
+        builder: (_) => const SmartHomeScreen(),
+      ),
+    );
+  }
+
   void _toggleQuickActions() {
     HapticFeedback.lightImpact();
     setState(() => _isQuickActionsOpen = !_isQuickActionsOpen);
@@ -269,9 +275,10 @@ class _QuickActionFabMenu extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onAddTransaction;
   final VoidCallback onOpenChat;
+  final VoidCallback onOpenFinance;
   final VoidCallback onOpenDashboard;
-  final VoidCallback onOpenAI;
   final VoidCallback onOpenProfile;
+  final VoidCallback onOpenSmartHome;
 
   const _QuickActionFabMenu({
     required this.isDark,
@@ -279,9 +286,10 @@ class _QuickActionFabMenu extends StatelessWidget {
     required this.onToggle,
     required this.onAddTransaction,
     required this.onOpenChat,
+    required this.onOpenFinance,
     required this.onOpenDashboard,
-    required this.onOpenAI,
     required this.onOpenProfile,
+    required this.onOpenSmartHome,
   });
 
   @override
@@ -311,6 +319,15 @@ class _QuickActionFabMenu extends StatelessWidget {
         _buildAnimatedAction(
           order: 2,
           child: _QuickActionChip(
+            label: 'Finance Hub',
+            icon: Icons.account_balance_wallet_rounded,
+            isDark: isDark,
+            onTap: onOpenFinance,
+          ),
+        ),
+        _buildAnimatedAction(
+          order: 3,
+          child: _QuickActionChip(
             label: 'Dashboard',
             icon: Icons.bar_chart_rounded,
             isDark: isDark,
@@ -318,16 +335,16 @@ class _QuickActionFabMenu extends StatelessWidget {
           ),
         ),
         _buildAnimatedAction(
-          order: 3,
+          order: 4,
           child: _QuickActionChip(
-            label: 'Smart AI',
-            icon: Icons.auto_awesome_rounded,
+            label: 'Smart Home',
+            icon: Icons.home_rounded,
             isDark: isDark,
-            onTap: onOpenAI,
+            onTap: onOpenSmartHome,
           ),
         ),
         _buildAnimatedAction(
-          order: 4,
+          order: 5,
           child: _QuickActionChip(
             label: 'Profile',
             icon: Icons.person_rounded,
@@ -358,7 +375,8 @@ class _QuickActionFabMenu extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.38 : 0.26),
+                  color:
+                      AppColors.primary.withValues(alpha: isDark ? 0.38 : 0.26),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -491,11 +509,9 @@ class _BottomNav extends StatelessWidget {
       (
         Icons.account_balance_wallet_outlined,
         Icons.account_balance_wallet_rounded,
-        'Finance',
+        'Finance'
       ),
-      (Icons.calculate_outlined, Icons.calculate_rounded, 'Hitung'),
       (Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Dashboard'),
-      (Icons.auto_awesome_outlined, Icons.auto_awesome_rounded, 'AI'),
       (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
     ];
 
@@ -628,18 +644,18 @@ class FadeIndexedStack extends StatelessWidget {
               offset: isActive ? Offset.zero : const Offset(0.0, 0.02),
               duration: duration,
               curve: Curves.easeOutQuart,
-                child: AnimatedScale(
-                  scale: isActive ? 1.0 : 0.98,
-                  duration: duration,
-                  curve: Curves.easeOutQuart,
-                  child: TickerMode(
-                    enabled: isActive,
-                    child: RepaintBoundary(
-                      child: children[i],
-                    ),
+              child: AnimatedScale(
+                scale: isActive ? 1.0 : 0.98,
+                duration: duration,
+                curve: Curves.easeOutQuart,
+                child: TickerMode(
+                  enabled: isActive,
+                  child: RepaintBoundary(
+                    child: children[i],
                   ),
                 ),
               ),
+            ),
           ),
         );
       }),

@@ -34,6 +34,38 @@ class AppFormatters {
     return _weekDays[date.weekday - 1];
   }
 
+  static String relativeDate(DateTime date) {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime yesterday = today.subtract(const Duration(days: 1));
+    final DateTime targetDate = DateTime(date.year, date.month, date.day);
+
+    if (targetDate == today) {
+      return 'Hari Ini';
+    } else if (targetDate == yesterday) {
+      return 'Kemarin';
+    }
+
+    final Duration difference = today.difference(targetDate);
+    if (difference.inDays < 7 && difference.inDays > 0) {
+      // Return full day name for Indonesian
+      switch (date.weekday) {
+        case DateTime.monday: return 'Senin';
+        case DateTime.tuesday: return 'Selasa';
+        case DateTime.wednesday: return 'Rabu';
+        case DateTime.thursday: return 'Kamis';
+        case DateTime.friday: return 'Jumat';
+        case DateTime.saturday: return 'Sabtu';
+        case DateTime.sunday: return 'Minggu';
+      }
+    }
+
+    // Older than 7 days, return dd/mm/yyyy
+    final String day = date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
   static String compactCurrency(num value) {
     final double absValue = value.abs().toDouble();
     final String sign = value < 0 ? '-' : '';

@@ -18,4 +18,15 @@ class AiService {
       throw ApiException.fromDio(error);
     }
   }
+
+  Future<String> summarizeChat(String chatId) async {
+    try {
+      final response = await _dioClient.instance.post('/api/ai/summarize', data: {'chatId': chatId});
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final payload = Map<String, dynamic>.from(data['data'] as Map);
+      return (payload['summary'] ?? '').toString();
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
 }

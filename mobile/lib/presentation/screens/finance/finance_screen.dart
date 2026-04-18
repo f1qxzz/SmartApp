@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:smartlife_app/core/constants/app_constants.dart';
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/finance_entry_entity.dart';
 import 'package:smartlife_app/presentation/providers/finance_provider.dart';
+import 'package:smartlife_app/presentation/screens/wealth/wealth_hub_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
@@ -101,7 +103,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  'Finance Hub',
+                                  'Finance & Wealth',
                                   style: AppTextStyles.heading2(context),
                                 ),
                                 Text(
@@ -148,7 +150,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Pantau cashflow, atur budget, dan catat transaksi harian kamu.',
+                                  'Satu menu untuk cashflow, budget, goal tabungan, dan komitmen rutin kamu.',
                                   style: GoogleFonts.inter(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w500,
@@ -199,6 +201,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        _buildPlannerBridgeCard(financeState, isDark)
+                            .animate()
+                            .fadeIn(delay: 120.ms, duration: 380.ms)
+                            .slideY(begin: 0.08),
                       ],
                     ),
                   ),
@@ -288,7 +295,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDark ? AppColors.primary : AppColors.primary,
+                                color: isDark
+                                    ? AppColors.primary
+                                    : AppColors.primary,
                                 width: 1.5,
                               ),
                             ),
@@ -471,6 +480,161 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlannerBridgeCard(FinanceState financeState, bool isDark) {
+    final int activeGoals = financeState.goals.length;
+    final int activeSubscriptions = financeState.subscriptions
+        .where((sub) => sub.status == 'active')
+        .length;
+    final double totalGoalTarget = financeState.goals.fold<double>(
+      0,
+      (double sum, goal) => sum + goal.targetAmount,
+    );
+    final double totalGoalSaved = financeState.goals.fold<double>(
+      0,
+      (double sum, goal) => sum + goal.currentAmount,
+    );
+    final double monthlyCommitments = financeState.subscriptions.fold<double>(
+      0,
+      (double sum, sub) {
+        switch (sub.billingCycle.toLowerCase()) {
+          case 'yearly':
+            return sum + (sub.amount / 12);
+          case 'weekly':
+            return sum + (sub.amount * 4);
+          default:
+            return sum + sub.amount;
+        }
+      },
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.dividerLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: AppColors.gradientSecondary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.flag_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Planner Keuangan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Finance dan Wealth sekarang digabung dalam satu alur.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: _openPlannerScreen,
+                child: const Text('Kelola'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _PlannerStatChip(
+                  isDark: isDark,
+                  label: 'Goal Aktif',
+                  value: '$activeGoals',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PlannerStatChip(
+                  isDark: isDark,
+                  label: 'Subscription',
+                  value: '$activeSubscriptions',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _PlannerStatChip(
+                  isDark: isDark,
+                  label: 'Dana Terkumpul',
+                  value: AppFormatters.compactCurrency(totalGoalSaved),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PlannerStatChip(
+                  isDark: isDark,
+                  label: 'Komitmen/Bulan',
+                  value: AppFormatters.compactCurrency(monthlyCommitments),
+                ),
+              ),
+            ],
+          ),
+          if (totalGoalTarget > 0) ...<Widget>[
+            const SizedBox(height: 12),
+            Text(
+              'Progress target: ${AppFormatters.currency(totalGoalSaved)} / ${AppFormatters.currency(totalGoalTarget)}',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openPlannerScreen() async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(builder: (context) => const WealthHubScreen()),
     );
   }
 
@@ -983,6 +1147,55 @@ class _FilteredSummaryStrip extends StatelessWidget {
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
               color: AppColors.primaryDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerStatChip extends StatelessWidget {
+  const _PlannerStatChip({
+    required this.isDark,
+    required this.label,
+    required this.value,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
         ],

@@ -188,6 +188,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         title: 'Login Berhasil',
         body: 'Selamat datang kembali, ${result.$1.username}!',
       );
+
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -205,6 +206,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> register({
+    required String fullName,
     required String username,
     required String email,
     required String password,
@@ -218,21 +220,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       clearSuccess: true,
     );
 
+    final normalizedFullName = fullName.trim();
     final normalizedUsername = username.trim().toLowerCase();
     final normalizedEmail = email.trim();
     final normalizedGender = _normalizeGender(gender);
 
-    if (normalizedUsername.isEmpty ||
+    if (normalizedFullName.isEmpty ||
+        normalizedUsername.isEmpty ||
         normalizedEmail.isEmpty ||
         password.isEmpty) {
-      _setClientError('Username, email, dan password wajib diisi.');
+      _setClientError(
+          'Nama lengkap, username, email, dan password wajib diisi.');
       return;
     }
 
     if (!_usernameRegex.hasMatch(normalizedUsername)) {
       _setClientError(
-        'Username harus 3-30 karakter (huruf kecil, angka, titik, underscore).',
-      );
+          'Username harus 3-30 karakter dan hanya boleh huruf kecil, angka, titik, atau underscore.');
       return;
     }
 
@@ -249,6 +253,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final result = await _useCases.register(
         username: normalizedUsername,
+        name: normalizedFullName,
         email: normalizedEmail,
         password: password,
         gender: normalizedGender.isEmpty ? null : normalizedGender,
@@ -261,6 +266,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         title: 'Registrasi Berhasil',
         body: 'Akun ${result.$1.username} berhasil dibuat.',
       );
+
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -306,6 +312,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         title: 'Login Google Berhasil',
         body: 'Selamat datang, ${result.$1.username}!',
       );
+
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
@@ -357,6 +364,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    state = state.copyWith(
+      status: AuthStatus.loading,
+      clearError: true,
+      clearSuccess: true,
+    );
+
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedToken = token.trim();
+
+    if (normalizedEmail.isEmpty) {
+      _setClientError('Email wajib diisi.');
+      return;
+    }
+
+    if (normalizedToken.isEmpty) {
+      _setClientError('Kode reset wajib diisi.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      _setClientError('Password minimal 6 karakter.');
+      return;
+    }
+
+    try {
+      await _useCases.resetPassword(
+        email: normalizedEmail,
+        token: normalizedToken,
+        newPassword: newPassword,
+      );
+      debugPrint('[AUTH] reset-password success: $normalizedEmail');
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        successMessage: 'Password berhasil diperbarui. Silakan login kembali.',
+      );
+    } catch (error) {
+      debugPrint('[AUTH] reset-password failed: $error');
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: error.toString(),
+      );
+    }
+  }
+
   Future<void> refreshProfile() async {
     if (!state.isAuthenticated || state.token == null) {
       return;
@@ -381,8 +437,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? name,
     String? gender,
     String? avatar,
+    String? role,
     double? monthlyBudget,
     DateTime? dateOfBirth,
+    String? socialGithub,
+    String? socialInstagram,
+    String? socialDiscord,
+    String? socialTelegram,
+    String? socialSpotify,
   }) async {
     if (!state.isAuthenticated || state.user == null || state.token == null) {
       state = state.copyWith(
@@ -434,8 +496,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         name: name,
         gender: normalizedGender,
         avatar: avatar,
+        role: role,
         monthlyBudget: monthlyBudget,
         dateOfBirth: dateOfBirth,
+        socialGithub: socialGithub,
+        socialInstagram: socialInstagram,
+        socialDiscord: socialDiscord,
+        socialTelegram: socialTelegram,
+        socialSpotify: socialSpotify,
       );
       final refreshedProfile = await _refreshFromServerAndCache();
       state = state.copyWith(
@@ -503,6 +571,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
 
     return profile;
+  }
+
+  Future<UserEntity?> getPublicProfile(String userId) async {
+    try {
+      return await _useCases.getPublicProfile(userId);
+    } catch (e) {
+      debugPrint('[AUTH] getPublicProfile failed: $e');
+      return null;
+    }
   }
 }
 

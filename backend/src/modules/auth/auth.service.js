@@ -211,9 +211,15 @@ function buildAuthResponse(user) {
       name: user.name || user.username,
       email: user.email,
       avatar: user.avatar,
+      role: user.role || 'user',
       gender: user.gender || '',
       monthlyBudget: Number(user.monthlyBudget || 0),
       dateOfBirth: user.dateOfBirth,
+      socialGithub: user.socialGithub || '',
+      socialInstagram: user.socialInstagram || '',
+      socialDiscord: user.socialDiscord || '',
+      socialTelegram: user.socialTelegram || '',
+      socialSpotify: user.socialSpotify || '',
     },
   };
 }
@@ -268,12 +274,12 @@ function buildResetPasswordLink({ email, rawToken }) {
     `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password`;
   const separator = base.includes('?') ? '&' : '?';
 
-  return `${base}${separator}token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(
+  return `${base}${separator}code=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(
     email
   )}`;
 }
 
-async function sendResetPasswordEmail({ to, name, resetLink }) {
+async function sendResetPasswordEmail({ to, name, resetLink, rawToken }) {
   const usingMockTransport = !hasValidSmtpConfig();
   const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@smartlife.local';
   const transporter = getMailTransporter();
@@ -281,22 +287,33 @@ async function sendResetPasswordEmail({ to, name, resetLink }) {
   await transporter.sendMail({
     from,
     to,
-    subject: 'SmartLife - Reset Password',
+    subject: 'SmartLife - Kode Reset Password',
     text: [
       `Halo ${name || 'SmartLife User'},`,
       '',
-      'Kami menerima permintaan reset password akun Anda.',
-      `Klik tautan berikut untuk reset password: ${resetLink}`,
+      'Kami menerima permintaan untuk mereset password akun SmartLife Anda.',
+      'Gunakan kode reset berikut di aplikasi:',
       '',
-      'Tautan berlaku selama 15 menit.',
-      'Jika Anda tidak meminta reset password, abaikan email ini.',
+      `KODE RESET: ${rawToken}`,
+      '',
+      'Jika Anda ingin mereset via web, klik tautan berikut:',
+      resetLink,
+      '',
+      'Kode ini berlaku selama 15 menit.',
+      'Jika Anda tidak merasa meminta reset password, silakan abaikan email ini.',
     ].join('\n'),
     html: [
-      `<p>Halo ${name || 'SmartLife User'},</p>`,
-      '<p>Kami menerima permintaan reset password akun Anda.</p>',
-      `<p><a href="${resetLink}">Klik di sini untuk reset password</a></p>`,
-      '<p>Tautan berlaku selama 15 menit.</p>',
-      '<p>Jika Anda tidak meminta reset password, abaikan email ini.</p>',
+      '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 12px; padding: 24px; color: #24292e;">',
+      '  <h2 style="color: #4B67D1; margin-top: 0;">SmartLife</h2>',
+      `  <p>Halo <strong>${name || 'SmartLife User'}</strong>,</p>`,
+      '  <p>Kami menerima permintaan untuk mereset password akun SmartLife Anda. Gunakan kode di bawah ini untuk melanjutkan di dalam aplikasi:</p>',
+      '  <div style="background: #f6f8fa; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">',
+      `    <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a1e23;">${rawToken}</span>`,
+      '  </div>',
+      '  <p style="font-size: 14px; color: #57606a;">Atau jika Anda menggunakan browser, <a href="' + resetLink + '" style="color: #4B67D1; text-decoration: none;">klik di sini untuk reset via web</a>.</p>',
+      '  <hr style="border: 0; border-top: 1px solid #e1e4e8; margin: 24px 0;">',
+      '  <p style="font-size: 12px; color: #8c959f;">Kode ini berlaku selama 15 menit. Jika akun Anda tidak merasa meminta perubahan ini, mohon abaikan email ini.</p>',
+      '</div>',
     ].join(''),
   });
 
@@ -324,18 +341,24 @@ function ensureSocialAccountCompatible(user, provider) {
 }
 
 async function register(payload) {
-  const username = normalizeUsername(payload.username);
+  let username = normalizeUsername(payload.username);
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || '');
-  const name = String(payload.name || username).trim() || username;
+  const providedName = String(payload.name || '').trim();
   const gender = ensureValidGender(payload.gender);
-
-  ensureValidUsername(username);
   ensureValidEmail(email);
 
   if (password.length < 6) {
     throw createHttpError(400, 'Password minimal 6 karakter');
   }
+
+  if (!username) {
+    username = await generateUniqueUsername(providedName || email.split('@')[0]);
+  } else {
+    ensureValidUsername(username);
+  }
+
+  const name = providedName || username;
 
   const [existingUsername, existingEmail] = await Promise.all([
     User.findOne({ username }),
@@ -552,7 +575,7 @@ async function forgotPassword(payload) {
     };
   }
 
-  const rawToken = crypto.randomBytes(32).toString('hex');
+  const rawToken = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
   const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -565,6 +588,7 @@ async function forgotPassword(payload) {
     to: user.email,
     name: user.name || user.username,
     resetLink,
+    rawToken,
   });
 
   const data = {};
@@ -665,14 +689,28 @@ async function updateProfile(userId, payload) {
   user.gender = nextGender;
   user.avatar = nextAvatar;
   user.name = String(payload.name || user.name || nextUsername).trim() || nextUsername;
+
+  if (payload.role !== undefined && 
+      ['owner', 'developer'].includes(user.role)) {
+    const nextRole = String(payload.role || '').trim().toLowerCase();
+    if (['owner', 'developer', 'staff', 'user'].includes(nextRole)) {
+      user.role = nextRole;
+    }
+  }
   
-  if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth')) {
+  if (payload.dateOfBirth !== undefined) {
     user.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth) : null;
   }
 
-  if (Object.prototype.hasOwnProperty.call(payload, 'monthlyBudget')) {
+  if (payload.monthlyBudget !== undefined) {
     user.monthlyBudget = Number(payload.monthlyBudget || 0);
   }
+
+  ['socialGithub', 'socialInstagram', 'socialDiscord', 'socialTelegram', 'socialSpotify'].forEach(field => {
+    if (payload[field] !== undefined) {
+      user[field] = String(payload[field] || '').trim();
+    }
+  });
 
   await user.save();
 
@@ -682,9 +720,46 @@ async function updateProfile(userId, payload) {
     name: user.name || user.username,
     email: user.email,
     avatar: user.avatar || '',
+    role: user.role || 'user',
     gender: user.gender || '',
     monthlyBudget: Number(user.monthlyBudget || 0),
     dateOfBirth: user.dateOfBirth,
+    socialGithub: user.socialGithub || '',
+    socialInstagram: user.socialInstagram || '',
+    socialDiscord: user.socialDiscord || '',
+    socialTelegram: user.socialTelegram || '',
+    socialSpotify: user.socialSpotify || '',
+  };
+}
+
+async function getPublicProfile(userId) {
+  const user = await User.findById(userId).select(
+    '_id username name avatar role gender dateOfBirth createdAt socialGithub socialInstagram socialDiscord socialTelegram socialSpotify'
+  );
+
+  if (!user || user.isSystem) {
+    throw createHttpError(404, 'User tidak ditemukan');
+  }
+
+  const { isUserOnline, getUserLastSeen } = require('../../sockets/store');
+  const lastSeen = getUserLastSeen(String(user._id));
+
+  return {
+    id: String(user._id),
+    username: user.username,
+    name: user.name || user.username,
+    avatar: user.avatar || '',
+    role: user.role || 'user',
+    gender: user.gender || '',
+    dateOfBirth: user.dateOfBirth,
+    isOnline: isUserOnline(String(user._id)),
+    lastSeen: lastSeen ? lastSeen.toISOString() : null,
+    createdAt: user.createdAt,
+    socialGithub: user.socialGithub || '',
+    socialInstagram: user.socialInstagram || '',
+    socialDiscord: user.socialDiscord || '',
+    socialTelegram: user.socialTelegram || '',
+    socialSpotify: user.socialSpotify || '',
   };
 }
 
@@ -709,5 +784,6 @@ module.exports = {
   resetPassword,
   issueSession,
   updateProfile,
+  getPublicProfile,
   logout,
 };

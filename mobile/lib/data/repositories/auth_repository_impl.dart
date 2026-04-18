@@ -26,6 +26,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<(UserEntity user, String token)> register({
     required String username,
+    required String name,
     required String email,
     required String password,
     String? gender,
@@ -34,6 +35,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }) {
     return _authService.register(
       username: username,
+      name: name,
       email: email,
       password: password,
       gender: gender,
@@ -138,8 +140,14 @@ class AuthRepositoryImpl implements AuthRepository {
     String? name,
     String? gender,
     String? avatar,
+    String? role,
     double? monthlyBudget,
     DateTime? dateOfBirth,
+    String? socialGithub,
+    String? socialInstagram,
+    String? socialDiscord,
+    String? socialTelegram,
+    String? socialSpotify,
   }) {
     return _authService.updateProfile(
       username: username,
@@ -147,8 +155,14 @@ class AuthRepositoryImpl implements AuthRepository {
       name: name,
       gender: gender,
       avatar: avatar,
+      role: role,
       monthlyBudget: monthlyBudget,
       dateOfBirth: dateOfBirth,
+      socialGithub: socialGithub,
+      socialInstagram: socialInstagram,
+      socialDiscord: socialDiscord,
+      socialTelegram: socialTelegram,
+      socialSpotify: socialSpotify,
     );
   }
 
@@ -160,5 +174,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<(UserEntity user, String token)> restoreSession() {
     return _authService.restoreSession();
+  }
+
+  @override
+  Future<UserEntity> getPublicProfile(String userId) {
+    return _authService.getPublicProfile(userId);
   }
 }

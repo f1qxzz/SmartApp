@@ -100,6 +100,21 @@ class AiNotifier extends StateNotifier<AiState> {
     }
   }
 
+  Future<String?> summarizeChat(String chatId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final summary = await _useCases.summarizeChat(chatId);
+      state = state.copyWith(isLoading: false);
+      return summary;
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      );
+      return null;
+    }
+  }
+
   void clearConversation() {
     state = const AiState();
     _setWelcome();

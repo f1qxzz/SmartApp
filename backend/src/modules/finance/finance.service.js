@@ -263,6 +263,84 @@ async function setBudget(userId, monthlyBudget) {
   };
 }
 
+const SavingsGoal = require('./savings_goal.model');
+const Subscription = require('./subscription.model');
+
+// ... existing code ...
+
+async function listSavingsGoals(userId) {
+  return SavingsGoal.find({ userId: new mongoose.Types.ObjectId(userId) }).sort({ createdAt: -1 });
+}
+
+async function createSavingsGoal(userId, payload) {
+  return SavingsGoal.create({
+    userId,
+    title: String(payload.title || 'Untitled Goal').trim(),
+    targetAmount: Number(payload.targetAmount) || 0,
+    currentAmount: Number(payload.currentAmount) || 0,
+    deadline: payload.deadline ? new Date(payload.deadline) : null,
+    color: String(payload.color || '#6366F1'),
+    icon: String(payload.icon || 'wallet_rounded'),
+  });
+}
+
+async function updateSavingsGoal(userId, goalId, payload) {
+  const goal = await SavingsGoal.findOne({ _id: goalId, userId });
+  if (!goal) throw createHttpError(404, 'Goal not found');
+  
+  if (payload.title !== undefined) goal.title = String(payload.title).trim();
+  if (payload.targetAmount !== undefined) goal.targetAmount = Number(payload.targetAmount);
+  if (payload.currentAmount !== undefined) goal.currentAmount = Number(payload.currentAmount);
+  if (payload.deadline !== undefined) goal.deadline = payload.deadline ? new Date(payload.deadline) : null;
+  if (payload.color !== undefined) goal.color = payload.color;
+  if (payload.icon !== undefined) goal.icon = payload.icon;
+
+  await goal.save();
+  return goal;
+}
+
+async function deleteSavingsGoal(userId, goalId) {
+  const goal = await SavingsGoal.findOneAndDelete({ _id: goalId, userId });
+  if (!goal) throw createHttpError(404, 'Goal not found');
+}
+
+async function listSubscriptions(userId) {
+  return Subscription.find({ userId: new mongoose.Types.ObjectId(userId) }).sort({ createdAt: -1 });
+}
+
+async function createSubscription(userId, payload) {
+  return Subscription.create({
+    userId,
+    name: String(payload.name || 'Untitled').trim(),
+    amount: Number(payload.amount) || 0,
+    billingCycle: payload.billingCycle || 'monthly',
+    icon: payload.icon || 'card_giftcard_rounded',
+    color: payload.color || '#6366F1',
+    nextBillingDate: payload.nextBillingDate ? new Date(payload.nextBillingDate) : null,
+  });
+}
+
+async function updateSubscription(userId, subId, payload) {
+  const sub = await Subscription.findOne({ _id: subId, userId });
+  if (!sub) throw createHttpError(404, 'Subscription not found');
+
+  if (payload.name !== undefined) sub.name = String(payload.name).trim();
+  if (payload.amount !== undefined) sub.amount = Number(payload.amount);
+  if (payload.billingCycle !== undefined) sub.billingCycle = payload.billingCycle;
+  if (payload.icon !== undefined) sub.icon = payload.icon;
+  if (payload.color !== undefined) sub.color = payload.color;
+  if (payload.status !== undefined) sub.status = payload.status;
+  if (payload.nextBillingDate !== undefined) sub.nextBillingDate = payload.nextBillingDate ? new Date(payload.nextBillingDate) : null;
+
+  await sub.save();
+  return sub;
+}
+
+async function deleteSubscription(userId, subId) {
+  const sub = await Subscription.findOneAndDelete({ _id: subId, userId });
+  if (!sub) throw createHttpError(404, 'Subscription not found');
+}
+
 module.exports = {
   listFinance,
   createFinance,
@@ -272,4 +350,12 @@ module.exports = {
   exportFinanceCsv,
   getBudget,
   setBudget,
+  listSavingsGoals,
+  createSavingsGoal,
+  updateSavingsGoal,
+  deleteSavingsGoal,
+  listSubscriptions,
+  createSubscription,
+  updateSubscription,
+  deleteSubscription,
 };

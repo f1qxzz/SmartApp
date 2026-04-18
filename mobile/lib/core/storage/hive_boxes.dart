@@ -10,5 +10,10 @@ class HiveBoxes {
   static const String prefDailyReminder = 'pref_daily_reminder';
   static const String prefChatNotifications = 'pref_chat_notifications';
   static const String prefLowDataMode = 'pref_low_data_mode';
+  static const String prefSocialGithub = 'pref_social_github';
+  static const String prefSocialInstagram = 'pref_social_instagram';
+  static const String prefSocialDiscord = 'pref_social_discord';
+  static const String prefSocialTelegram = 'pref_social_telegram';
+  static const String prefSocialSpotify = 'pref_social_spotify';
   static const lastTab = 'last_tab';
 }

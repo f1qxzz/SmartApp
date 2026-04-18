@@ -1,235 +1,166 @@
-# 📱 SmartLife App — Flutter UI Premium
+# <p align="center">✨ SmartLife — The Ultimate SuperApp ✨</p>
 
-> Aplikasi mobile premium: Finance Tracker + Real-time Chat + AI Assistant
-> **Stack: Flutter + Riverpod | UI-only (no backend)**
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" />
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" />
+</p>
 
----
-
-## 🎨 Design System
-
-| Token | Value |
-|-------|-------|
-| Primary | `#5B67F1` |
-| Secondary | `#00C9A7` |
-| Accent | `#FFB800` |
-| Background Light | `#F8F9FD` |
-| Background Dark | `#0F1222` |
-| Card Dark | `#1A1D2E` |
-| Font | Poppins + Inter |
-| Border Radius | 16–24px |
+<p align="center">
+  <b>SmartLife</b> adalah aplikasi superapp modern yang menggabungkan manajemen keuangan cerdas, komunikasi real-time, dan asisten AI dalam satu antarmuka premium yang memukau.
+  <br />
+  <i><b>SmartLife</b> is a modern superapp that combines smart finance management, real-time communication, and AI assistance in one stunning premium interface.</i>
+</p>
 
 ---
 
-## 📂 Struktur Proyek
+## 🚀 Fitur Utama | Key Features
 
-```
-lib/
-├── core/
-│   ├── constants/
-│   │   └── app_constants.dart      # Mock data, categories
-│   └── theme/
-│       └── app_theme.dart          # Design system lengkap
-│
-├── presentation/
-│   ├── screens/
-│   │   ├── auth/
-│   │   │   └── auth_screen.dart    # Login & Register
-│   │   ├── chat/
-│   │   │   ├── chat_list_screen.dart
-│   │   │   └── chat_detail_screen.dart
-│   │   ├── finance/
-│   │   │   └── finance_screen.dart
-│   │   ├── dashboard/
-│   │   │   └── dashboard_screen.dart
-│   │   ├── ai/
-│   │   │   └── ai_screen.dart
-│   │   └── main_screen.dart        # Bottom navigation
-│   │
-│   └── widgets/
-│       └── reusable_widgets.dart   # Semua reusable widgets
-│
-└── main.dart
-```
+| 💰 Finance Tracker | 💬 Real-time Chat | 🤖 AI Assistant | 🏠 Smart Home |
+| :--- | :--- | :--- | :--- |
+| Kelola pengeluaran & tabungan dengan grafik interaktif. | Ngobrol instan dengan dukungan multimedia & status online. | Analisa keuangan & saran cerdas berbasis AI. | Kontrol perangkat rumah pintar langsung dari ponsel. |
+| *Manage expenses & savings with interactive charts.* | *Instant chat with multimedia support & online status.* | *AI-powered financial analysis & smart suggestions.* | *Control smart home devices directly from your phone.* |
 
 ---
 
-## 🚀 Cara Install & Run
+## 💎 Key Highlights
 
-### 1. Prasyarat
+> [!IMPORTANT]
+> **SmartLife** bukan sekadar template UI. Ini adalah fondasi aplikasi *production-ready* yang mengutamakan performa dan keamanan.
 
-```bash
-# Install Flutter (https://flutter.dev/docs/get-started/install)
-flutter --version  # minimal 3.10+
-
-# Verify
-flutter doctor
-```
-
-### 2. Clone & Setup
-
-```bash
-# Clone atau extract project
-cd smartlife_app
-
-# Install dependencies
-flutter pub get
-```
-
-### 3. Run App
-
-```bash
-# Android emulator / physical device
-flutter run
-
-# Web (preview)
-flutter run -d chrome
-```
-
-### 4. Build Release
-
-```bash
-# Android APK
-flutter build apk --release
-
-# Android App Bundle
-flutter build appbundle --release
-```
+- 🛠️ **Clean Architecture**: Pemisahan layer Domain, Data, dan Presentation yang ketat untuk skalabilitas maksimal.
+- ⚡ **Riverpod Driven**: State management reaktif yang memudahkan pengujian dan pemeliharaan kode.
+- 🔒 **Secure Offline Storage**: Menggunakan Hive yang dienkripsi untuk menyimpan data sensitif secara lokal.
+- 🎨 **Pixel Perfect Design**: Implementasi sistem desain yang konsisten hingga ke detail terkecil.
 
 ---
 
-## 📦 Dependencies
+## 🛡️ Performa & Keamanan | Performance & Security
 
-```yaml
-# State Management
-flutter_riverpod: ^2.4.9
-
-# UI & Animation
-google_fonts: ^6.1.0
-flutter_animate: ^4.3.0
-shimmer: ^3.0.0
-
-# Charts
-fl_chart: ^0.66.1
-
-# Navigation
-go_router: ^12.1.3
-
-# Utils
-intl: ^0.19.0
-uuid: ^4.3.3
-```
+| Feature | Description | Status |
+| :--- | :--- | :---: |
+| **JWT Authentication** | Autentikasi aman menggunakan JSON Web Tokens. | ✅ |
+| **Data Encryption** | Enkripsi data sensitif pada penyimpanan lokal Hive. | ✅ |
+| **Optimized Rendering** | Penggunaan `const` constructor dan pemisahan widget secara modular. | ✅ |
+| **Input Sanitization** | Validasi dan pembersihan input pada sisi klien dan server. | ✅ |
+| **Real-time Sync** | Sinkronisasi data instan melalui WebSockets (Socket.io). | ✅ |
 
 ---
 
-## 🖥️ Screens
+## 🗺️ Roadmap Pengembangan | Roadmap
 
-### 1. Auth Screen
-- Gradient background (biru-ungu)
-- Animated logo entrance
-- Tab toggle Login/Register
-- Input email, password, nama
-- Social login (Google)
-- Form validation
-
-### 2. Chat Screen (WhatsApp Style)
-- Story/avatar horizontal scroll
-- Chat list dengan unread badge
-- Online indicator (hijau dot)
-- Chat detail dengan bubble gradient
-- Typing indicator animasi (3 dots bounce)
-- Send/receive animation
-
-### 3. Finance Screen (Fintech)
-- Balance card besar dengan gradient
-- Progress bar budget
-- Quick action buttons
-- Filter chip kategori
-- Transaction list dengan swipe-to-delete
-- Pull-to-refresh
-
-### 4. Dashboard Screen
-- Summary cards (2 kolom)
-- Pie chart kategori interaktif
-- Line chart tren mingguan
-- Top 3 kategori paling boros
-- Progress bar per kategori
-
-### 5. AI Screen (ChatGPT Style)
-- Welcome view dengan suggestion prompts
-- Chat bubbles AI vs user
-- Loading indicator (typing)
-- Konteks jawaban berdasarkan data finance
+- [x] **v1.0**: Core features (Finance, Chat, Basic AI).
+- [ ] **v1.1**: Integrasi Smart Home yang lebih mendalam dengan MQTT.
+- [ ] **v1.2**: Dukungan Multi-bahasa (i18n) dinamis.
+- [ ] **v1.3**: AI Voice Command (Perintah suara berbasis AI).
+- [ ] **v1.4**: Widget Home Screen untuk Android & iOS.
 
 ---
 
-## 🧩 Reusable Widgets
+## 🤝 Kontribusi | Contribution
 
-| Widget | Fungsi |
-|--------|--------|
-| `CustomButton` | Tombol gradient dengan press animation |
-| `InputField` | Input dengan focus shadow |
-| `ChatBubble` | Bubble chat kiri/kanan dengan timestamp |
-| `FinanceCard` | Card transaksi + swipe delete |
-| `BalanceCard` | Card balance dengan progress budget |
-| `LoadingSkeleton` | Shimmer loading placeholder |
-| `TypingIndicator` | Animated 3-dots typing |
-| `GlassCard` | Glassmorphism card container |
+Kontribusi selalu terbuka! Jika Anda memiliki ide atau menemukan bug, silakan buat *Pull Request* atau buka *Issue*.
+*Contributions are always welcome! Feel free to open a Pull Request or create an Issue.*
+
+1. Fork Repo ini.
+2. Buat branch baru: `git checkout -b fitur-keren`.
+3. Commit perubahan Anda: `git commit -m 'Menambah fitur keren'`.
+4. Push ke branch: `git push origin fitur-keren`.
+5. Buat Pull Request.
 
 ---
 
-## 🌙 Dark Mode
+## 🎨 Tampilan Premium | Premium UI/UX
 
-Toggle dark/light mode menggunakan ikon moon/sun di pojok kanan Bottom Navigation. Theme tersimpan in-memory (untuk persistensi tambah SharedPreferences).
+Aplikasi ini dirancang dengan standar desain tinggi menggunakan:
+- **Glassmorphism**: Efek kaca transparan yang elegan.
+- **Fluid Animations**: Transisi layar yang mulus dengan `flutter_animate`.
+- **Dynamic Backgrounds**: *Mesh gradient* yang bergerak memberikan kesan luas dan premium.
+- **Dark Mode Support**: Tema gelap yang dioptimalkan untuk kenyamanan mata.
 
 ---
 
-## 📋 Roadmap Integration (Backend)
+## 🛠️ Stack Teknologi | Tech Stack
 
-Untuk connect ke backend Node.js:
+### Frontend (Mobile)
+- **Framework**: Flutter 3.x
+- **State Management**: Riverpod (Functional & Reactive)
+- **Database Lokal**: Hive (NoSQL, Lightning Fast)
+- **Animasi**: Flutter Animate & Lottie
+- **Navigasi**: GoRouter
 
-1. Ganti mock data di `app_constants.dart` dengan Dio HTTP calls
-2. Tambahkan `data/` layer: models, datasources, repositories
-3. Tambahkan socket.io-client untuk real-time chat
-4. Simpan JWT di Hive (local storage)
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB (Mongoose)
+- **Real-time**: Socket.io
+- **AI Engine**: OpenAI API & Google Gemini API
+- **Cloud Media**: Cloudinary
 
-```dart
-// Contoh Dio setup (tambahkan ke core/utils/dio_client.dart)
-final dio = Dio(BaseOptions(
-  baseUrl: 'http://localhost:5000/api',
-  headers: {'Authorization': 'Bearer $token'},
-));
+---
+
+## 📂 Struktur Proyek | Project Structure
+
+```text
+smartlife_app/
+├── mobile/                 # Flutter Application
+│   ├── lib/
+│   │   ├── core/           # Theme, Config, Utils
+│   │   ├── domain/         # Entities & Logic
+│   │   ├── presentation/   # Screens, Widgets, Providers
+│   │   └── routes/         # App Routing
+│   └── assets/             # Images & Fonts
+└── backend/                # Node.js Server
+    ├── src/
+    │   ├── modules/        # Chat, Auth, Finance logic
+    │   └── config/         # DB & API Config
+    └── server.js           # Entry point
 ```
 
 ---
 
-## 🎯 Tips Customization
+## 🏁 Memulai | Getting Started
 
-- **Ganti warna**: Edit `AppColors` di `app_theme.dart`
-- **Ganti font**: Edit `GoogleFonts.poppins()` → font lain
-- **Tambah screen**: Buat di `screens/`, daftarkan di `main_screen.dart`
-- **Tambah kategori**: Edit `financeCategories` di `app_constants.dart`
+### 📱 Frontend (Mobile)
+1. Pergi ke direktori mobile: `cd mobile`
+2. Install dependencies: `flutter pub get`
+3. Buat file `.env` (copy dari `.env.example`) dan isi API-nya.
+4. Jalankan aplikasi:
+   ```bash
+   flutter run
+   ```
+
+### 💻 Backend
+1. Pergi ke direktori backend: `cd backend`
+2. Install dependencies: `npm install`
+3. Konfigurasi `.env` dengan kredensial MongoDB & API Keys.
+4. Jalankan server:
+   ```bash
+   npm run dev
+   ```
 
 ---
 
-*Made with ❤️ using Flutter + Clean Architecture*
+## 📸 Screenshots
+<p align="center">
+  <img src="assets/images/app_logo_transparent.png" width="200" alt="Logo" />
+</p>
+
+> [!TIP]
+> **Pro Tip:** Gunakan perintah `flutter build apk --release` untuk mendapatkan performa animasi yang paling maksimal di perangkat fisik.
 
 ---
 
-## OpenAI API Setup (Real AI Response)
+## 📄 Lisensi | License
+Didistribusikan di bawah Lisensi MIT. Lihat `LICENSE` untuk informasi lebih lanjut.
 
-AI screen sekarang bisa jalan ke OpenAI API lewat `Responses API`.
-Supaya aman, API key **tidak disimpan di source code**.
+---
 
-Jalankan app dengan:
-
-```bash
-flutter run --dart-define=OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-```
-
-Opsional model:
-
-```bash
-flutter run --dart-define=OPENAI_API_KEY=YOUR_OPENAI_API_KEY --dart-define=OPENAI_MODEL=gpt-4o-mini
-```
-
-Jika `OPENAI_API_KEY` tidak diisi, app otomatis fallback ke mode AI lokal.
+<p align="center">
+  <img src="https://img.shields.io/github/stars/f1qxzz/SmartLife?style=social" />
+  <img src="https://img.shields.io/github/forks/f1qxzz/SmartLife?style=social" />
+  <br />
+  Made with ❤️ by @f1qxzz
+</p>

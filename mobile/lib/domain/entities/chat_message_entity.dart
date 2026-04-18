@@ -4,6 +4,7 @@ class ChatMessageEntity {
   final String senderId;
   final String senderUsername;
   final String senderAvatar;
+  final String senderRole;
   final String text;
   final String type;
   final String attachmentUrl;
@@ -18,6 +19,7 @@ class ChatMessageEntity {
     required this.senderId,
     required this.senderUsername,
     required this.senderAvatar,
+    this.senderRole = 'user',
     required this.text,
     this.type = 'text',
     this.attachmentUrl = '',
@@ -60,6 +62,7 @@ class ChatMessageEntity {
       senderId: (sender['_id'] ?? sender['id'] ?? '').toString(),
       senderUsername: (sender['username'] ?? sender['name'] ?? '').toString(),
       senderAvatar: (sender['avatar'] ?? '').toString(),
+      senderRole: (sender['role'] ?? 'user').toString(),
       text: (json['text'] ?? '').toString(),
       type: (json['messageType'] ?? json['type'] ?? 'text').toString(),
       attachmentUrl: (json['attachmentUrl'] ?? '').toString(),
@@ -76,6 +79,7 @@ class ChatMessageEntity {
     String? senderId,
     String? senderUsername,
     String? senderAvatar,
+    String? senderRole,
     String? text,
     String? type,
     String? attachmentUrl,
@@ -90,6 +94,7 @@ class ChatMessageEntity {
       senderId: senderId ?? this.senderId,
       senderUsername: senderUsername ?? this.senderUsername,
       senderAvatar: senderAvatar ?? this.senderAvatar,
+      senderRole: senderRole ?? this.senderRole,
       text: text ?? this.text,
       type: type ?? this.type,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
