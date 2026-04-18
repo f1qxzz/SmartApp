@@ -145,7 +145,7 @@ smartlife_app/
 
 ## 📸 Screenshots
 <p align="center">
-  <img src="assets/images/app_logo_transparent.png" width="200" alt="Logo" />
+  <img src="assets/images/app_logo.png" width="200" alt="Logo" />
 </p>
 
 > [!TIP]

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="mobile/assets/images/app_logo_transparent.png" width="220" alt="SmartLife Logo">
+  <img src="mobile/assets/images/app_logo.png" width="220" alt="SmartLife Logo">
 </p>
 
 <h1 align="center">✨ SmartLife ✨</h1>
