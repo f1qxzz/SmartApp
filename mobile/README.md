@@ -9,9 +9,7 @@
 </p>
 
 <p align="center">
-  <b>SmartLife</b> adalah aplikasi superapp modern yang menggabungkan manajemen keuangan cerdas, komunikasi real-time, dan asisten AI dalam satu antarmuka premium yang memukau.
-  <br />
-  <i><b>SmartLife</b> is a modern superapp that combines smart finance management, real-time communication, and AI assistance in one stunning premium interface.</i>
+  <b>SmartLife</b> adalah superapp modern yang menggabungkan smart finance management, real-time communication, dan AI assistance dalam satu premium interface yang memukau.
 </p>
 
 <p align="center">
@@ -26,15 +24,14 @@
 
 | 💰 Finance Tracker | 💬 Real-time Chat | 🤖 AI Assistant | 🏠 Smart Home |
 | :--- | :--- | :--- | :--- |
-| Kelola pengeluaran & tabungan dengan grafik interaktif. | Ngobrol instan dengan dukungan multimedia & status online. | Analisa keuangan & saran cerdas berbasis AI. | Kontrol perangkat rumah pintar langsung dari ponsel. |
-| *Manage expenses & savings with interactive charts.* | *Instant chat with multimedia support & online status.* | *AI-powered financial analysis & smart suggestions.* | *Control smart home devices directly from your phone.* |
+| Manage expenses & budget bulanan dengan praktis menggunakan grafik interaktif. | Ngobrol instan dengan dukungan multimedia, status online, dan typing indicator. | Dapatkan AI-powered financial insights & saran cerdas berbasis data kamu. | Kontrol perangkat rumah pintar langsung dari ponsel dalam satu dashboard. |
 
 ---
 
 ## 💎 Key Highlights
 
 > [!IMPORTANT]
-> **SmartLife** bukan sekadar template UI. Ini adalah fondasi aplikasi *production-ready* yang mengutamakan performa dan keamanan.
+> **SmartLife** bukan sekadar template UI biasa. Ini adalah fondasi aplikasi production-ready yang mengutamakan performa tinggi dan keamanan data.
 
 - 🛠️ **Clean Architecture**: Pemisahan layer Domain, Data, dan Presentation yang ketat untuk skalabilitas maksimal.
 - ⚡ **Riverpod Driven**: State management reaktif yang memudahkan pengujian dan pemeliharaan kode.
@@ -49,8 +46,8 @@
 | :--- | :--- | :---: |
 | **JWT Authentication** | Autentikasi aman menggunakan JSON Web Tokens. | ✅ |
 | **Data Encryption** | Enkripsi data sensitif pada penyimpanan lokal Hive. | ✅ |
-| **Optimized Rendering** | Penggunaan `const` constructor dan pemisahan widget secara modular. | ✅ |
-| **Input Sanitization** | Validasi dan pembersihan input pada sisi klien dan server. | ✅ |
+| **Optimized Rendering** | Penggunaan const constructor dan pemisahan widget secara modular. | ✅ |
+| **Input Sanitization** | Validasi dan pembersihan input pada sisi klien maupun server. | ✅ |
 | **Real-time Sync** | Sinkronisasi data instan melalui WebSockets (Socket.io). | ✅ |
 
 ---
@@ -67,12 +64,11 @@
 
 ## 🤝 Kontribusi | Contribution
 
-Kontribusi selalu terbuka! Jika Anda memiliki ide atau menemukan bug, silakan buat *Pull Request* atau buka *Issue*.
-*Contributions are always welcome! Feel free to open a Pull Request or create an Issue.*
+Kontribusi selalu terbuka! Jika kamu punya ide keren atau menemukan bug, silakan buat Pull Request atau buka Issue.
 
-1. Fork Repo ini.
+1. Fork repo ini.
 2. Buat branch baru: `git checkout -b fitur-keren`.
-3. Commit perubahan Anda: `git commit -m 'Menambah fitur keren'`.
+3. Commit perubahan kamu: `git commit -m 'Menambah fitur baru'`.
 4. Push ke branch: `git push origin fitur-keren`.
 5. Buat Pull Request.
 
@@ -80,10 +76,10 @@ Kontribusi selalu terbuka! Jika Anda memiliki ide atau menemukan bug, silakan bu
 
 ## 🎨 Tampilan Premium | Premium UI/UX
 
-Aplikasi ini dirancang dengan standar desain tinggi menggunakan:
-- **Glassmorphism**: Efek kaca transparan yang elegan.
-- **Fluid Animations**: Transisi layar yang mulus dengan `flutter_animate`.
-- **Dynamic Backgrounds**: *Mesh gradient* yang bergerak memberikan kesan luas dan premium.
+Aplikasi ini didesain dengan standar visual tinggi menggunakan:
+- **Glassmorphism**: Efek kaca transparan yang elegan bagi user.
+- **Fluid Animations**: Transisi layar yang smooth berkat flutter_animate.
+- **Dynamic Backgrounds**: Mesh gradient yang bergerak memberikan kesan premium vibe.
 - **Dark Mode Support**: Tema gelap yang dioptimalkan untuk kenyamanan mata.
 
 ---
@@ -91,18 +87,17 @@ Aplikasi ini dirancang dengan standar desain tinggi menggunakan:
 ## 🛠️ Stack Teknologi | Tech Stack
 
 ### Frontend (Mobile)
-- **Framework**: Flutter 3.x
+- **Framework**: Flutter 3.x & Dart SDK
 - **State Management**: Riverpod (Functional & Reactive)
-- **Database Lokal**: Hive (NoSQL, Lightning Fast)
-- **Animasi**: Flutter Animate & Lottie
-- **Navigasi**: GoRouter
+- **Local Database**: Hive (Lightning Fast)
+- **Networking**: Client Socket.IO & Dio
+- **Animations**: Flutter Animate & Lottie
 
 ### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB (Mongoose)
-- **Real-time**: Socket.io
-- **AI Engine**: OpenAI API & Google Gemini API
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB dengan Mongoose
+- **Real-time**: Socket.io Server
+- **AI Engine**: OpenAI & Google Gemini API
 - **Cloud Media**: Cloudinary
 
 ---
@@ -119,10 +114,6 @@ smartlife_app/
 │   │   └── routes/         # App Routing
 │   └── assets/             # Images & Fonts
 └── backend/                # Node.js Server
-    ├── src/
-    │   ├── modules/        # Chat, Auth, Finance logic
-    │   └── config/         # DB & API Config
-    └── server.js           # Entry point
 ```
 
 ---
@@ -141,7 +132,7 @@ smartlife_app/
 ### 💻 Backend
 1. Pergi ke direktori backend: `cd backend`
 2. Install dependencies: `npm install`
-3. Konfigurasi `.env` dengan kredensial MongoDB & API Keys.
+3. Konfigurasi `.env` dengan kredensial MongoDB & AI Keys.
 4. Jalankan server:
    ```bash
    npm run dev
@@ -151,7 +142,7 @@ smartlife_app/
 
 ## 📸 Screenshots
 <p align="center">
-  <img src="assets/images/app_logo.png" width="200" alt="Logo" />
+  <img src="assets/images/app_logo.png" width="220" alt="Logo" />
 </p>
 
 > [!TIP]
@@ -160,7 +151,7 @@ smartlife_app/
 ---
 
 ## 📄 Lisensi | License
-Didistribusikan di bawah Lisensi MIT. Lihat `LICENSE` untuk informasi lebih lanjut.
+Didistribusikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk informasi lebih lanjut.
 
 ---
 
@@ -168,5 +159,5 @@ Didistribusikan di bawah Lisensi MIT. Lihat `LICENSE` untuk informasi lebih lanj
   <img src="https://img.shields.io/github/stars/f1qxzz/SmartLife?style=social" />
   <img src="https://img.shields.io/github/forks/f1qxzz/SmartLife?style=social" />
   <br />
-  Made with ❤️ by @f1qxzz
+  Made with ❤️ by [@f1qxzz](https://github.com/f1qxzz)
 </p>
