@@ -378,7 +378,11 @@ class ChatBubble extends StatelessWidget {
                     children: <Widget>[
                       if (!isMe && (senderRole == 'owner' || senderRole == 'staff' || senderRole == 'developer' || senderRole == 'admin'))
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 5, left: 1),
+                          padding: EdgeInsets.only(
+                            top: isImageMessage ? 10 : 0,
+                            left: isImageMessage ? 12 : 1,
+                            bottom: 6,
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
