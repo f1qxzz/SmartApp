@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/readme/banner.png" width="100%" alt="SmartLife AI Banner" />
+  <img src="assets/readme/logo.png" width="200" alt="SmartLife AI Logo" />
 </p>
 
 <h1 align="center">✨ SmartLife AI ✨</h1>
