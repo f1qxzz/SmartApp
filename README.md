@@ -5,7 +5,7 @@
 # 📱 SmartLife AI - V.1 Premium Release
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.0.0-4F46E5?style=for-the-badge&logo=rocket" alt="Release">
+  <img src="https://img.shields.io/badge/Release-v1.1.0-4F46E5?style=for-the-badge&logo=rocket" alt="Release">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
   <img src="https://img.shields.io/badge/Modern-UI%2FUX-Slate?style=for-the-badge&logo=design" alt="Modern UI">
 </p>
@@ -19,7 +19,7 @@
 ### 📥 Download Terbaru
 > [!IMPORTANT]
 > Dapatkan rilis stabil terbaru yang sudah dioptimasi melalui link di bawah ini.
-> [**Download SmartLife Stable (APK)**](https://github.com/f1qxzz/SmartApp/raw/main/SmartLife_Stable.apk)
+> [**Download SmartLife v1.1.0 (APK)**](https://github.com/f1qxzz/SmartApp/releases/download/v1.1.0/SmartLife_Stable.apk)
 
 ### 📦 Project Releases
 Pantau perkembangan versi dan catatan rilis (changelog) melalui halaman rilis resmi kami:
