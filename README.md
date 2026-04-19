@@ -16,10 +16,14 @@
 
 **SmartLife** adalah ekosistem mobile modern yang menggabungkan *Personal Finance*, *Real-time Communication*, dan *Generative AI* ke dalam satu antarmuka yang elegan dan profesional. Dirancang dengan filosofi **Slate & Indigo**, memberikan pengalaman visual premium yang menenangkan namun powerful.
 
-### 📥 Download Sekarang
+### 📥 Download Terbaru
 > [!IMPORTANT]
-> Dapatkan rilis stabil pertama kami melalui link di bawah ini.
-> [**Download SmartLife V.1 (APK)**](https://github.com/f1qxzz/SmartApp/releases/download/v1.0.0/app-release.apk)
+> Dapatkan rilis stabil terbaru yang sudah dioptimasi melalui link di bawah ini.
+> [**Download SmartLife Stable (APK)**](https://github.com/f1qxzz/SmartApp/raw/main/SmartLife_Stable.apk)
+
+### 📦 Project Releases
+Pantau perkembangan versi dan catatan rilis (changelog) melalui halaman rilis resmi kami:
+[**Lihat Semua Rilis**](https://github.com/f1qxzz/SmartApp/releases)
 
 ---
 
