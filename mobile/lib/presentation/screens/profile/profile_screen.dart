@@ -40,8 +40,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _usernameCtrl = TextEditingController();
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
-  final TextEditingController _budgetCtrl = TextEditingController();
   final TextEditingController _dobCtrl = TextEditingController();
+  final TextEditingController _bioCtrl = TextEditingController();
   DateTime? _selectedDOB;
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -61,6 +61,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _socialDiscord = '';
   String _socialTelegram = '';
   String _socialSpotify = '';
+  String _socialTikTok = '';
 
   @override
   void initState() {
@@ -158,6 +159,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _socialDiscord = user.socialDiscord;
       _socialTelegram = user.socialTelegram;
       _socialSpotify = user.socialSpotify;
+      _socialTikTok = user.socialTikTok;
     }
     if (mounted) setState(() {});
   }
@@ -168,6 +170,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String discord,
     required String telegram,
     required String spotify,
+    required String tiktok,
   }) async {
     final user = ref.read(authProvider).user;
     if (user == null) return;
@@ -177,6 +180,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _socialDiscord = discord;
     _socialTelegram = telegram;
     _socialSpotify = spotify;
+    _socialTikTok = tiktok;
 
     await ref.read(authProvider.notifier).updateProfile(
           username: _usernameCtrl.text.trim().isNotEmpty
@@ -190,15 +194,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : user.name,
           gender: _selectedGender.isNotEmpty ? _selectedGender : user.gender,
           avatar: user.avatar,
-          monthlyBudget: double.tryParse(
-                  _budgetCtrl.text.trim().replaceAll(RegExp(r'[^0-9]'), '')) ??
-              user.monthlyBudget,
-          dateOfBirth: user.dateOfBirth,
+          dateOfBirth: _normalizeDateForApi(user.dateOfBirth),
           socialGithub: github,
           socialInstagram: instagram,
           socialDiscord: discord,
           socialTelegram: telegram,
           socialSpotify: spotify,
+          socialTikTok: tiktok,
         );
 
     if (mounted) setState(() {});
@@ -210,8 +212,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _usernameCtrl.dispose();
     _nameCtrl.dispose();
     _emailCtrl.dispose();
-    _budgetCtrl.dispose();
     _dobCtrl.dispose();
+    _bioCtrl.dispose();
     super.dispose();
   }
 
@@ -230,11 +232,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final mediaQuery = MediaQuery.of(context);
     final avatarProvider = _resolveAvatar(user);
     final genderValue = _toGenderValue(user.gender);
+    final dobSummaryLabel = _formatDateOfBirth(user.dateOfBirth);
 
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          _ProfileBackground(isDark: isDark),
+          FluidBackground(isDark: isDark),
           RefreshIndicator(
             onRefresh: _refreshProfile,
             color: AppColors.primary,
@@ -243,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: mediaQuery.padding.top + 14,
+                top: mediaQuery.padding.top + 10,
                 bottom: mediaQuery.padding.bottom + 100,
               ),
               children: <Widget>[
@@ -268,6 +271,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   socialDiscord: _socialDiscord,
                   socialTelegram: _socialTelegram,
                   socialSpotify: _socialSpotify,
+                  socialTikTok: _socialTikTok,
                   onEditSocialLinks: () =>
                       _showEditSocialLinksBottomSheet(context),
                   onQuickUpdateName: (newName) {
@@ -277,8 +281,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           name: newName,
                           gender: user.gender,
                           avatar: user.avatar,
-                          monthlyBudget: user.monthlyBudget,
-                          dateOfBirth: user.dateOfBirth,
+                          dateOfBirth: _normalizeDateForApi(user.dateOfBirth),
                         );
                   },
                 ),
@@ -288,7 +291,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   usernameCtrl: _usernameCtrl,
                   nameCtrl: _nameCtrl,
                   emailCtrl: _emailCtrl,
-                  budgetCtrl: _budgetCtrl,
+                  bioCtrl: _bioCtrl,
                   selectedGender: _selectedGender,
                   onSelectGender: (value) =>
                       setState(() => _selectedGender = value),
@@ -304,9 +307,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   user: user,
                   genderLabel: _genderLabel(_toGenderValue(user.gender)),
                   genderIcon: _genderIcon(_toGenderValue(user.gender)),
-                  dobLabel: user.dateOfBirth != null
-                      ? '${user.dateOfBirth!.day}/${user.dateOfBirth!.month}/${user.dateOfBirth!.year}'
-                      : 'Belum diisi',
+                  dobLabel:
+                      dobSummaryLabel.isEmpty ? 'Belum diisi' : dobSummaryLabel,
                   isDark: isDark,
                   onCopyUsername: () => _copyToClipboard(
                     label: 'Username',
@@ -325,6 +327,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   discord: _socialDiscord,
                   telegram: _socialTelegram,
                   spotify: _socialSpotify,
+                  tiktok: _socialTikTok,
                   onEdit: () => _showEditSocialLinksBottomSheet(context),
                 ),
                 const SizedBox(height: 14),
@@ -385,12 +388,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _usernameCtrl.text = user.username;
     _nameCtrl.text = user.name;
     _emailCtrl.text = user.email;
-    _budgetCtrl.text = AppFormatters.currencyNoSymbol(user.monthlyBudget);
+    _bioCtrl.text = user.bio;
     _selectedGender = _toGenderValue(user.gender);
     _selectedDOB = user.dateOfBirth;
     if (_selectedDOB != null) {
-      _dobCtrl.text =
-          '${_selectedDOB!.day}/${_selectedDOB!.month}/${_selectedDOB!.year}';
+      _dobCtrl.text = _formatDateOfBirth(_selectedDOB);
     } else {
       _dobCtrl.text = '';
     }
@@ -402,7 +404,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _userSignature(UserEntity user) {
-    return '${user.id}|${user.username}|${user.email}|${user.name}|${user.gender}|${user.avatar}|${user.monthlyBudget}|${user.dateOfBirth?.millisecondsSinceEpoch}';
+    return '${user.id}|${user.username}|${user.email}|${user.name}|${user.gender}|${user.avatar}|${user.dateOfBirth?.millisecondsSinceEpoch}|${user.bio}';
   }
 
   Future<void> _selectDOB() async {
@@ -429,7 +431,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (picked != null && picked != _selectedDOB) {
       setState(() {
         _selectedDOB = picked;
-        _dobCtrl.text = '${picked.day}/${picked.month}/${picked.year}';
+        _dobCtrl.text = _formatDateOfBirth(picked);
       });
     }
   }
@@ -476,6 +478,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   String _formatLastSynced(DateTime date) {
     return AppFormatters.relativeDate(date);
+  }
+
+  String _formatDateOfBirth(DateTime? dateOfBirth) {
+    if (dateOfBirth == null) {
+      return '';
+    }
+    return AppFormatters.dateShort(
+      DateTime(dateOfBirth.year, dateOfBirth.month, dateOfBirth.day),
+    );
+  }
+
+  DateTime? _normalizeDateForApi(DateTime? dateOfBirth) {
+    if (dateOfBirth == null) {
+      return null;
+    }
+    // Keep date stable across timezone conversions by using UTC midday.
+    return DateTime.utc(
+      dateOfBirth.year,
+      dateOfBirth.month,
+      dateOfBirth.day,
+      12,
+    );
   }
 
   ImageProvider<Object>? _resolveAvatar(UserEntity user) {
@@ -527,9 +551,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             email: _emailCtrl.text.trim(),
             gender: _selectedGender,
             avatar: currentAvatar,
-            monthlyBudget:
-                double.tryParse(_budgetCtrl.text.replaceAll('.', '')) ?? 0,
-            dateOfBirth: _selectedDOB,
+            dateOfBirth: _normalizeDateForApi(_selectedDOB),
+            bio: _bioCtrl.text.trim(),
           );
       await _refreshProfile();
     } catch (_) {
@@ -695,6 +718,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final discordCtrl = TextEditingController(text: _socialDiscord);
     final telegramCtrl = TextEditingController(text: _socialTelegram);
     final spotifyCtrl = TextEditingController(text: _socialSpotify);
+    final tiktokCtrl = TextEditingController(text: _socialTikTok);
 
     showModalBottomSheet(
       context: context,
@@ -772,6 +796,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   label: 'Spotify',
                   icon: FontAwesomeIcons.spotify,
                   isDark: isDark),
+              const SizedBox(height: 12),
+              _SocialLinkField(
+                  controller: tiktokCtrl,
+                  label: 'TikTok',
+                  icon: FontAwesomeIcons.tiktok,
+                  isDark: isDark),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -784,6 +814,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       discord: discordCtrl.text.trim(),
                       telegram: telegramCtrl.text.trim(),
                       spotify: spotifyCtrl.text.trim(),
+                      tiktok: tiktokCtrl.text.trim(),
                     );
                     Navigator.pop(context);
                   },
@@ -817,65 +848,6 @@ class _InstagramStoryAspectRatioPreset implements CropAspectRatioPresetData {
   String get name => 'Instagram Story 9:16';
 }
 
-class _ProfileBackground extends StatelessWidget {
-  final bool isDark;
-
-  const _ProfileBackground({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          decoration: BoxDecoration(
-            color:
-                isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-          ),
-        ),
-        // Modern Soft Gradient Orbs
-        Positioned(
-          top: -120,
-          left: -60,
-          child: Container(
-            width: 400,
-            height: 400,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  (isDark ? const Color(0xFF6366F1) : AppColors.primary)
-                      .withValues(alpha: isDark ? 0.18 : 0.12),
-                  (isDark ? const Color(0xFF6366F1) : AppColors.primary)
-                      .withValues(alpha: 0),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 150,
-          right: -100,
-          child: Container(
-            width: 350,
-            height: 350,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  (isDark ? const Color(0xFFA855F7) : AppColors.secondary)
-                      .withValues(alpha: isDark ? 0.15 : 0.08),
-                  (isDark ? const Color(0xFFA855F7) : AppColors.secondary)
-                      .withValues(alpha: 0),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _TopBar extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final bool isDark;
@@ -887,38 +859,77 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Profile Saya',
-              style: AppTextStyles.heading2(context).copyWith(
-                fontWeight: FontWeight.w900,
-                fontSize: 26,
-                letterSpacing: -0.8,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Your Personal Hub',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Account Settings',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    letterSpacing: -1.2,
+                    color: isDark ? Colors.white : AppColors.primaryDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Rapikan identitas, bio publik, dan tautan sosial kamu dalam satu tempat.',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                    color: isDark ? Colors.white60 : AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              height: 4,
-              width: 28,
-              margin: const EdgeInsets.only(top: 4, left: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        _TopBarAction(
-          icon: Icons.refresh_rounded,
-          onPressed: onRefresh,
-          isDark: isDark,
-          tooltip: 'Sinkronkan profile',
-        ),
-      ],
+          ),
+          const SizedBox(width: 16),
+          _TopBarAction(
+            icon: Icons.refresh_rounded,
+            onPressed: onRefresh,
+            isDark: isDark,
+            tooltip: 'Sinkronkan profile',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -938,31 +949,43 @@ class _TopBarAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? <Color>[
+                  Colors.white.withValues(alpha: 0.10),
+                  Colors.white.withValues(alpha: 0.03),
+                ]
+              : <Color>[
+                  Colors.white.withValues(alpha: 0.98),
+                  const Color(0xFFF4F8FF).withValues(alpha: 0.94),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-          width: 1,
+              : Colors.white.withValues(alpha: 0.90),
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon,
-            color: isDark ? Colors.white : AppColors.textPrimary, size: 22),
+        icon: Icon(
+          icon,
+          color: isDark ? Colors.white70 : AppColors.primaryDark,
+          size: 22,
+        ),
       ),
     );
   }
@@ -983,6 +1006,7 @@ class _HeroProfileCard extends ConsumerStatefulWidget {
   final String socialDiscord;
   final String socialTelegram;
   final String socialSpotify;
+  final String socialTikTok;
   final VoidCallback onEditSocialLinks;
 
   const _HeroProfileCard({
@@ -1000,6 +1024,7 @@ class _HeroProfileCard extends ConsumerStatefulWidget {
     this.socialDiscord = '',
     this.socialTelegram = '',
     this.socialSpotify = '',
+    this.socialTikTok = '',
     required this.onEditSocialLinks,
   });
 
@@ -1113,6 +1138,7 @@ class _HeroProfileCardState extends ConsumerState<_HeroProfileCard>
               const SizedBox(height: 24),
               _ModernTextField(
                 controller: controller,
+                label: 'Display Name',
                 hint: 'Masukkan nama baru',
                 icon: Icons.edit_rounded,
                 isDark: isDark,
@@ -1153,546 +1179,715 @@ class _HeroProfileCardState extends ConsumerState<_HeroProfileCard>
     final Color roleColor = _roleColor(user.role);
     final String roleLabel = _roleLabel(user.role);
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final int connectedSocials = <String>[
+      widget.socialGithub,
+      widget.socialInstagram,
+      widget.socialDiscord,
+      widget.socialTelegram,
+      widget.socialSpotify,
+      widget.socialTikTok,
+    ].where((String value) => value.trim().isNotEmpty).length;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight.withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.24)
-                : AppColors.primary.withValues(alpha: 0.12),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+    return ModernGlassCard(
+      padding: EdgeInsets.zero,
+      isDark: isDark,
+      child: Stack(
+        children: <Widget>[
+          Positioned(
+            top: -36,
+            right: -18,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: <Color>[
+                    roleColor.withValues(alpha: 0.22),
+                    roleColor.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _OrganicBlobPainter(
-                  color1: isDark
-                      ? AppColors.primary.withValues(alpha: 0.22)
-                      : AppColors.secondaryLight,
-                  color2: isDark
-                      ? AppColors.primaryLight.withValues(alpha: 0.16)
-                      : AppColors.accentLight,
-                  color3: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : const Color(0xFFE3EBFF),
-                  isDark: isDark,
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            Colors.white.withValues(alpha: 0.03),
-                            const Color(0xFF0F172A).withValues(alpha: 0.34),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.72),
-                            AppColors.secondaryLight.withValues(alpha: 0.5),
-                          ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: -36,
-              right: -30,
-              child: IgnorePointer(
-                child: Container(
-                  width: 164,
-                  height: 164,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: isDark ? 0.14 : 0.95),
-                        Colors.white.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.none,
-                        children: <Widget>[
-                          Container(
-                            width: 84,
-                            height: 84,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: SweepGradient(
-                                colors: [
-                                  AppColors.primaryLight,
-                                  AppColors.primary,
-                                  AppColors.primaryDark,
-                                  AppColors.primaryLight,
-                                ],
-                                transform: const GradientRotation(3.14 / 4),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 78,
-                            height: 78,
-                            decoration: BoxDecoration(
-                              color:
-                                  isDark ? AppColors.surfaceDark : Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: isDark
-                                      ? const Color(0xFF1E293B)
-                                      : Colors.white,
-                                  width: 3),
-                            ),
-                            child: CircleAvatar(
-                              key: ValueKey(user.avatar.isNotEmpty
-                                  ? user.avatar
-                                  : user.id),
-                              backgroundColor: isDark
-                                  ? AppColors.surfaceDark
-                                  : AppColors.surfaceLight,
-                              backgroundImage: avatarProvider,
-                              child: avatarProvider == null
-                                  ? Text(
-                                      _avatarInitial(user.username),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.softHeaderGray,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: GestureDetector(
-                              onTap: onTapChangePhoto,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: isDark
-                                          ? const Color(0xFF1E293B)
-                                          : Colors.white,
-                                      width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.3),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ],
-                                ),
-                                child: isUploadingPhoto
-                                    ? const Padding(
-                                        padding: EdgeInsets.all(6),
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white),
-                                      )
-                                    : const Icon(Icons.camera_alt_rounded,
-                                        color: Colors.white, size: 14),
-                              ),
-                            ),
-                          ),
-                        ],
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            InkWell(
-                              onTap: () =>
-                                  _showEditNameBottomSheet(context, user.name),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      user.name,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.primaryDark,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    Icons.edit_rounded,
-                                    size: 14,
-                                    color: isDark
-                                        ? Colors.white38
-                                        : AppColors.textTertiary,
-                                  )
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '@${user.username}',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.white60
-                                    : AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: roleColor.withValues(
-                                  alpha: isDark ? 0.18 : 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: roleColor.withValues(alpha: 0.18),
-                                ),
-                              ),
-                              child: Text(
-                                roleLabel,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: roleColor,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                if (widget.socialGithub.isNotEmpty)
-                                  _SocialIcon(
-                                    icon: FontAwesomeIcons.github,
-                                    onTap: () => _launchSocial(
-                                        'GitHub', widget.socialGithub),
-                                    isDark: isDark,
-                                  ),
-                                if (widget.socialInstagram.isNotEmpty)
-                                  _SocialIcon(
-                                    icon: null,
-                                    isInstagram: true,
-                                    onTap: () => _launchSocial(
-                                        'Instagram', widget.socialInstagram),
-                                    isDark: isDark,
-                                  ),
-                                if (widget.socialDiscord.isNotEmpty)
-                                  _SocialIcon(
-                                    icon: FontAwesomeIcons.discord,
-                                    onTap: () => _launchSocial(
-                                        'Discord', widget.socialDiscord),
-                                    isDark: isDark,
-                                  ),
-                                if (widget.socialTelegram.isNotEmpty)
-                                  _SocialIcon(
-                                    icon: FontAwesomeIcons.telegram,
-                                    onTap: () => _launchSocial(
-                                        'Telegram', widget.socialTelegram),
-                                    isDark: isDark,
-                                  ),
-                                if (widget.socialSpotify.isNotEmpty)
-                                  _SocialIcon(
-                                    icon: FontAwesomeIcons.spotify,
-                                    onTap: () => _launchSocial(
-                                        'Spotify', widget.socialSpotify),
-                                    isDark: isDark,
-                                    iconColor: const Color(0xFF1DB954),
-                                  ),
-                                InkWell(
-                                  onTap: widget.onEditSocialLinks,
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.white.withValues(alpha: 0.07)
-                                          : AppColors.primary
-                                              .withValues(alpha: 0.08),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isDark
-                                            ? Colors.white
-                                                .withValues(alpha: 0.08)
-                                            : AppColors.primary
-                                                .withValues(alpha: 0.12),
-                                      ),
-                                    ),
-                                    child: Icon(Icons.add_link_rounded,
-                                        size: 14, color: AppColors.primary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.18),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Divider(
-                      color: isDark
-                          ? Colors.white12
-                          : AppColors.dividerLight.withValues(alpha: 0.9),
-                      height: 1),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '#${user.id.substring(user.id.length > 8 ? user.id.length - 8 : 0).toUpperCase()}',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              isDark ? Colors.white38 : AppColors.textTertiary,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF22C55E),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF22C55E)
-                                      .withValues(alpha: 0.4),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
+                        children: <Widget>[
+                          const Icon(
+                            Icons.public_rounded,
+                            size: 14,
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Baru saja',
+                            'Public Identity',
                             style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.white70
-                                  : AppColors.softHeaderGray,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.white.withValues(alpha: 0.76),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.white.withValues(alpha: 0.92),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(
+                            Icons.sync_rounded,
+                            size: 14,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            lastSyncedLabel,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: <Widget>[
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: SweepGradient(
+                              colors: <Color>[
+                                AppColors.primary,
+                                AppColors.secondary,
+                                AppColors.accent,
+                                AppColors.primary,
+                              ],
+                            ),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: roleColor.withValues(alpha: 0.24),
+                                blurRadius: 24,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? const Color(0xFF0F172A) : Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: CircleAvatar(
+                            key: ValueKey(
+                              user.avatar.isNotEmpty ? user.avatar : user.id,
+                            ),
+                            backgroundColor: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.05),
+                            backgroundImage: avatarProvider,
+                            child: avatarProvider == null
+                                ? Text(
+                                    _avatarInitial(user.username),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.primary,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: GestureDetector(
+                            onTap: onTapChangePhoto,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.gradientPrimary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : Colors.white,
+                                  width: 3,
+                                ),
+                                boxShadow: <BoxShadow>[
+                                  BoxShadow(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.4),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: isUploadingPhoto
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.camera_alt_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          InkWell(
+                            onTap: () =>
+                                _showEditNameBottomSheet(context, user.name),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Flexible(
+                                  child: Text(
+                                    user.name,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.primaryDark,
+                                      letterSpacing: -0.7,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.verified_rounded,
+                                  size: 18,
+                                  color: roleColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '@${user.username}',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? Colors.white38
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: <Widget>[
+                              _ProfileStatChip(
+                                icon: Icons.workspace_premium_rounded,
+                                label: roleLabel,
+                                color: roleColor,
+                                isDark: isDark,
+                              ),
+                              _ProfileStatChip(
+                                icon: genderIcon,
+                                label: genderLabel,
+                                color: AppColors.info,
+                                isDark: isDark,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (user.bio.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: <Color>[
+                          roleColor.withValues(alpha: isDark ? 0.12 : 0.10),
+                          AppColors.primary.withValues(
+                            alpha: isDark ? 0.05 : 0.04,
+                          ),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: roleColor.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'PERSONAL BIO',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color:
+                                isDark ? Colors.white54 : AppColors.primaryDark,
+                            letterSpacing: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          user.bio,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            height: 1.55,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: <Widget>[
+                    _ProfileStatChip(
+                      icon: Icons.link_rounded,
+                      label: '$connectedSocials social links',
+                      color: const Color(0xFF0EA5E9),
+                      isDark: isDark,
+                    ),
+                    _ProfileStatChip(
+                      icon: Icons.public_rounded,
+                      label: 'Bio publik aktif',
+                      color: const Color(0xFFEC4899),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Social Hub',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color:
+                                  isDark ? Colors.white : AppColors.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tautan ini juga bisa terlihat di profil publik chat.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: isDark
+                                  ? Colors.white54
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    InkWell(
+                      onTap: widget.onEditSocialLinks,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Ink(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.gradientPrimary,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.24),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.edit_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Edit',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    const double spacing = 10;
+                    final double halfWidth =
+                        (constraints.maxWidth - spacing) / 2;
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: <Widget>[
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.github,
+                            label: 'GitHub',
+                            color: const Color(0xFF24292E),
+                            value: widget.socialGithub,
+                            isDark: isDark,
+                            onTap: () =>
+                                _launchSocial('GitHub', widget.socialGithub),
+                          ),
+                        ),
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.instagram,
+                            label: 'Instagram',
+                            color: const Color(0xFFE1306C),
+                            value: widget.socialInstagram,
+                            isDark: isDark,
+                            isInstagram: true,
+                            onTap: () => _launchSocial(
+                              'Instagram',
+                              widget.socialInstagram,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.discord,
+                            label: 'Discord',
+                            color: const Color(0xFF5865F2),
+                            value: widget.socialDiscord,
+                            isDark: isDark,
+                            onTap: () =>
+                                _launchSocial('Discord', widget.socialDiscord),
+                          ),
+                        ),
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.telegram,
+                            label: 'Telegram',
+                            color: const Color(0xFF229ED9),
+                            value: widget.socialTelegram,
+                            isDark: isDark,
+                            onTap: () => _launchSocial(
+                                'Telegram', widget.socialTelegram),
+                          ),
+                        ),
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.spotify,
+                            label: 'Spotify',
+                            color: const Color(0xFF1DB954),
+                            value: widget.socialSpotify,
+                            isDark: isDark,
+                            onTap: () =>
+                                _launchSocial('Spotify', widget.socialSpotify),
+                          ),
+                        ),
+                        SizedBox(
+                          width: halfWidth,
+                          child: _SocialPill(
+                            icon: FontAwesomeIcons.tiktok,
+                            label: 'TikTok',
+                            color: const Color(0xFF111827),
+                            value: widget.socialTikTok,
+                            isDark: isDark,
+                            onTap: () =>
+                                _launchSocial('TikTok', widget.socialTikTok),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SocialIcon extends StatelessWidget {
-  final dynamic icon;
-  final VoidCallback onTap;
+class _ProfileStatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
   final bool isDark;
-  final bool isInstagram;
-  final Color? iconColor;
 
-  const _SocialIcon({
-    this.icon,
-    required this.onTap,
+  const _ProfileStatChip({
+    required this.icon,
+    required this.label,
+    required this.color,
     required this.isDark,
-    this.isInstagram = false,
-    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 220),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.primary.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.white.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.primary.withValues(alpha: 0.1),
+                : Colors.white.withValues(alpha: 0.82),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.12)
-                  : AppColors.primary.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white70 : AppColors.textPrimary,
+              ),
             ),
           ],
         ),
-        child: isInstagram
-            ? const _InstagramGradientIcon(size: 14)
-            : FaIcon(
-                icon,
-                size: 14,
-                color: iconColor ??
-                    (isDark ? Colors.white70 : AppColors.primaryDark),
-              ),
       ),
     );
   }
 }
 
-class _OrganicBlobPainter extends CustomPainter {
-  final Color color1;
-  final Color color2;
-  final Color color3;
+class _SocialPill extends StatelessWidget {
+  final dynamic icon;
+  final String label;
+  final Color color;
+  final String value;
   final bool isDark;
+  final bool isInstagram;
+  final VoidCallback onTap;
 
-  _OrganicBlobPainter({
-    required this.color1,
-    required this.color2,
-    required this.color3,
+  const _SocialPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.value,
     required this.isDark,
+    this.isInstagram = false,
+    required this.onTap,
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-
-    // Specular Highlight Paint
-    final highlightPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withValues(alpha: isDark ? 0.1 : 0.4),
-          Colors.transparent,
-        ],
-      ).createShader(Offset.zero & size);
-
-    // Grain/Noise Texture logic (randomized tiny dots)
-    // We use a fixed seed if possible for performance, or just draw a few clusters
-    final grainPaint = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03);
-
-    // Draw Blobs with Specular highlights
-    // Top Right
-    _drawBlob(canvas, size, color3, [0.7, 0.0], [0.9, 0.1], [1.0, 0.4]);
-    // Bottom Left
-    _drawBlob(canvas, size, color2, [0.0, 0.6], [0.2, 0.7], [0.4, 1.0]);
-    // Middle Right
-    _drawBlob(canvas, size, color1, [1.0, 0.5], [0.7, 0.7], [0.8, 1.0]);
-
-    // Specular Highlights (Simulate glass edge reflection)
-    final specPath = Path()
-      ..moveTo(20, 10)
-      ..quadraticBezierTo(size.width * 0.5, 5, size.width - 20, 15);
-    canvas.drawPath(specPath, highlightPaint);
-
-    // Micro-Grain Texture Overlay
-    for (int i = 0; i < 400; i++) {
-      canvas.drawCircle(
-        Offset(i.toDouble() % size.width, (i * 0.5) % size.height),
-        0.5,
-        grainPaint,
-      );
-    }
+  Widget build(BuildContext context) {
+    final bool hasValue = value.trim().isNotEmpty;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 260),
+          opacity: hasValue ? 1.0 : 0.68,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: <Color>[
+                  color.withValues(alpha: isDark ? 0.20 : 0.12),
+                  isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.white.withValues(alpha: 0.78),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: color.withValues(alpha: hasValue ? 0.24 : 0.14),
+              ),
+            ),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: isInstagram
+                        ? const _InstagramGradientIcon(size: 12)
+                        : FaIcon(
+                            icon,
+                            size: 12,
+                            color: hasValue
+                                ? color
+                                : color.withValues(alpha: 0.68),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color:
+                              isDark ? Colors.white70 : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        hasValue ? 'Connected' : 'Belum diatur',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              isDark ? Colors.white38 : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  hasValue
+                      ? Icons.open_in_new_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: hasValue ? 14 : 13,
+                  color: hasValue
+                      ? color.withValues(alpha: 0.86)
+                      : (isDark ? Colors.white30 : Colors.black26),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
-
-  void _drawBlob(Canvas canvas, Size size, Color color, List<double> start,
-      List<double> ctrl, List<double> end) {
-    final paint = Paint()
-      ..color = color
-      ..maskFilter =
-          const MaskFilter.blur(BlurStyle.normal, 20); // Bloom effect
-
-    final path = Path();
-    path.moveTo(size.width * start[0], size.height * start[1]);
-    path.quadraticBezierTo(size.width * ctrl[0], size.height * ctrl[1],
-        size.width * end[0], size.height * end[1]);
-
-    // Connect to corners if needed or just close organically
-    if (start[1] == 0) {
-      path.lineTo(size.width, 0);
-    } else if (end[1] == 1.0) {
-      path.lineTo(0, size.height);
-    }
-
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 class _EditProfileCard extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController usernameCtrl;
   final TextEditingController nameCtrl;
   final TextEditingController emailCtrl;
-  final TextEditingController budgetCtrl;
+  final TextEditingController bioCtrl;
+  final TextEditingController dobCtrl;
   final String selectedGender;
   final ValueChanged<String> onSelectGender;
-  final List<(String value, String label, IconData icon)> genderOptions;
-  final TextEditingController dobCtrl;
+  final List<(String, String, IconData)> genderOptions;
   final VoidCallback onSelectDOB;
   final bool isSaving;
   final VoidCallback? onSave;
@@ -1703,7 +1898,7 @@ class _EditProfileCard extends StatelessWidget {
     required this.usernameCtrl,
     required this.nameCtrl,
     required this.emailCtrl,
-    required this.budgetCtrl,
+    required this.bioCtrl,
     required this.selectedGender,
     required this.onSelectGender,
     required this.genderOptions,
@@ -1716,25 +1911,9 @@ class _EditProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-          width: 1,
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.03),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(24),
       child: Form(
         key: formKey,
         child: Column(
@@ -1743,101 +1922,94 @@ class _EditProfileCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.edit_note_rounded,
-                      color: AppColors.primary, size: 20),
+                      color: AppColors.primary, size: 22),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 15),
                 Text(
-                  'Edit Informasi Profil',
+                  'Account Settings',
                   style: GoogleFonts.poppins(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : const Color(0xFF1E293B),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : AppColors.primaryDark,
                     letterSpacing: -0.5,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            _ModernInputLabel(label: 'Nama Lengkap', isDark: isDark),
+            const SizedBox(height: 30),
             _ModernTextField(
               controller: nameCtrl,
-              hint: 'Masukkan nama lengkap',
-              icon: Icons.person_rounded,
+              label: 'Display Name',
+              hint: 'Tulis nama lengkap Anda',
+              icon: Icons.badge_outlined,
               isDark: isDark,
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Nama wajib diisi' : null,
             ),
-            const SizedBox(height: 18),
-            _ModernInputLabel(label: 'Username', isDark: isDark),
+            const SizedBox(height: 20),
+            _ModernTextField(
+              controller: bioCtrl,
+              label: 'Personal Bio',
+              hint: 'Ceritakan sedikit tentang Anda...',
+              icon: Icons.auto_awesome_rounded,
+              isDark: isDark,
+              maxLines: 3,
+              maxLength: 200,
+            ),
+            const SizedBox(height: 20),
             _ModernTextField(
               controller: usernameCtrl,
-              hint: 'Masukkan username',
+              label: 'Username',
+              hint: 'username_baru',
               icon: Icons.alternate_email_rounded,
               isDark: isDark,
-              validator: (value) {
-                final input = value?.trim().toLowerCase() ?? '';
-                if (input.isEmpty) return 'Username wajib diisi';
-                if (!RegExp(r'^[a-z0-9._]{3,30}$').hasMatch(input)) {
-                  return 'Username tidak valid';
-                }
-                return null;
-              },
             ),
-            const SizedBox(height: 18),
-            _ModernInputLabel(label: 'Email Konfirmasi', isDark: isDark),
+            const SizedBox(height: 20),
             _ModernTextField(
               controller: emailCtrl,
-              hint: 'Masukkan email',
-              icon: Icons.email_rounded,
+              label: 'Email Address',
+              hint: 'email@example.com',
+              icon: Icons.email_outlined,
               isDark: isDark,
               keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                final input = value?.trim() ?? '';
-                if (input.isEmpty) return 'Email wajib diisi';
-                if (!RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$')
-                    .hasMatch(input)) {
-                  return 'Format email tidak valid';
-                }
-                return null;
-              },
             ),
-            const SizedBox(height: 18),
-            _ModernInputLabel(label: 'Tanggal Lahir', isDark: isDark),
-            GestureDetector(
+            const SizedBox(height: 20),
+            _ModernDateField(
+              controller: dobCtrl,
+              label: 'Birthday Date',
               onTap: onSelectDOB,
-              child: AbsorbPointer(
-                child: _ModernTextField(
-                  controller: dobCtrl,
-                  hint: 'Pilih Tanggal Lahir',
-                  icon: Icons.cake_rounded,
-                  isDark: isDark,
-                  readOnly: true,
-                ),
+              isDark: isDark,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'GENDER IDENTITY',
+              style: GoogleFonts.inter(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white24 : Colors.black26,
+                letterSpacing: 2.0,
               ),
             ),
-            const SizedBox(height: 18),
-            _ModernInputLabel(label: 'Gender', isDark: isDark),
-            const SizedBox(height: 10),
-            _ModernGenderPicker(
+            const SizedBox(height: 12),
+            _GenderSelector(
               selectedGender: selectedGender,
               options: genderOptions,
               onSelect: onSelectGender,
               isDark: isDark,
             ),
-            const SizedBox(height: 28),
-            CustomButton(
-              text: 'Simpan Perubahan',
-              isLoading: isSaving,
-              onPressed: onSave,
-              gradient: AppColors.gradientPrimary,
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: CustomButton(
+                text: isSaving ? 'Menyimpan...' : 'Perbarui Profile',
+                onPressed: isSaving ? null : onSave,
+                isLoading: isSaving,
+              ),
             ),
           ],
         ),
@@ -1870,57 +2042,134 @@ class _ModernInputLabel extends StatelessWidget {
 
 class _ModernTextField extends StatelessWidget {
   final TextEditingController controller;
+  final String label;
   final String hint;
   final IconData icon;
   final bool isDark;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
   final bool readOnly;
+  final int maxLines;
+  final int? maxLength;
 
   const _ModernTextField({
     required this.controller,
+    required this.label,
     required this.hint,
     required this.icon,
     required this.isDark,
     this.validator,
     this.keyboardType = TextInputType.text,
     this.readOnly = false,
+    this.maxLines = 1,
+    this.maxLength,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE2E8F0),
-          width: 0.8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _ModernInputLabel(label: label, isDark: isDark),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.03)
+                : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFE2E8F0),
+              width: 0.8,
+            ),
+          ),
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            keyboardType: keyboardType,
+            readOnly: readOnly,
+            minLines: maxLines > 1 ? maxLines : 1,
+            maxLines: maxLines,
+            maxLength: maxLength,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF1E293B),
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              prefixIcon: Icon(icon,
+                  size: 20, color: AppColors.primary.withValues(alpha: 0.6)),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModernDateField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _ModernDateField({
+    required this.controller,
+    required this.label,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AbsorbPointer(
+        child: _ModernTextField(
+          controller: controller,
+          label: label,
+          hint: 'Pilih tanggal',
+          icon: Icons.calendar_month_rounded,
+          isDark: isDark,
+          readOnly: true,
         ),
       ),
-      child: TextFormField(
-        controller: controller,
-        validator: validator,
-        keyboardType: keyboardType,
-        readOnly: readOnly,
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : const Color(0xFF1E293B),
+    );
+  }
+}
+
+class _GenderSelector extends StatelessWidget {
+  final String selectedGender;
+  final List<(String value, String label, IconData icon)> options;
+  final ValueChanged<String> onSelect;
+  final bool isDark;
+
+  const _GenderSelector({
+    required this.selectedGender,
+    required this.options,
+    required this.onSelect,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _ModernInputLabel(label: 'Gender Identity', isDark: isDark),
+        _ModernGenderPicker(
+          selectedGender: selectedGender,
+          options: options,
+          onSelect: onSelect,
+          isDark: isDark,
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon,
-              size: 20, color: AppColors.primary.withValues(alpha: 0.6)),
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -2018,82 +2267,80 @@ class _AccountInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-          width: 1,
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.03),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.analytics_rounded,
-                    color: Color(0xFF6366F1), size: 20),
+                    color: Color(0xFF6366F1), size: 22),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 15),
               Text(
-                'Ringkasan Akun',
+                'Account Summary',
                 style: GoogleFonts.poppins(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : const Color(0xFF1E293B),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
                   letterSpacing: -0.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          _InfoRow(
+            icon: Icons.badge_outlined,
+            label: 'FULL NAME',
+            value: user.name,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.person_outline_rounded,
-            label: 'Username',
+            label: 'USERNAME',
             value: user.username,
             isDark: isDark,
             actionIcon: Icons.copy_rounded,
             onActionTap: onCopyUsername,
           ),
-          const Divider(height: 16, thickness: 0.5, color: Colors.black12),
+          const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.email_outlined,
-            label: 'Email',
+            label: 'EMAIL ADDRESS',
             value: user.email,
             isDark: isDark,
             actionIcon: Icons.copy_rounded,
             onActionTap: onCopyEmail,
           ),
-          const Divider(height: 16, thickness: 0.5, color: Colors.black12),
+          if (user.bio.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _InfoRow(
+              icon: Icons.info_outline_rounded,
+              label: 'PERSONAL BIO',
+              value: user.bio,
+              isDark: isDark,
+            ),
+          ],
+          const SizedBox(height: 16),
           _InfoRow(
             icon: genderIcon,
-            label: 'Gender',
+            label: 'GENDER ORIENTATION',
             value: genderLabel,
             isDark: isDark,
           ),
-          const Divider(height: 16, thickness: 0.5, color: Colors.black12),
+          const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.cake_rounded,
-            label: 'Ulang Tahun',
+            label: 'DATE OF BIRTH',
             value: dobLabel,
             isDark: isDark,
           ),
@@ -2220,82 +2467,67 @@ class _PreferenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-          width: 1,
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.03),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.teal.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.settings_suggest_rounded,
-                    color: Colors.teal, size: 20),
+                    color: Colors.teal, size: 22),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 15),
               Text(
-                'Preferensi Aplikasi',
+                'Personalization',
                 style: GoogleFonts.poppins(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : const Color(0xFF1E293B),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
                   letterSpacing: -0.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
           _PreferenceSwitch(
             icon: Icons.notifications_active_rounded,
-            title: 'Reminder Harian',
-            subtitle: 'Kirim pengingat aktivitas harian.',
+            title: 'Daily Reminders',
+            subtitle: 'Get notified for daily activities',
             value: dailyReminderEnabled,
             onChanged: onDailyReminderChanged,
             isDark: isDark,
           ),
+          const Divider(height: 24, thickness: 0.5, color: Colors.black12),
           _PreferenceSwitch(
             icon: Icons.chat_bubble_rounded,
-            title: 'Notifikasi Chat',
-            subtitle: 'Pemberitahuan pesan masuk.',
+            title: 'Chat Notifications',
+            subtitle: 'Notify for incoming messages',
             value: chatNotificationsEnabled,
             onChanged: onChatNotificationsChanged,
             isDark: isDark,
           ),
+          const Divider(height: 24, thickness: 0.5, color: Colors.black12),
           _PreferenceSwitch(
             icon: Icons.data_usage_rounded,
-            title: 'Mode Hemat Data',
-            subtitle: 'Batasi penggunaan media berat.',
+            title: 'Data Savings Mode',
+            subtitle: 'Limit high-quality media loading',
             value: lowDataModeEnabled,
             onChanged: onLowDataModeChanged,
             isDark: isDark,
           ),
+          const Divider(height: 24, thickness: 0.5, color: Colors.black12),
           _PreferenceSwitch(
             icon: Icons.dark_mode_rounded,
-            title: 'Dark Mode',
-            subtitle: 'Tema tampilan gelap/terang.',
+            title: 'Visual Theme',
+            subtitle: 'Toggle dark or light mode',
             value: isDark,
             onChanged: (v) => onToggleTheme(),
             isDark: isDark,
@@ -2365,50 +2597,33 @@ class _LogoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ModernGlassCard(
+      isDark: isDark,
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-          width: 1,
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.03),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onLogout,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.06),
+              color: AppColors.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.power_settings_new_rounded,
-                    color: AppColors.error, size: 20),
+                Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
                 const SizedBox(width: 12),
                 Text(
-                  'Keluar dari Akun',
+                  'SIGN OUT ACCOUNT',
                   style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.error,
-                    letterSpacing: -0.2,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ],
@@ -2469,79 +2684,67 @@ class _StaffManagementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      isDark: isDark,
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            // TODO: Route to staff_management_screen
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const StaffManagementScreen()),
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            padding: const EdgeInsets.all(24),
             child: Row(
               children: <Widget>[
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
                         Colors.amber.shade400,
-                        Colors.orange.shade500,
+                        Colors.orange.shade600,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.orange.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.admin_panel_settings_rounded,
+                  child: const Icon(Icons.shield_rounded,
                       color: Colors.white, size: 24),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Manajemen Tim & Staff',
+                        'Team Management',
                         style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : AppColors.textLight,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : AppColors.primaryDark,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        'Atur role dan hak akses pengguna',
+                        'Control roles and permissions',
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: isDark
-                              ? Colors.white70
-                              : AppColors.textLight.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white38 : Colors.black38,
                         ),
                       ),
                     ],
@@ -2550,9 +2753,7 @@ class _StaffManagementCard extends StatelessWidget {
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 16,
-                  color: isDark
-                      ? Colors.white54
-                      : AppColors.textLight.withValues(alpha: 0.5),
+                  color: isDark ? Colors.white24 : Colors.black26,
                 ),
               ],
             ),
@@ -2667,6 +2868,7 @@ class _SocialMediaCard extends StatelessWidget {
   final String discord;
   final String telegram;
   final String spotify;
+  final String tiktok;
   final VoidCallback onEdit;
 
   const _SocialMediaCard({
@@ -2676,12 +2878,13 @@ class _SocialMediaCard extends StatelessWidget {
     required this.discord,
     required this.telegram,
     required this.spotify,
+    required this.tiktok,
     required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final items = <_SocialMediaItem>[
+    final List<_SocialMediaItem> items = <_SocialMediaItem>[
       _SocialMediaItem(
         platform: 'GitHub',
         value: github,
@@ -2712,210 +2915,219 @@ class _SocialMediaCard extends StatelessWidget {
         icon: FontAwesomeIcons.spotify,
         color: const Color(0xFF1DB954),
       ),
-    ];
-    final visibleItems =
-        items.where((item) => item.value.trim().isNotEmpty).toList();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+      _SocialMediaItem(
+        platform: 'TikTok',
+        value: tiktok,
+        icon: FontAwesomeIcons.tiktok,
+        color: const Color(0xFF111827),
       ),
+    ];
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Row(
-            children: [
+            children: <Widget>[
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.15),
-                      AppColors.primary.withValues(alpha: 0.05),
+                    colors: <Color>[
+                      AppColors.primary.withValues(alpha: 0.16),
+                      AppColors.primary.withValues(alpha: 0.06),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.link_rounded,
-                    size: 20, color: AppColors.primary),
+                child: const Icon(
+                  Icons.hub_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Social Media',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Social Media',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ukuran icon dibuat lebih ringkas agar tampilan lebih rapi.',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color:
+                            isDark ? Colors.white54 : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onEdit,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.gradientPrimary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.edit_rounded,
-                            size: 14, color: Colors.white),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Edit',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+              const SizedBox(width: 12),
+              InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(12),
+                child: Ink(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Icon(Icons.edit_rounded,
+                          size: 13, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Edit',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          if (visibleItems.isNotEmpty) ...[
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: visibleItems
-                  .map((item) => _buildSocialQuickIcon(context, item))
-                  .toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-          ...items.map((item) => _buildSocialRow(context, item)),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              const double spacing = 10;
+              final bool twoColumns = constraints.maxWidth >= 360;
+              final double halfWidth = (constraints.maxWidth - spacing) / 2;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: <Widget>[
+                  for (int i = 0; i < items.length; i++)
+                    SizedBox(
+                      width: (!twoColumns ||
+                              (items.length.isOdd && i == items.length - 1))
+                          ? constraints.maxWidth
+                          : halfWidth,
+                      child: _buildSocialTile(context, items[i]),
+                    ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSocialQuickIcon(BuildContext context, _SocialMediaItem item) {
-    return _SocialIcon(
-      icon: item.icon,
-      isInstagram: item.isInstagram,
-      isDark: isDark,
-      iconColor: item.isInstagram ? null : item.color,
-      onTap: () async {
-        final success =
-            await UrlHelper.launchSocialUrl(item.platform, item.value);
-        if (!context.mounted || success) {
-          return;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membuka ${item.platform}.')),
-        );
-      },
-    );
-  }
-
-  Widget _buildSocialRow(BuildContext context, _SocialMediaItem item) {
-    final hasValue = item.value.isNotEmpty;
-    final normalizedUrl =
+  Widget _buildSocialTile(BuildContext context, _SocialMediaItem item) {
+    final bool hasValue = item.value.trim().isNotEmpty;
+    final String normalizedUrl =
         hasValue ? UrlHelper.normalizeSocialUrl(item.platform, item.value) : '';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: hasValue
-              ? () async {
-                  final success = await UrlHelper.launchSocialUrl(
-                      item.platform, item.value);
-                  if (!success && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Gagal membuka ${item.platform}.')),
-                    );
-                  }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: hasValue
+            ? () async {
+                final bool success = await UrlHelper.launchSocialUrl(
+                  item.platform,
+                  item.value,
+                );
+                if (!success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal membuka ${item.platform}.')),
+                  );
                 }
-              : null,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(6.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: item.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: item.isInstagram
-                        ? const _InstagramGradientIcon(size: 20)
-                        : FaIcon(item.icon, size: 16, color: item.color),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.platform,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        hasValue ? normalizedUrl : 'Belum diatur',
-                        style: GoogleFonts.inter(
-                          fontSize: 13.5,
-                          fontWeight:
-                              hasValue ? FontWeight.w600 : FontWeight.w400,
-                          color: hasValue
-                              ? (isDark ? Colors.white : AppColors.textPrimary)
-                              : (isDark ? Colors.white30 : Colors.black26),
-                          fontStyle:
-                              hasValue ? FontStyle.normal : FontStyle.italic,
-                          decoration:
-                              hasValue ? TextDecoration.underline : null,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                if (hasValue)
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    size: 16,
-                    color: isDark ? Colors.white54 : Colors.black38,
-                  )
-                else
-                  Icon(
-                    Icons.radio_button_unchecked_rounded,
-                    size: 18,
-                    color: isDark ? Colors.white24 : Colors.black12,
-                  ),
+              }
+            : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                item.color.withValues(alpha: isDark ? 0.16 : 0.11),
+                isDark
+                    ? Colors.white.withValues(alpha: 0.03)
+                    : Colors.white.withValues(alpha: 0.84),
               ],
             ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: item.color.withValues(alpha: hasValue ? 0.22 : 0.12),
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: item.isInstagram
+                      ? const _InstagramGradientIcon(size: 12)
+                      : FaIcon(item.icon, size: 12, color: item.color),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      item.platform,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white70 : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      hasValue ? normalizedUrl : 'Belum diatur',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight:
+                            hasValue ? FontWeight.w600 : FontWeight.w500,
+                        color: hasValue
+                            ? (isDark
+                                ? Colors.white60
+                                : AppColors.textSecondary)
+                            : (isDark ? Colors.white38 : Colors.black38),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                hasValue
+                    ? Icons.open_in_new_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: hasValue ? 13 : 12,
+                color: hasValue
+                    ? item.color.withValues(alpha: 0.86)
+                    : (isDark ? Colors.white30 : Colors.black26),
+              ),
+            ],
           ),
         ),
       ),

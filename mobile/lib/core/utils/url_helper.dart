@@ -58,6 +58,12 @@ class UrlHelper {
       'open.spotify.com/',
       'spotify.com',
       'spotify.com/',
+      'tiktok.com',
+      'tiktok.com/',
+      'www.tiktok.com',
+      'www.tiktok.com/',
+      'vt.tiktok.com',
+      'vt.tiktok.com/',
     ];
 
     if (knownDomains.any(lowerValue.startsWith)) {
@@ -85,6 +91,8 @@ class UrlHelper {
                 value.startsWith('playlist/')
             ? 'https://open.spotify.com/$value'
             : 'https://open.spotify.com/user/$value';
+      case 'tiktok':
+        return 'https://www.tiktok.com/@$value';
       default:
         return value;
     }

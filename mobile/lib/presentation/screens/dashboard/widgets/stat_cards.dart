@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
+import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class StatCard extends StatelessWidget {
   final String title;
@@ -20,59 +21,46 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.03),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      padding: const EdgeInsets.all(22),
+      borderRadius: 32,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: gradient,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+                  color: (gradient.colors.first).withValues(alpha: 0.4),
+                  blurRadius: 15,
+                  spreadRadius: -2,
+                  offset: const Offset(0, 0),
                 ),
               ],
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              letterSpacing: -1,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            title,
+            title.toUpperCase(),
             style: GoogleFonts.inter(
-              fontSize: 12,
-              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
+              fontSize: 10,
+              color: isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.0,
             ),
           ),
         ],

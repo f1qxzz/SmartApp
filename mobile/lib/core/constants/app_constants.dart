@@ -5,6 +5,7 @@ import 'package:smartlife_app/core/theme/app_theme.dart';
 class AppConstants {
   static const String appName = 'SmartLife';
   static const String appVersion = '1.0.0';
+  static const String appLogoPath = 'assets/images/app_logo_transparent.png';
 }
 
 class FinanceCategory {

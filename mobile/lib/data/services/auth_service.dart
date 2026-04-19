@@ -190,6 +190,8 @@ class AuthService {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   }) async {
     try {
       final response = await _dioClient.instance.put(
@@ -208,6 +210,8 @@ class AuthService {
           if (socialDiscord != null) 'socialDiscord': socialDiscord,
           if (socialTelegram != null) 'socialTelegram': socialTelegram,
           if (socialSpotify != null) 'socialSpotify': socialSpotify,
+          if (socialTikTok != null) 'socialTikTok': socialTikTok,
+          if (bio != null) 'bio': bio,
         },
       );
 

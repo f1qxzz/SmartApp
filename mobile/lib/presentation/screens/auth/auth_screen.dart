@@ -8,9 +8,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:smartlife_app/core/config/env_config.dart';
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
-import 'package:smartlife_app/presentation/screens/auth/reset_password_screen.dart';
+import 'package:smartlife_app/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -71,6 +72,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   void _handleAuthFeedback(AuthState state) {
     if (!mounted) {
+      return;
+    }
+    final ModalRoute<dynamic>? currentRoute = ModalRoute.of(context);
+    if (currentRoute != null && !currentRoute.isCurrent) {
       return;
     }
 
@@ -145,6 +150,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return null;
   }
 
+  String? _validateLoginPassword(String? value) {
+    final String password = value ?? '';
+    if (password.isEmpty) {
+      return 'Password wajib diisi';
+    }
+    return null;
+  }
+
   String? _validateFullName(String? value) {
     final String name = value?.trim() ?? '';
     if (name.isEmpty) {
@@ -213,7 +226,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  Future<void> _showForgotPasswordDialog() async {
+  void _openForgotPasswordScreen() {
     final AuthState authState = ref.read(authProvider);
     if (authState.status == AuthStatus.loading) {
       return;
@@ -224,66 +237,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         ? loginIdentifier
         : _registerEmailCtrl.text.trim();
 
-    final TextEditingController emailController = TextEditingController(
-      text: defaultEmail,
+    Navigator.of(context).push(
+      AppRoute<void>(
+        builder: (_) => ForgotPasswordScreen(initialEmail: defaultEmail),
+      ),
     );
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
-    final String? result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            'Lupa Password',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-          ),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'Masukkan email akun kamu',
-              ),
-              validator: _validateEmail,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) {
-                  return;
-                }
-                Navigator.of(context).pop(emailController.text.trim());
-              },
-              child: const Text('Kirim Link Reset'),
-            ),
-          ],
-        );
-      },
-    );
-
-    emailController.dispose();
-
-    if (result == null) {
-      return;
-    }
-
-    await ref.read(authProvider.notifier).forgotPassword(email: result);
-
-    if (mounted && ref.read(authProvider).errorMessage == null) {
-      // Navigate to Reset Password Screen
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ResetPasswordScreen(initialEmail: result),
-        ),
-      );
-    }
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -489,7 +447,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               hint: 'Masukkan password',
               controller: _loginPassCtrl,
               obscureText: _obscureLoginPass,
-              validator: _validatePassword,
+              validator: _validateLoginPassword,
               prefixIcon: const Icon(
                 Icons.lock_outline_rounded,
                 color: AppColors.primary,
@@ -515,7 +473,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               onRememberChanged: (value) {
                 ref.read(authProvider.notifier).setRememberMe(value ?? true);
               },
-              onForgotPassword: isLoading ? null : _showForgotPasswordDialog,
+              onForgotPassword: isLoading ? null : _openForgotPasswordScreen,
             ),
             const SizedBox(height: 22),
             CustomButton(
@@ -728,20 +686,45 @@ class _AuthIntroScreen extends StatelessWidget {
                     Image.asset(
                       'assets/images/app_logo_transparent.png',
                       height: 110,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.10),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.24),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 52,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 )
                     .animate(onPlay: (c) => c.repeat(reverse: true))
-                    .moveY(begin: -5, end: 5, duration: 4.seconds, curve: Curves.easeInOut)
+                    .moveY(
+                        begin: -5,
+                        end: 5,
+                        duration: 4.seconds,
+                        curve: Curves.easeInOut)
                     .animate()
                     .fadeIn(duration: 600.ms, delay: 100.ms)
-                    .scale(begin: const Offset(0.7, 0.7), curve: Curves.easeOutBack),
+                    .scale(
+                        begin: const Offset(0.7, 0.7),
+                        curve: Curves.easeOutBack),
 
                 const SizedBox(height: 32),
 
                 // Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -753,7 +736,8 @@ class _AuthIntroScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.flash_on_rounded, color: Color(0xFFFFD700), size: 14),
+                      const Icon(Icons.flash_on_rounded,
+                          color: Color(0xFFFFD700), size: 14),
                       const SizedBox(width: 8),
                       Text(
                         'SmartLife',
@@ -778,11 +762,13 @@ class _AuthIntroScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       child: Text(
                         'WELCOME TO',
@@ -813,7 +799,11 @@ class _AuthIntroScreen extends StatelessWidget {
                     const SizedBox(height: 2),
                     ShaderMask(
                       shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Color(0xFFFFFFFF), Color(0xFF90C2FF), Color(0xFF4B67D1)],
+                        colors: [
+                          Color(0xFFFFFFFF),
+                          Color(0xFF90C2FF),
+                          Color(0xFF4B67D1)
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ).createShader(bounds),
@@ -827,10 +817,9 @@ class _AuthIntroScreen extends StatelessWidget {
                           letterSpacing: -3.5,
                         ),
                       ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 700.ms, delay: 600.ms)
-                        .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutCubic),
+                    ).animate().fadeIn(duration: 700.ms, delay: 600.ms).scale(
+                        begin: const Offset(0.95, 0.95),
+                        curve: Curves.easeOutCubic),
                   ],
                 ),
 
@@ -1140,27 +1129,42 @@ class _FloatingOrbsState extends State<_FloatingOrbs>
             Positioned(
               top: 40 + slowSin * 12,
               right: -30 + slowSin * 6,
-              child: const _GlassOrb(size: 200, gradientColors: [Color(0xFF7A9BFF), Color(0xFF4B67D1)], opacity: 0.5),
+              child: const _GlassOrb(
+                  size: 200,
+                  gradientColors: [Color(0xFF7A9BFF), Color(0xFF4B67D1)],
+                  opacity: 0.5),
             ),
             Positioned(
               top: 160 + fastSin * 16,
               left: 20 + fastSin * 8,
-              child: const _GlassOrb(size: 130, gradientColors: [Color(0xFF9DB8FF), Color(0xFF6480E0)], opacity: 0.45),
+              child: const _GlassOrb(
+                  size: 130,
+                  gradientColors: [Color(0xFF9DB8FF), Color(0xFF6480E0)],
+                  opacity: 0.45),
             ),
             Positioned(
               top: 60 + tinySin * 10,
               left: -20 + tinySin * 5,
-              child: const _GlassOrb(size: 80, gradientColors: [Color(0xFFB8CBFF), Color(0xFF8EA7FF)], opacity: 0.40),
+              child: const _GlassOrb(
+                  size: 80,
+                  gradientColors: [Color(0xFFB8CBFF), Color(0xFF8EA7FF)],
+                  opacity: 0.40),
             ),
             Positioned(
               top: 300 + slowSin * 8,
               right: 60 + fastSin * 10,
-              child: const _GlassOrb(size: 60, gradientColors: [Color(0xFFCBD8FF), Color(0xFF7996F5)], opacity: 0.35),
+              child: const _GlassOrb(
+                  size: 60,
+                  gradientColors: [Color(0xFFCBD8FF), Color(0xFF7996F5)],
+                  opacity: 0.35),
             ),
             Positioned(
               top: 240 + tinySin * 14,
               right: -10 + tinySin * 6,
-              child: const _GlassOrb(size: 100, gradientColors: [Color(0xFF8AA3FF), Color(0xFF5572D4)], opacity: 0.30),
+              child: const _GlassOrb(
+                  size: 100,
+                  gradientColors: [Color(0xFF8AA3FF), Color(0xFF5572D4)],
+                  opacity: 0.30),
             ),
           ],
         );
@@ -1190,7 +1194,8 @@ class _GlassOrb extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: gradientColors.map((c) => c.withValues(alpha: opacity)).toList(),
+          colors:
+              gradientColors.map((c) => c.withValues(alpha: opacity)).toList(),
         ),
         boxShadow: [
           BoxShadow(
@@ -1243,7 +1248,9 @@ class _AuthFormBackground extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: 0, left: 0, right: 0,
+          top: 0,
+          left: 0,
+          right: 0,
           child: Container(
             height: 260,
             decoration: BoxDecoration(
@@ -1262,39 +1269,48 @@ class _AuthFormBackground extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: 20, right: -20,
+          top: 20,
+          right: -20,
           child: Container(
-            width: 120, height: 120,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                (isDark ? const Color(0xFF4468CC) : const Color(0xFF7A9BFF)).withValues(alpha: 0.40),
+                (isDark ? const Color(0xFF4468CC) : const Color(0xFF7A9BFF))
+                    .withValues(alpha: 0.40),
                 Colors.transparent,
               ]),
             ),
           ),
         ),
         Positioned(
-          top: 80, left: -30,
+          top: 80,
+          left: -30,
           child: Container(
-            width: 90, height: 90,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                (isDark ? const Color(0xFF3B5CC0) : const Color(0xFF9DB8FF)).withValues(alpha: 0.35),
+                (isDark ? const Color(0xFF3B5CC0) : const Color(0xFF9DB8FF))
+                    .withValues(alpha: 0.35),
                 Colors.transparent,
               ]),
             ),
           ),
         ),
         Positioned(
-          top: 50, right: 80,
+          top: 50,
+          right: 80,
           child: Container(
-            width: 55, height: 55,
+            width: 55,
+            height: 55,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                (isDark ? const Color(0xFF5B7AE0) : const Color(0xFFB4C8FF)).withValues(alpha: 0.40),
+                (isDark ? const Color(0xFF5B7AE0) : const Color(0xFFB4C8FF))
+                    .withValues(alpha: 0.40),
                 Colors.transparent,
               ]),
             ),
@@ -1337,9 +1353,8 @@ class _AuthWelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color subtleBg = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : const Color(0xFFF4F7FF);
+    final Color subtleBg =
+        isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF4F7FF);
     final Color borderColor =
         isDark ? const Color(0xFF33486F) : const Color(0xFFDCE6FF);
     final Color titleColor =
@@ -1370,14 +1385,19 @@ class _AuthWelcomeScreen extends StatelessWidget {
               border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.10),
+                  color:
+                      AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.10),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: const Center(
-              child: Text('👋', style: TextStyle(fontSize: 28)),
+              child: Icon(
+                Icons.waving_hand_rounded,
+                size: 30,
+                color: AppColors.primary,
+              ),
             ),
           )
               .animate()
@@ -1517,7 +1537,8 @@ class _AuthWelcomeScreen extends StatelessWidget {
             gradient: const LinearGradient(
               colors: [Color(0xFF4B67D1), Color(0xFF6D8DFF)],
             ),
-            icon: Icon(Icons.login_rounded, color: Colors.white.withValues(alpha: 0.90), size: 20),
+            icon: Icon(Icons.login_rounded,
+                color: Colors.white.withValues(alpha: 0.90), size: 20),
           )
               .animate()
               .fadeIn(duration: 500.ms, delay: 700.ms)
@@ -1530,7 +1551,9 @@ class _AuthWelcomeScreen extends StatelessWidget {
             text: 'Buat Akun Baru',
             onPressed: onOpenRegister,
             isOutlined: true,
-            icon: Icon(Icons.person_add_alt_1_rounded, color: isDark ? AppColors.primaryLight : AppColors.primary, size: 20),
+            icon: Icon(Icons.person_add_alt_rounded,
+                color: isDark ? AppColors.primaryLight : AppColors.primary,
+                size: 20),
           )
               .animate()
               .fadeIn(duration: 500.ms, delay: 800.ms)
@@ -1628,7 +1651,8 @@ class _AuthFormScreen extends StatelessWidget {
               fontSize: isWide ? 34 : 28,
               fontWeight: FontWeight.w800,
               letterSpacing: -1,
-              color: isDark ? AppColors.textPrimaryDark : const Color(0xFF223A74),
+              color:
+                  isDark ? AppColors.textPrimaryDark : const Color(0xFF223A74),
             ),
           ),
           const SizedBox(height: 10),
@@ -1638,7 +1662,9 @@ class _AuthFormScreen extends StatelessWidget {
               fontSize: 14,
               height: 1.65,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.textSecondaryDark : const Color(0xFF6B7FA6),
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : const Color(0xFF6B7FA6),
             ),
           ),
           const SizedBox(height: 26),
@@ -1726,10 +1752,14 @@ class _BottomBackArrow extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E2D50) : const Color(0xFFF9FBFF),
           shape: BoxShape.circle,
-          border: Border.all(color: isDark ? const Color(0xFF33486F) : const Color(0xFFD8E3FF)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF33486F) : const Color(0xFFD8E3FF)),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black.withValues(alpha: 0.20) : const Color(0xFF3658AA).withValues(alpha: 0.06),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.20)
+                  : const Color(0xFF3658AA).withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -1753,7 +1783,8 @@ class _AuthDividerText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color divColor = isDark ? const Color(0xFF33486F) : const Color(0xFFDCE6FF);
+    final Color divColor =
+        isDark ? const Color(0xFF33486F) : const Color(0xFFDCE6FF);
     return Row(
       children: [
         Expanded(child: Container(height: 1, color: divColor)),
@@ -1764,7 +1795,9 @@ class _AuthDividerText extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.textSecondaryDark.withValues(alpha: 0.60) : const Color(0xFF8A9BC1),
+              color: isDark
+                  ? AppColors.textSecondaryDark.withValues(alpha: 0.60)
+                  : const Color(0xFF8A9BC1),
             ),
           ),
         ),
@@ -1779,7 +1812,8 @@ class _GoogleAuthButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isDark;
 
-  const _GoogleAuthButton({required this.isLoading, required this.onPressed, required this.isDark});
+  const _GoogleAuthButton(
+      {required this.isLoading, required this.onPressed, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -1789,12 +1823,15 @@ class _GoogleAuthButton extends StatelessWidget {
       isLoading: isLoading,
       isOutlined: true,
       icon: Container(
-        width: 24, height: 24,
+        width: 24,
+        height: 24,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E2D50) : const Color(0xFFF3F6FF),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: isDark ? const Color(0xFF33486F) : const Color(0xFFDCE6FF)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF33486F) : const Color(0xFFDCE6FF)),
         ),
         child: Text(
           'G',
@@ -1815,7 +1852,11 @@ class _UtilityRowLogin extends StatelessWidget {
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback? onForgotPassword;
 
-  const _UtilityRowLogin({required this.rememberMe, required this.isDark, required this.onRememberChanged, required this.onForgotPassword});
+  const _UtilityRowLogin(
+      {required this.rememberMe,
+      required this.isDark,
+      required this.onRememberChanged,
+      required this.onForgotPassword});
 
   @override
   Widget build(BuildContext context) {
@@ -1835,12 +1876,22 @@ class _UtilityRowLogin extends StatelessWidget {
                       value: rememberMe,
                       onChanged: onRememberChanged,
                       activeColor: const Color(0xFF4B67D1),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      side: BorderSide(color: isDark ? const Color(0xFF4A5F8F) : const Color(0xFFB6C7EF)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                      side: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF4A5F8F)
+                              : const Color(0xFFB6C7EF)),
                     ),
                   ),
                   Flexible(
-                    child: Text('Remember me', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : const Color(0xFF6B7FA6))),
+                    child: Text('Ingat saya',
+                        style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : const Color(0xFF6B7FA6))),
                   ),
                 ],
               ),
@@ -1849,7 +1900,13 @@ class _UtilityRowLogin extends StatelessWidget {
         ),
         TextButton(
           onPressed: onForgotPassword,
-          child: Text('Forgot password', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? AppColors.primaryLight : const Color(0xFF4B67D1))),
+          child: Text('Lupa password?',
+              style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isDark
+                      ? AppColors.primaryLight
+                      : const Color(0xFF4B67D1))),
         ),
       ],
     );
@@ -1861,7 +1918,10 @@ class _UtilityRowRegister extends StatelessWidget {
   final bool isDark;
   final ValueChanged<bool?> onAgreeChanged;
 
-  const _UtilityRowRegister({required this.agreeToTerms, required this.isDark, required this.onAgreeChanged});
+  const _UtilityRowRegister(
+      {required this.agreeToTerms,
+      required this.isDark,
+      required this.onAgreeChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -1879,8 +1939,12 @@ class _UtilityRowRegister extends StatelessWidget {
                 value: agreeToTerms,
                 onChanged: onAgreeChanged,
                 activeColor: const Color(0xFF4B67D1),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                side: BorderSide(color: isDark ? const Color(0xFF4A5F8F) : const Color(0xFFB6C7EF)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6)),
+                side: BorderSide(
+                    color: isDark
+                        ? const Color(0xFF4A5F8F)
+                        : const Color(0xFFB6C7EF)),
               ),
             ),
             Expanded(
@@ -1888,10 +1952,22 @@ class _UtilityRowRegister extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 14),
                 child: RichText(
                   text: TextSpan(
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : const Color(0xFF6B7FA6), height: 1.5),
+                    style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : const Color(0xFF6B7FA6),
+                        height: 1.5),
                     children: [
                       const TextSpan(text: 'Saya setuju dengan '),
-                      TextSpan(text: 'syarat dan kebijakan SmartLife', style: TextStyle(color: isDark ? AppColors.primaryLight : const Color(0xFF4B67D1), fontWeight: FontWeight.w700)),
+                      TextSpan(
+                          text: 'syarat dan kebijakan SmartLife',
+                          style: TextStyle(
+                              color: isDark
+                                  ? AppColors.primaryLight
+                                  : const Color(0xFF4B67D1),
+                              fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
@@ -1910,7 +1986,11 @@ class _AuthBottomSwitch extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDark;
 
-  const _AuthBottomSwitch({required this.prompt, required this.actionLabel, required this.onTap, required this.isDark});
+  const _AuthBottomSwitch(
+      {required this.prompt,
+      required this.actionLabel,
+      required this.onTap,
+      required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -1919,11 +1999,26 @@ class _AuthBottomSwitch extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 4,
         children: [
-          Text(prompt, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark.withValues(alpha: 0.70) : const Color(0xFF7A8EB8))),
+          Text(prompt,
+              style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textSecondaryDark.withValues(alpha: 0.70)
+                      : const Color(0xFF7A8EB8))),
           TextButton(
             onPressed: onTap,
-            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            child: Text(actionLabel, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? AppColors.primaryLight : const Color(0xFF4B67D1))),
+            style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: Text(actionLabel,
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: isDark
+                        ? AppColors.primaryLight
+                        : const Color(0xFF4B67D1))),
           ),
         ],
       ),
@@ -1941,7 +2036,11 @@ class _AuthFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? AppColors.textSecondaryDark : const Color(0xFF31508D)),
+      style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color:
+              isDark ? AppColors.textSecondaryDark : const Color(0xFF31508D)),
     );
   }
 }

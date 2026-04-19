@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/storage/hive_boxes.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
-import 'package:smartlife_app/presentation/providers/finance_provider.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_list_screen.dart';
 import 'package:smartlife_app/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:smartlife_app/presentation/screens/finance/finance_screen.dart';
 import 'package:smartlife_app/presentation/screens/profile/profile_screen.dart';
-import 'package:smartlife_app/presentation/screens/life_hub/life_hub_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
-import 'package:smartlife_app/presentation/widgets/transaction_form_sheet.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -27,7 +23,6 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   bool _isSuccessMessageScheduled = false;
-  bool _isQuickActionsOpen = false;
   String _activeTabUserId = '';
   ProviderSubscription<AuthState>? _authSubscription;
 
@@ -80,9 +75,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   void _updateTab(int index) {
-    if (_isQuickActionsOpen) {
-      _closeQuickActions();
-    }
     if (_currentIndex == index) return;
     setState(() => _currentIndex = index);
     HiveService.putUserScopedAppValue(
@@ -132,359 +124,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     return Scaffold(
       extendBody: true,
-      body: Stack(
-        children: <Widget>[
-          FadeIndexedStack(
-            index: _currentIndex,
-            duration: const Duration(milliseconds: 280),
-            children: _screens,
-          ),
-          if (_isQuickActionsOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _closeQuickActions,
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.14),
-                ),
-              ),
-            ),
-        ],
+      body: FadeIndexedStack(
+        index: _currentIndex,
+        duration: const Duration(milliseconds: 280),
+        children: _screens,
       ),
-      floatingActionButton: _currentIndex == 2
-          ? null
-          : _QuickActionFabMenu(
-              isDark: isDark,
-              isOpen: _isQuickActionsOpen,
-              onToggle: _toggleQuickActions,
-              onAddTransaction: () => _runQuickAction(
-                () => _showAddTransaction(context),
-              ),
-              onOpenChat: () => _runQuickAction(() => _updateTab(0)),
-              onOpenFinance: () => _runQuickAction(() => _updateTab(1)),
-              onOpenDashboard: () => _runQuickAction(() => _updateTab(2)),
-              onOpenProfile: () => _runQuickAction(() => _updateTab(3)),
-              onOpenLifeHub: () => _runQuickAction(_openLifeHub),
-            ),
+      floatingActionButton: null,
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTap: _updateTab,
         isDark: isDark,
-      ),
-    );
-  }
-
-  void _showAddTransaction(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => TransactionFormSheet(
-        title: 'Catat Pengeluaran',
-        submitLabel: 'Simpan',
-        onSubmit: (value) async {
-          final messenger = ScaffoldMessenger.of(context);
-          try {
-            await ref.read(financeProvider.notifier).create(
-                  title: value.title,
-                  amount: value.amount,
-                  category: value.categoryId,
-                  description: value.description,
-                  date: value.date,
-                );
-          } catch (_) {
-            if (!mounted) return;
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Gagal menambahkan transaksi',
-                  style: GoogleFonts.inter(fontSize: 13),
-                ),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            return;
-          }
-
-          if (!mounted) {
-            return;
-          }
-
-          if (ref.read(financeProvider).isOverBudget) {
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Alert: pengeluaran bulan ini melebihi budget',
-                  style: GoogleFonts.inter(fontSize: 13),
-                ),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                'Transaksi berhasil ditambahkan',
-                style: GoogleFonts.inter(fontSize: 13),
-              ),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _openLifeHub() {
-    Navigator.push<void>(
-      context,
-      AppRoute<void>(
-        builder: (_) => const LifeHubScreen(),
-      ),
-    );
-  }
-
-  void _toggleQuickActions() {
-    HapticFeedback.lightImpact();
-    setState(() => _isQuickActionsOpen = !_isQuickActionsOpen);
-  }
-
-  void _closeQuickActions() {
-    if (!_isQuickActionsOpen) {
-      return;
-    }
-    setState(() => _isQuickActionsOpen = false);
-  }
-
-  void _runQuickAction(VoidCallback action) {
-    _closeQuickActions();
-    Future<void>.delayed(const Duration(milliseconds: 80), () {
-      if (!mounted) {
-        return;
-      }
-      action();
-    });
-  }
-}
-
-class _QuickActionFabMenu extends StatelessWidget {
-  final bool isDark;
-  final bool isOpen;
-  final VoidCallback onToggle;
-  final VoidCallback onAddTransaction;
-  final VoidCallback onOpenChat;
-  final VoidCallback onOpenFinance;
-  final VoidCallback onOpenDashboard;
-  final VoidCallback onOpenProfile;
-  final VoidCallback onOpenLifeHub;
-
-  const _QuickActionFabMenu({
-    required this.isDark,
-    required this.isOpen,
-    required this.onToggle,
-    required this.onAddTransaction,
-    required this.onOpenChat,
-    required this.onOpenFinance,
-    required this.onOpenDashboard,
-    required this.onOpenProfile,
-    required this.onOpenLifeHub,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: <Widget>[
-        _buildAnimatedAction(
-          order: 0,
-          child: _QuickActionChip(
-            label: 'Catat Transaksi',
-            icon: Icons.add_card_rounded,
-            isDark: isDark,
-            onTap: onAddTransaction,
-          ),
-        ),
-        _buildAnimatedAction(
-          order: 1,
-          child: _QuickActionChip(
-            label: 'Buka Chat',
-            icon: Icons.chat_bubble_rounded,
-            isDark: isDark,
-            onTap: onOpenChat,
-          ),
-        ),
-        _buildAnimatedAction(
-          order: 2,
-          child: _QuickActionChip(
-            label: 'Finance Hub',
-            icon: Icons.account_balance_wallet_rounded,
-            isDark: isDark,
-            onTap: onOpenFinance,
-          ),
-        ),
-        _buildAnimatedAction(
-          order: 3,
-          child: _QuickActionChip(
-            label: 'Dashboard',
-            icon: Icons.bar_chart_rounded,
-            isDark: isDark,
-            onTap: onOpenDashboard,
-          ),
-        ),
-        _buildAnimatedAction(
-          order: 4,
-          child: _QuickActionChip(
-            label: 'Life Hub',
-            icon: Icons.rocket_launch_rounded,
-            isDark: isDark,
-            onTap: onOpenLifeHub,
-          ),
-        ),
-        _buildAnimatedAction(
-          order: 5,
-          child: _QuickActionChip(
-            label: 'Profile',
-            icon: Icons.person_rounded,
-            isDark: isDark,
-            onTap: onOpenProfile,
-          ),
-        ),
-        const SizedBox(height: 10),
-        FloatingActionButton(
-          onPressed: onToggle,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          tooltip: isOpen ? 'Tutup aksi cepat' : 'Buka aksi cepat',
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              gradient: isOpen
-                  ? const LinearGradient(
-                      colors: <Color>[
-                        Color(0xFF4C5372),
-                        Color(0xFF2F344A),
-                      ],
-                    )
-                  : AppColors.gradientPrimary,
-              shape: BoxShape.circle,
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color:
-                      AppColors.primary.withValues(alpha: isDark ? 0.38 : 0.26),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Center(
-              child: AnimatedRotation(
-                turns: isOpen ? 0.125 : 0,
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                child: Icon(
-                  isOpen ? Icons.close_rounded : Icons.widgets_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAnimatedAction({
-    required int order,
-    required Widget child,
-  }) {
-    final duration = Duration(milliseconds: 160 + (order * 40));
-    return IgnorePointer(
-      ignoring: !isOpen,
-      child: AnimatedSlide(
-        duration: duration,
-        curve: Curves.easeOutCubic,
-        offset: isOpen ? Offset.zero : const Offset(0.3, 0.04),
-        child: AnimatedOpacity(
-          duration: duration,
-          curve: Curves.easeOutCubic,
-          opacity: isOpen ? 1 : 0,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _QuickActionChip({
-    required this.label,
-    required this.icon,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.20)
-                      : Colors.white,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(icon, size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: GoogleFonts.inter(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -503,48 +152,74 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<(IconData, IconData, String)> items =
-        <(IconData, IconData, String)>[
-      (Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
+    final List<(IconData, IconData, String, Color)> items =
+        <(IconData, IconData, String, Color)>[
+      (
+        Icons.chat_bubble_outline_rounded,
+        Icons.chat_bubble_rounded,
+        'Chat',
+        const Color(0xFF3B82F6),
+      ),
       (
         Icons.account_balance_wallet_outlined,
         Icons.account_balance_wallet_rounded,
-        'Finance'
+        'Finance',
+        const Color(0xFF06B6D4),
       ),
-      (Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Dashboard'),
-      (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+      (
+        Icons.bar_chart_outlined,
+        Icons.bar_chart_rounded,
+        'Dashboard',
+        const Color(0xFF4F46E5),
+      ),
+      (
+        Icons.person_outline_rounded,
+        Icons.person_rounded,
+        'Profile',
+        const Color(0xFF0EA5A4),
+      ),
     ];
 
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      minimum: const EdgeInsets.fromLTRB(14, 0, 14, 14),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
-              blurRadius: 32,
-              offset: const Offset(0, 12),
+              color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+              blurRadius: 36,
+              offset: const Offset(0, 16),
             ),
           ],
         ),
         child: RepaintBoundary(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(30),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF161A2D).withValues(alpha: 0.65)
-                      : Colors.white.withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? <Color>[
+                            const Color(0xFF131D32).withValues(alpha: 0.88),
+                            const Color(0xFF0E172A).withValues(alpha: 0.80),
+                          ]
+                        : <Color>[
+                            Colors.white.withValues(alpha: 0.95),
+                            const Color(0xFFF3F8FF).withValues(alpha: 0.90),
+                          ],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.15)
-                        : Colors.white,
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : Colors.white.withValues(alpha: 0.98),
                     width: 1.2,
                   ),
                 ),
@@ -554,53 +229,107 @@ class _BottomNav extends StatelessWidget {
                     items.length,
                     (int i) {
                       final bool isActive = currentIndex == i;
-                      return GestureDetector(
-                        onTap: () {
-                          if (!isActive) HapticFeedback.lightImpact();
-                          onTap(i);
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.fastOutSlowIn,
-                          padding: isActive
-                              ? const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8)
-                              : const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient:
-                                isActive ? AppColors.gradientPrimary : null,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              if (!isActive)
-                                Icon(
-                                  items[i].$1,
-                                  size: 24,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
+                      final Color itemColor = items[i].$4;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!isActive) {
+                                HapticFeedback.lightImpact();
+                              }
+                              onTap(i);
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 320),
+                              curve: Curves.fastOutSlowIn,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 9,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: isActive
+                                    ? LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: <Color>[
+                                          itemColor.withValues(alpha: 0.96),
+                                          AppColors.primary
+                                              .withValues(alpha: 0.92),
+                                        ],
+                                      )
+                                    : null,
+                                color: isActive
+                                    ? null
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.045)
+                                        : Colors.white.withValues(alpha: 0.44)),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: isActive
+                                      ? Colors.white.withValues(alpha: 0.18)
+                                      : Colors.white.withValues(
+                                          alpha: isDark ? 0.06 : 0.52,
+                                        ),
                                 ),
-                              if (isActive)
-                                Icon(
-                                  items[i].$2,
-                                  size: 20,
-                                  color: Colors.white,
-                                ),
-                              if (isActive) ...<Widget>[
-                                const SizedBox(width: 8),
-                                Text(
-                                  items[i].$3,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                                boxShadow: isActive
+                                    ? <BoxShadow>[
+                                        BoxShadow(
+                                          color:
+                                              itemColor.withValues(alpha: 0.28),
+                                          blurRadius: 22,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ]
+                                    : const <BoxShadow>[],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  if (isActive)
+                                    Container(
+                                      width: 16,
+                                      height: 3,
+                                      margin: const EdgeInsets.only(bottom: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
+                                      ),
+                                    )
+                                  else
+                                    const SizedBox(height: 9),
+                                  Icon(
+                                    isActive ? items[i].$2 : items[i].$1,
+                                    size: isActive ? 20 : 19,
+                                    color: isActive
+                                        ? Colors.white
+                                        : itemColor.withValues(
+                                            alpha: isDark ? 0.84 : 0.92,
+                                          ),
                                   ),
-                                ),
-                              ],
-                            ],
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    items[i].$3,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: isActive
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: isActive
+                                          ? Colors.white
+                                          : (isDark
+                                              ? AppColors.textSecondaryDark
+                                              : AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       );

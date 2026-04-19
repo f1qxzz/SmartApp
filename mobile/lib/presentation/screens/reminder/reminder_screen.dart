@@ -19,38 +19,41 @@ class ReminderScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F1221) : Colors.white,
-      body: RepaintBoundary(
-        child: RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: () => ref.read(reminderProvider.notifier).loadReminders(),
-          child: CustomScrollView(
+      body: Stack(
+        children: [
+          FluidBackground(isDark: isDark),
+          RefreshIndicator(
+            color: AppColors.primary,
+            displacement: 120,
+            onRefresh: () => ref.read(reminderProvider.notifier).loadReminders(),
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 120.0,
+                  expandedHeight: 140.0,
                   floating: false,
                   pinned: true,
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  flexibleSpace: FlexibleSpaceBar(
-                    centerTitle: false,
-                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                    title: Text(
-                      'Pengingat Pintar',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
                   leading: IconButton(
                     icon: Icon(Icons.arrow_back_ios_new_rounded, 
-                      color: isDark ? Colors.white : Colors.black87, size: 20),
+                      color: isDark ? Colors.white : AppColors.primaryDark, size: 20),
                     onPressed: () => Navigator.pop(context),
+                  ),
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.only(left: 20, bottom: 20),
+                    title: Text(
+                      'Pusat Pengingat',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        color: isDark ? Colors.white : AppColors.primaryDark,
+                        letterSpacing: -1,
+                      ),
+                    ),
                   ),
                 ),
                 
@@ -63,8 +66,8 @@ class ReminderScreen extends ConsumerWidget {
                           padding: EdgeInsets.only(bottom: 12),
                           child: LoadingSkeleton(
                             width: double.infinity,
-                            height: 94,
-                            borderRadius: 22,
+                            height: 100,
+                            borderRadius: 24,
                           ),
                         ),
                         childCount: 5,
@@ -73,6 +76,7 @@ class ReminderScreen extends ConsumerWidget {
                   )
                 else if (state.reminders.isEmpty)
                   SliverFillRemaining(
+                    hasScrollBody: false,
                     child: _buildEmptyState(context, isDark),
                   )
                 else
@@ -94,42 +98,44 @@ class ReminderScreen extends ConsumerWidget {
                     ),
                   ),
                 
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
             ),
           ),
-        ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showReminderForm(context, ref),
         backgroundColor: Colors.transparent,
         elevation: 0,
         label: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
             gradient: AppColors.gradientPrimary,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Row(
             children: [
-              const Icon(Icons.add_rounded, color: Colors.white),
-              const SizedBox(width: 8),
+              const Icon(Icons.add_task_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
               Text(
-                'Buat Baru',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
+                'Buat Jadwal',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
                   color: Colors.white,
                 ),
               ),
             ],
           ),
-        ).animate().scale(delay: 500.ms),
+        ).animate().scale(delay: 400.ms, curve: Curves.easeOutBack),
       ),
     );
   }

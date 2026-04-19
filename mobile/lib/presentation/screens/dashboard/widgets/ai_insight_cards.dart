@@ -2,79 +2,89 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
+import 'package:smartlife_app/core/constants/app_constants.dart';
+import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class InsightCard extends StatelessWidget {
   final bool isDark;
+  final VoidCallback? onAskAi;
 
-  const InsightCard({super.key, required this.isDark});
+  const InsightCard({
+    super.key,
+    required this.isDark,
+    this.onAskAi,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final Color headlineColor = isDark ? Colors.white : AppColors.textPrimary;
+    final Color bodyColor =
+        isDark ? Colors.white.withValues(alpha: 0.86) : const Color(0xFF334155);
+
+    return ModernGlassCard(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.2) : const Color(0xFF6366F1).withValues(alpha: 0.1),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      borderRadius: 32,
+      isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Row(
-            children: [
+            children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                  color:
+                      AppColors.primary.withValues(alpha: isDark ? 0.22 : 0.1),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary
+                        .withValues(alpha: isDark ? 0.34 : 0.2),
+                    width: 1.2,
+                  ),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF6366F1), size: 18),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
                 'AI INSIGHTS',
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF6366F1),
-                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? AppColors.primaryLight : AppColors.primary,
+                  letterSpacing: 1.5,
                 ),
               ),
               const Spacer(),
               _Badge(label: 'Real-time', isDark: isDark),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Text(
             'SmartLife AI telah menganalisis pengeluaran Anda.',
             style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: headlineColor,
+              letterSpacing: -0.2,
             ),
-          ),
-          const SizedBox(height: 8),
+          ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+          const SizedBox(height: 10),
           Text(
             'Anda menghemat 12% lebih banyak dibanding bulan lalu. Pertahankan pola makan sehat dan kurangi langganan yang tidak terpakai.',
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 14,
               height: 1.6,
-              color: isDark ? Colors.white60 : AppColors.textSecondary,
+              color: bodyColor,
+              fontWeight: FontWeight.w600,
             ),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+          const SizedBox(height: 24),
+          _ActionLink(
+            isDark: isDark,
+            onTap: onAskAi,
           ),
-          const SizedBox(height: 20),
-          _ActionLink(isDark: isDark),
         ],
       ),
     );
@@ -90,18 +100,20 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF22C55E).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.2)),
+        color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
         style: GoogleFonts.inter(
           fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: const Color(0xFF22C55E),
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -110,25 +122,53 @@ class _Badge extends StatelessWidget {
 
 class _ActionLink extends StatelessWidget {
   final bool isDark;
+  final VoidCallback? onTap;
 
-  const _ActionLink({required this.isDark});
+  const _ActionLink({
+    required this.isDark,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          'Tanya AI selengkapnya',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF6366F1),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: isDark ? 0.28 : 0.15),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                'Tanya AI selengkapnya',
+                style: GoogleFonts.inter(
+                  fontSize: 13.2,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? AppColors.primaryLight : AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_rounded,
+                size: 16,
+                color: isDark ? AppColors.primaryLight : AppColors.primary,
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 6),
-        const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF6366F1)),
-      ],
-    ).animate(onPlay: (c) => c.repeat())
-     .shimmer(delay: 2.seconds, duration: 1.5.seconds);
+      ),
+    ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+          delay: 3.seconds,
+          duration: 2.seconds,
+        );
   }
 }

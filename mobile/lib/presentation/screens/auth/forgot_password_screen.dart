@@ -1,38 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
+import 'package:smartlife_app/presentation/screens/auth/reset_password_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
-class ResetPasswordScreen extends ConsumerStatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   final String initialEmail;
 
-  const ResetPasswordScreen({
+  const ForgotPasswordScreen({
     super.key,
-    required this.initialEmail,
+    this.initialEmail = '',
   });
 
   @override
-  ConsumerState<ResetPasswordScreen> createState() =>
-      _ResetPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   static final RegExp _emailRegex =
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailCtrl;
-  final TextEditingController _tokenCtrl = TextEditingController();
-  final TextEditingController _newPassCtrl = TextEditingController();
-  final TextEditingController _confirmPassCtrl = TextEditingController();
-
-  bool _obscurePass = true;
-  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -43,9 +38,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _tokenCtrl.dispose();
-    _newPassCtrl.dispose();
-    _confirmPassCtrl.dispose();
     super.dispose();
   }
 
@@ -60,96 +52,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     return null;
   }
 
-  String? _validateCode(String? value) {
-    final String code = value?.trim() ?? '';
-    if (code.isEmpty) {
-      return 'Kode reset wajib diisi';
-    }
-    if (code.length != 6) {
-      return 'Kode harus 6 digit';
-    }
-    return null;
-  }
-
-  String? _validateNewPassword(String? value) {
-    final String pass = value ?? '';
-    if (pass.isEmpty) {
-      return 'Password baru wajib diisi';
-    }
-    if (pass.length < 6) {
-      return 'Password minimal 6 karakter';
-    }
-    return null;
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (_newPassCtrl.text != _confirmPassCtrl.text) {
-      await AppAlert.show(
-        context,
-        title: 'Konfirmasi Tidak Cocok',
-        message: 'Konfirmasi password harus sama dengan password baru.',
-        isError: true,
-      );
-      return;
-    }
-
     FocusScope.of(context).unfocus();
-    await ref.read(authProvider.notifier).resetPassword(
-          email: _emailCtrl.text.trim().toLowerCase(),
-          token: _tokenCtrl.text.trim(),
-          newPassword: _newPassCtrl.text,
-        );
-
-    final AuthState nextState = ref.read(authProvider);
-    final String? errorMessage = nextState.errorMessage;
-
-    if (!mounted) {
-      return;
-    }
-
-    if (errorMessage != null && errorMessage.isNotEmpty) {
-      await AppAlert.show(
-        context,
-        title: 'Reset Password Gagal',
-        message: errorMessage,
-        isError: true,
-      );
-      ref.read(authProvider.notifier).clearErrorMessage();
-      return;
-    }
-
-    ref.read(authProvider.notifier).clearSuccessMessage();
-    await AppAlert.show(
-      context,
-      title: 'Password Berhasil Diubah',
-      message: 'Silakan login kembali menggunakan password baru kamu.',
-      isError: false,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  Future<void> _resendCode() async {
     final String email = _emailCtrl.text.trim().toLowerCase();
-    final String? emailValidation = _validateEmail(email);
-    if (emailValidation != null) {
-      await AppAlert.show(
-        context,
-        title: 'Email Tidak Valid',
-        message: emailValidation,
-        isError: true,
-      );
-      return;
-    }
 
-    FocusScope.of(context).unfocus();
     await ref.read(authProvider.notifier).forgotPassword(email: email);
     final AuthState nextState = ref.read(authProvider);
 
@@ -161,7 +71,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (errorMessage != null && errorMessage.isNotEmpty) {
       await AppAlert.show(
         context,
-        title: 'Gagal Kirim Ulang Kode',
+        title: 'Gagal Mengirim Kode',
         message: errorMessage,
         isError: true,
       );
@@ -172,9 +82,29 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     ref.read(authProvider.notifier).clearSuccessMessage();
     await AppAlert.show(
       context,
-      title: 'Kode Baru Terkirim',
-      message: 'Kode reset baru telah dikirim ke email kamu.',
+      title: 'Kode Reset Terkirim',
+      message:
+          'Kami sudah mengirim kode 6 digit ke email kamu. Lanjutkan ke halaman reset password.',
       isError: false,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      AppRoute<void>(
+        builder: (_) => ResetPasswordScreen(initialEmail: email),
+      ),
+    );
+  }
+
+  void _openResetPage() {
+    final String email = _emailCtrl.text.trim();
+    Navigator.of(context).push(
+      AppRoute<void>(
+        builder: (_) => ResetPasswordScreen(initialEmail: email),
+      ),
     );
   }
 
@@ -202,6 +132,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 SliverAppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
+                  pinned: false,
                   leading: IconButton(
                     icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
@@ -218,7 +149,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'Reset Password',
+                          'Lupa Password',
                           style: GoogleFonts.poppins(
                             fontSize: 32,
                             fontWeight: FontWeight.w800,
@@ -229,7 +160,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ).animate().fadeIn().slideX(begin: -0.08),
                         const SizedBox(height: 8),
                         Text(
-                          'Masukkan kode 6 digit dari email, lalu buat password baru yang aman.',
+                          'Masukkan email akun kamu untuk menerima kode reset password melalui email.',
                           style: GoogleFonts.inter(
                             fontSize: 14.5,
                             height: 1.45,
@@ -251,7 +182,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                _fieldLabel('Email Terdaftar', isDark),
+                                Text(
+                                  'Email Terdaftar',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : const Color(0xFF31508D),
+                                  ),
+                                ),
                                 const SizedBox(height: 9),
                                 InputField(
                                   hint: 'nama@email.com',
@@ -265,77 +205,48 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                _fieldLabel('Kode Reset 6 Digit', isDark),
-                                const SizedBox(height: 9),
-                                InputField(
-                                  hint: '000000',
-                                  controller: _tokenCtrl,
-                                  keyboardType: TextInputType.number,
-                                  validator: _validateCode,
-                                  inputFormatters: <TextInputFormatter>[
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(6),
-                                  ],
-                                  prefixIcon: const Icon(
-                                    Icons.pin_outlined,
-                                    color: AppColors.primary,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _fieldLabel('Password Baru', isDark),
-                                const SizedBox(height: 9),
-                                InputField(
-                                  hint: 'Minimal 6 karakter',
-                                  controller: _newPassCtrl,
-                                  obscureText: _obscurePass,
-                                  validator: _validateNewPassword,
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline_rounded,
-                                    color: AppColors.primary,
-                                    size: 20,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePass
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 20,
-                                      color: AppColors.textTertiary,
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.info.withValues(
+                                      alpha: isDark ? 0.14 : 0.10,
                                     ),
-                                    onPressed: () => setState(
-                                      () => _obscurePass = !_obscurePass,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: AppColors.info.withValues(
+                                        alpha: isDark ? 0.28 : 0.22,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                _fieldLabel('Konfirmasi Password', isDark),
-                                const SizedBox(height: 9),
-                                InputField(
-                                  hint: 'Ulangi password baru',
-                                  controller: _confirmPassCtrl,
-                                  obscureText: _obscureConfirm,
-                                  prefixIcon: const Icon(
-                                    Icons.check_circle_outline_rounded,
-                                    color: AppColors.primary,
-                                    size: 20,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirm
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 20,
-                                      color: AppColors.textTertiary,
-                                    ),
-                                    onPressed: () => setState(
-                                      () => _obscureConfirm = !_obscureConfirm,
-                                    ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      const Icon(
+                                        Icons.mark_email_read_outlined,
+                                        size: 18,
+                                        color: AppColors.info,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Cek folder Inbox/Spam setelah mengirim kode.',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            height: 1.35,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : const Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 22),
                                 CustomButton(
-                                  text: 'Perbarui Password',
+                                  text: 'Kirim Kode Reset',
                                   onPressed: isLoading ? null : _submit,
                                   isLoading: isLoading,
                                   gradient: const LinearGradient(
@@ -351,14 +262,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.05),
                         const Spacer(),
                         Center(
-                          child: TextButton.icon(
-                            onPressed: isLoading ? null : _resendCode,
-                            icon: const Icon(
-                              Icons.refresh_rounded,
-                              size: 16,
-                            ),
-                            label: Text(
-                              'Kirim ulang kode ke email',
+                          child: TextButton(
+                            onPressed: isLoading ? null : _openResetPage,
+                            child: Text(
+                              'Sudah punya kode? Masukkan kode reset',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -380,17 +287,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       ),
     );
   }
-
-  Widget _fieldLabel(String label, bool isDark) {
-    return Text(
-      label,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: isDark ? Colors.white70 : const Color(0xFF31508D),
-      ),
-    );
-  }
 }
 
 class _StepChips extends StatelessWidget {
@@ -407,12 +303,12 @@ class _StepChips extends StatelessWidget {
         _stepChip(
           icon: Icons.looks_one_rounded,
           label: 'Kirim kode email',
-          active: false,
+          active: true,
         ),
         _stepChip(
           icon: Icons.looks_two_rounded,
           label: 'Masukkan kode & reset',
-          active: true,
+          active: false,
         ),
       ],
     );

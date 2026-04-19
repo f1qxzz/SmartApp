@@ -90,6 +90,8 @@ class AuthUseCases {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   }) =>
       _repository.updateProfile(
         username: username,
@@ -105,6 +107,8 @@ class AuthUseCases {
         socialDiscord: socialDiscord,
         socialTelegram: socialTelegram,
         socialSpotify: socialSpotify,
+        socialTikTok: socialTikTok,
+        bio: bio,
       );
 
   Future<String> uploadAvatar(File file) => _repository.uploadAvatar(file);

@@ -51,7 +51,7 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          _WealthBackground(isDark: isDark),
+          const FluidBackground(),
           RefreshIndicator(
             onRefresh: () => ref.read(financeProvider.notifier).load(),
             color: AppColors.primary,
@@ -138,30 +138,42 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
 
   Widget _buildHeader(bool isDark) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Wealth Planner',
+                'Wealth Hub',
                 style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.8,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Pusat perencanaan finansial yang tersimpan permanen untuk akun Anda.',
-                style: GoogleFonts.inter(
-                  fontSize: 13.5,
-                  height: 1.5,
-                  color: isDark ? Colors.white60 : const Color(0xFF64748B),
-                  fontWeight: FontWeight.w600,
-                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.secondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Perencanaan Finansial Akun',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -229,173 +241,170 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
         ? 0
         : (totalGoalSaved / totalGoalTarget).clamp(0.0, 1.0);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                const Color(0xFF243B67).withValues(alpha: 0.96),
-                const Color(0xFF4C5372).withValues(alpha: 0.92),
-                const Color(0xFF7C7E9D).withValues(alpha: 0.9),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: const Color(0xFF243B67).withValues(alpha: 0.34),
-                blurRadius: 34,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
-          child: Column(
+    return ModernGlassCard(
+      padding: const EdgeInsets.all(28),
+      borderRadius: 32,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'FINANCIAL SNAPSHOT',
-                          style: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.8,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          AppFormatters.currency(state.monthlyBudget),
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          state.monthlyBudget > 0
-                              ? 'Budget aktif bulan ${AppFormatters.monthYear(DateTime.now())}'
-                              : 'Atur budget bulanan agar Wealth bisa memberi insight yang realistis',
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withValues(alpha: 0.78),
-                            fontSize: 13,
-                            height: 1.55,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'FINANCIAL SNAPSHOT',
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white54 : Colors.black54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(18),
+                    const SizedBox(height: 10),
+                    Text(
+                      AppFormatters.currency(state.monthlyBudget),
+                      style: GoogleFonts.poppins(
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Colors.white,
-                      size: 28,
+                    const SizedBox(height: 4),
+                    Text(
+                      state.monthlyBudget > 0
+                          ? 'Limit budget aktif bulan ini'
+                          : 'Budget belum diatur',
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildSnapshotStat(
-                      'Pengeluaran',
-                      AppFormatters.currency(state.totalSpent),
-                      Icons.arrow_upward_rounded,
-                      const Color(0xFFFCA5A5),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildSnapshotStat(
-                      'Sisa Budget',
-                      AppFormatters.currency(state.remainingBudget),
-                      Icons.savings_rounded,
-                      const Color(0xFF86EFAC),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildSnapshotStat(
-                      'Komitmen / Bulan',
-                      AppFormatters.currency(commitmentPerMonth),
-                      Icons.receipt_long_rounded,
-                      const Color(0xFFFDE68A),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildSnapshotStat(
-                      'Goal Aktif',
-                      '${state.goals.length} target',
-                      Icons.flag_rounded,
-                      const Color(0xFFBFDBFE),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Text(
-                    'Progress semua goal',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    totalGoalTarget <= 0
-                        ? 'Belum ada target'
-                        : '${(goalProgress * 100).toStringAsFixed(0)}%',
-                    style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: goalProgress,
-                  minHeight: 10,
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Color(0xFF86EFAC)),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: AppColors.primary,
+                  size: 26,
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 32),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildSnapshotStat(
+                  'Spent',
+                  AppFormatters.currency(state.totalSpent),
+                  Icons.show_chart_rounded,
+                  AppColors.error,
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildSnapshotStat(
+                  'Sisa',
+                  AppFormatters.currency(state.remainingBudget),
+                  Icons.savings_rounded,
+                  AppColors.secondary,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildSnapshotStat(
+                  'Komitmen',
+                  AppFormatters.currency(commitmentPerMonth),
+                  Icons.sync_rounded,
+                  AppColors.accent,
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildSnapshotStat(
+                  'Goal Aktif',
+                  '${state.goals.length} target',
+                  Icons.track_changes_rounded,
+                  const Color(0xFF6366F1),
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                'Progress Wealth Target',
+                style: GoogleFonts.inter(
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                totalGoalTarget <= 0
+                    ? '0%'
+                    : '${(goalProgress * 100).toStringAsFixed(0)}%',
+                style: GoogleFonts.poppins(
+                  color: isDark ? AppColors.secondaryLight : AppColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Stack(
+            children: [
+              Container(
+                height: 10,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: goalProgress.clamp(0.01, 1.0),
+                child: Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.gradientSecondary,
+                    borderRadius: BorderRadius.circular(5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.secondary.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -405,21 +414,25 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
     String value,
     IconData icon,
     Color accent,
+    bool isDark,
   ) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+        ),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 38,
-            height: 38,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(14),
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: accent, size: 18),
           ),
@@ -431,20 +444,21 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    color: Colors.white60,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
@@ -456,18 +470,25 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
   }
 
   Widget _buildQuickActions(bool isDark) {
-    final List<({String title, IconData icon, VoidCallback onTap})> actions =
-        <({String title, IconData icon, VoidCallback onTap})>[
+    final List<({String title, IconData icon, VoidCallback onTap, Color color})> actions =
+        <({String title, IconData icon, VoidCallback onTap, Color color})>[
       (
         title: 'Atur Budget',
-        icon: Icons.account_balance_wallet_outlined,
+        icon: Icons.account_balance_wallet_rounded,
         onTap: _openBudgetEditor,
+        color: AppColors.primary,
       ),
-      (title: 'Tambah Goal', icon: Icons.flag_outlined, onTap: _openGoalEditor),
       (
-        title: 'Tambah Subscription',
-        icon: Icons.subscriptions_outlined,
+        title: 'Tambah Goal',
+        icon: Icons.flag_rounded,
+        onTap: _openGoalEditor,
+        color: AppColors.secondary,
+      ),
+      (
+        title: 'Subscription',
+        icon: Icons.sync_rounded,
         onTap: _openSubscriptionEditor,
+        color: AppColors.accent,
       ),
     ];
 
@@ -475,44 +496,36 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
       children: actions.map((action) {
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: action == actions.last ? 0 : 10),
-            child: Material(
-              color: Colors.transparent,
+            padding: EdgeInsets.only(right: action == actions.last ? 0 : 12),
+            child: ModernGlassCard(
+              padding: EdgeInsets.zero,
+              borderRadius: 24,
               child: InkWell(
                 onTap: action.onTap,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.03),
-                    ),
-                  ),
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
                   child: Column(
                     children: <Widget>[
                       Container(
-                        width: 42,
-                        height: 42,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          gradient: AppColors.gradientPrimary,
-                          borderRadius: BorderRadius.circular(14),
+                          color: action.color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: action.color.withValues(alpha: 0.1)),
                         ),
-                        child: Icon(action.icon, color: Colors.white, size: 20),
+                        child: Icon(action.icon, color: action.color, size: 22),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Text(
                         action.title,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1E293B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
@@ -548,31 +561,28 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
           final bool isLast = insight == insights.last;
           return Container(
             margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(18),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.07)
-                    : const Color(0xFFE2E8F0),
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.01),
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: insight.color.withValues(alpha: 0.14),
+                    color: insight.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: insight.color.withValues(alpha: 0.1)),
                   ),
                   child: Icon(insight.icon, color: insight.color, size: 20),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,19 +591,18 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                         insight.title,
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         insight.message,
                         style: GoogleFonts.inter(
-                          fontSize: 12.5,
-                          height: 1.55,
-                          color:
-                              isDark ? Colors.white70 : const Color(0xFF64748B),
+                          fontSize: 12,
+                          height: 1.6,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -750,16 +759,12 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                 final Color goalColor = _colorFromHex(goal.color);
                 return Container(
                   margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.04)
-                        : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(20),
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.07)
-                          : const Color(0xFFE2E8F0),
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.01),
                     ),
                   ),
                   child: Column(
@@ -767,11 +772,12 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                       Row(
                         children: <Widget>[
                           Container(
-                            width: 44,
-                            height: 44,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: goalColor.withValues(alpha: 0.14),
+                              color: goalColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: goalColor.withValues(alpha: 0.1)),
                             ),
                             child: Icon(
                               _iconFromName(goal.icon),
@@ -779,7 +785,7 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                               size: 22,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -788,28 +794,26 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                                   goal.title,
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : AppColors.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
                                 Text(
                                   goal.deadline == null
-                                      ? 'Tanpa deadline'
+                                      ? 'Tanpa target waktu'
                                       : 'Target ${AppFormatters.relativeDate(goal.deadline!)}',
                                   style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? Colors.white54
-                                        : const Color(0xFF64748B),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white38 : Colors.black38,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                           PopupMenuButton<String>(
+                            iconColor: isDark ? Colors.white38 : Colors.black38,
                             onSelected: (String value) {
                               if (value == 'edit') {
                                 _openGoalEditor(goal: goal);
@@ -830,41 +834,57 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           Text(
-                            '${(goal.progress * 100).toStringAsFixed(0)}% tercapai',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                            AppFormatters.compactCurrency(goal.currentAmount),
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
                               color: goalColor,
                             ),
                           ),
                           Text(
-                            '${AppFormatters.currency(goal.currentAmount)} / ${AppFormatters.currency(goal.targetAmount)}',
-                            style: GoogleFonts.inter(
+                            '${(goal.progress * 100).toStringAsFixed(0)}%',
+                            style: GoogleFonts.poppins(
                               fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white70
-                                  : const Color(0xFF475569),
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white54 : Colors.black54,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          minHeight: 10,
-                          value: goal.progress,
-                          backgroundColor: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.black.withValues(alpha: 0.06),
-                          valueColor: AlwaysStoppedAnimation<Color>(goalColor),
-                        ),
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 6,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: goal.progress.clamp(0.01, 1.0),
+                            child: Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: goalColor,
+                                borderRadius: BorderRadius.circular(3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: goalColor.withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -903,34 +923,31 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                 final Color accent = _colorFromHex(subscription.color);
                 return Container(
                   margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.04)
-                        : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(20),
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.07)
-                          : const Color(0xFFE2E8F0),
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.01),
                     ),
                   ),
                   child: Row(
                     children: <Widget>[
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.14),
+                          color: accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: accent.withValues(alpha: 0.1)),
                         ),
                         child: Icon(
                           _iconFromName(subscription.icon),
                           color: accent,
-                          size: 22,
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -942,63 +959,61 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                                     subscription.name,
                                     style: GoogleFonts.poppins(
                                       fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? Colors.white
-                                          : const Color(0xFF0F172A),
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _statusColor(
-                                      subscription.status,
-                                    ).withValues(alpha: 0.14),
-                                    borderRadius: BorderRadius.circular(999),
+                                    color: _statusColor(subscription.status).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    _statusLabel(subscription.status),
+                                    _statusLabel(subscription.status).toUpperCase(),
                                     style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w900,
                                       color: _statusColor(subscription.status),
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${AppFormatters.currency(subscription.amount)} • ${_billingLabel(subscription.billingCycle)}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? Colors.white70
-                                    : const Color(0xFF475569),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subscription.nextBillingDate == null
-                                  ? 'Tanggal tagihan berikutnya belum diatur'
-                                  : 'Tagihan berikutnya ${AppFormatters.relativeDate(subscription.nextBillingDate!)}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: isDark
-                                    ? Colors.white54
-                                    : const Color(0xFF64748B),
-                              ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${AppFormatters.currency(subscription.amount)} • ${_billingLabel(subscription.billingCycle)}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white54 : Colors.black54,
+                                  ),
+                                ),
+                                if (subscription.nextBillingDate != null)
+                                  Text(
+                                    AppFormatters.relativeDate(subscription.nextBillingDate!),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white38 : Colors.black38,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       PopupMenuButton<String>(
+                        iconColor: isDark ? Colors.white38 : Colors.black38,
                         onSelected: (String value) {
                           if (value == 'edit') {
                             _openSubscriptionEditor(subscription: subscription);
@@ -1032,24 +1047,9 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
     Widget? trailing,
     required Widget child,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.04),
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return ModernGlassCard(
+      padding: const EdgeInsets.all(24),
+      borderRadius: 28,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1064,17 +1064,18 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
-                        fontSize: 12.5,
-                        height: 1.55,
-                        color:
-                            isDark ? Colors.white60 : const Color(0xFF64748B),
+                        fontSize: 12,
+                        height: 1.5,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1086,7 +1087,7 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
               ],
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           child,
         ],
       ),
@@ -1103,52 +1104,56 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(22),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.07)
-              : const Color(0xFFE2E8F0),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.01),
         ),
       ),
       child: Column(
         children: <Widget>[
           Container(
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               gradient: AppColors.gradientPrimary,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 26),
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           Text(
             title,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             message,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              fontSize: 12.5,
-              height: 1.55,
-              color: isDark ? Colors.white60 : const Color(0xFF64748B),
+              fontSize: 13,
+              height: 1.5,
+              color: isDark ? Colors.white54 : Colors.black54,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           SizedBox(
-            width: 220,
+            width: 200,
             child: CustomButton(
               text: buttonLabel,
               onPressed: onTap,
@@ -1610,55 +1615,7 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
   }
 }
 
-class _WealthBackground extends StatelessWidget {
-  const _WealthBackground({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            isDark ? const Color(0xFF21263A) : const Color(0xFFF8FAFC),
-            isDark ? const Color(0xFF111827) : const Color(0xFFEEF2FF),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            top: -70,
-            left: -40,
-            child: _GlowOrb(
-              size: 220,
-              color: const Color(0xFF60A5FA).withValues(alpha: 0.18),
-            ),
-          ),
-          Positioned(
-            top: 180,
-            right: -40,
-            child: _GlowOrb(
-              size: 220,
-              color: const Color(0xFF8B5CF6).withValues(alpha: 0.16),
-            ),
-          ),
-          Positioned(
-            bottom: 80,
-            left: 40,
-            child: _GlowOrb(
-              size: 180,
-              color: const Color(0xFF22C55E).withValues(alpha: 0.12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// _WealthBackground removed in favor of FluidBackground
 
 class _GlowOrb extends StatelessWidget {
   const _GlowOrb({required this.size, required this.color});

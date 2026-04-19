@@ -1,6 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:smartlife_app/core/theme/app_theme.dart';
+import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class TrendChart extends StatelessWidget {
   final List<FlSpot> spots;
@@ -16,22 +18,9 @@ class TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ModernGlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      borderRadius: 32,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -41,16 +30,27 @@ class TrendChart extends StatelessWidget {
               Text(
                 'Weekly Trend',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  letterSpacing: -0.5,
                 ),
               ),
-              Icon(Icons.insights_rounded,
-                  color: isDark ? Colors.white24 : Colors.black12, size: 20),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.insights_rounded,
+                    color: isDark ? AppColors.primaryLight : AppColors.primary,
+                    size: 20),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           SizedBox(
             height: 180,
             child: LineChart(
@@ -76,10 +76,11 @@ class TrendChart extends StatelessWidget {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF4B67D1), Color(0xFF6D8DFF)],
+                      colors: [Color(0xFF6366F1), Color(0xFF00FFD1)],
                     ),
-                    barWidth: 4,
+                    barWidth: 5,
                     isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
@@ -88,8 +89,8 @@ class TrendChart extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          const Color(0xFF4B67D1).withValues(alpha: 0.3),
-                          const Color(0xFF4B67D1).withValues(alpha: 0.0),
+                          const Color(0xFF6366F1).withValues(alpha: 0.25),
+                          const Color(0xFF6366F1).withValues(alpha: 0.0),
                         ],
                       ),
                     ),

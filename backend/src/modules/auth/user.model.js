@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, trim: true, default: '' },
+    bio: { type: String, trim: true, default: '', maxlength: 200 },
     username: {
       type: String,
       required: true,
@@ -51,6 +52,7 @@ const userSchema = new mongoose.Schema(
     socialDiscord: { type: String, default: '', trim: true },
     socialTelegram: { type: String, default: '', trim: true },
     socialSpotify: { type: String, default: '', trim: true },
+    socialTikTok: { type: String, default: '', trim: true },
     tokenVersion: { type: Number, default: 0, min: 0 },
     resetPasswordToken: { type: String, default: '', trim: true, index: true },
     resetPasswordExpires: { type: Date, default: null, index: true },

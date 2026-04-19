@@ -91,6 +91,52 @@ function ensureValidGender(gender) {
   return normalizedGender;
 }
 
+function parseDateOfBirthInput(rawValue) {
+  if (rawValue === undefined) {
+    return undefined;
+  }
+
+  const value = String(rawValue || '').trim();
+  if (!value) {
+    return null;
+  }
+
+  let year;
+  let month;
+  let day;
+
+  const datePrefix = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (datePrefix) {
+    year = Number(datePrefix[1]);
+    month = Number(datePrefix[2]);
+    day = Number(datePrefix[3]);
+  } else {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw createHttpError(400, 'Format tanggal lahir tidak valid');
+    }
+    year = parsed.getUTCFullYear();
+    month = parsed.getUTCMonth() + 1;
+    day = parsed.getUTCDate();
+  }
+
+  const normalized = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  const sameDate =
+    normalized.getUTCFullYear() === year &&
+    normalized.getUTCMonth() + 1 === month &&
+    normalized.getUTCDate() === day;
+
+  if (!sameDate) {
+    throw createHttpError(400, 'Format tanggal lahir tidak valid');
+  }
+
+  if (normalized.getTime() > Date.now()) {
+    throw createHttpError(400, 'Tanggal lahir tidak boleh di masa depan');
+  }
+
+  return normalized;
+}
+
 function sanitizeUsernameSeed(seed) {
   const normalized = String(seed || '')
     .toLowerCase()
@@ -211,6 +257,7 @@ function buildAuthResponse(user) {
       name: user.name || user.username,
       email: user.email,
       avatar: user.avatar,
+      bio: user.bio || '',
       role: user.role || 'user',
       gender: user.gender || '',
       monthlyBudget: Number(user.monthlyBudget || 0),
@@ -220,6 +267,7 @@ function buildAuthResponse(user) {
       socialDiscord: user.socialDiscord || '',
       socialTelegram: user.socialTelegram || '',
       socialSpotify: user.socialSpotify || '',
+      socialTikTok: user.socialTikTok || '',
     },
   };
 }
@@ -359,6 +407,7 @@ async function register(payload) {
   }
 
   const name = providedName || username;
+  const dateOfBirth = parseDateOfBirthInput(payload.dateOfBirth);
 
   const [existingUsername, existingEmail] = await Promise.all([
     User.findOne({ username }),
@@ -382,7 +431,7 @@ async function register(payload) {
       email,
       password: hashedPassword,
       gender,
-      dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : null,
+      dateOfBirth,
       authProvider: 'local',
     });
   } catch (error) {
@@ -433,7 +482,23 @@ async function login(payload) {
     throw createHttpError(401, 'Akun ini terdaftar melalui Google. Silakan masuk dengan Google.');
   }
 
-  const isPasswordMatch = await bcrypt.compare(password, user.password);
+  let isPasswordMatch = false;
+  try {
+    isPasswordMatch = await bcrypt.compare(password, user.password);
+  } catch (_) {
+    isPasswordMatch = false;
+  }
+
+  // Backward compatibility for legacy plaintext passwords that might exist
+  // from older data/imports; migrate to bcrypt hash after successful login.
+  if (!isPasswordMatch && user.password === password) {
+    user.password = await bcrypt.hash(password, 10);
+    user.authProvider = 'local';
+    await user.save();
+    isPasswordMatch = true;
+    authLog('login.password-migrated', { identifier, username: user.username });
+  }
+
   if (!isPasswordMatch) {
     authLog('login.failed.wrong-password', { identifier });
     throw createHttpError(401, 'Username/email atau password salah');
@@ -699,14 +764,14 @@ async function updateProfile(userId, payload) {
   }
   
   if (payload.dateOfBirth !== undefined) {
-    user.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth) : null;
+    user.dateOfBirth = parseDateOfBirthInput(payload.dateOfBirth);
   }
 
   if (payload.monthlyBudget !== undefined) {
     user.monthlyBudget = Number(payload.monthlyBudget || 0);
   }
 
-  ['socialGithub', 'socialInstagram', 'socialDiscord', 'socialTelegram', 'socialSpotify'].forEach(field => {
+  ['bio', 'socialGithub', 'socialInstagram', 'socialDiscord', 'socialTelegram', 'socialSpotify', 'socialTikTok'].forEach(field => {
     if (payload[field] !== undefined) {
       user[field] = String(payload[field] || '').trim();
     }
@@ -729,12 +794,14 @@ async function updateProfile(userId, payload) {
     socialDiscord: user.socialDiscord || '',
     socialTelegram: user.socialTelegram || '',
     socialSpotify: user.socialSpotify || '',
+    socialTikTok: user.socialTikTok || '',
+    bio: user.bio || '',
   };
 }
 
 async function getPublicProfile(userId) {
   const user = await User.findById(userId).select(
-    '_id username name avatar role gender dateOfBirth createdAt socialGithub socialInstagram socialDiscord socialTelegram socialSpotify'
+    '_id username name avatar role gender dateOfBirth bio createdAt socialGithub socialInstagram socialDiscord socialTelegram socialSpotify socialTikTok'
   );
 
   if (!user || user.isSystem) {
@@ -760,6 +827,8 @@ async function getPublicProfile(userId) {
     socialDiscord: user.socialDiscord || '',
     socialTelegram: user.socialTelegram || '',
     socialSpotify: user.socialSpotify || '',
+    socialTikTok: user.socialTikTok || '',
+    bio: user.bio || '',
   };
 }
 
@@ -787,3 +856,4 @@ module.exports = {
   getPublicProfile,
   logout,
 };
+

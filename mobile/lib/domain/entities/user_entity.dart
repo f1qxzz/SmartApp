@@ -13,6 +13,8 @@ class UserEntity {
   final String socialDiscord;
   final String socialTelegram;
   final String socialSpotify;
+  final String socialTikTok;
+  final String bio;
 
   const UserEntity({
     required this.id,
@@ -29,12 +31,18 @@ class UserEntity {
     this.socialDiscord = '',
     this.socialTelegram = '',
     this.socialSpotify = '',
+    this.socialTikTok = '',
+    this.bio = '',
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
     DateTime? dob;
     if (json['dateOfBirth'] != null) {
-      dob = DateTime.tryParse(json['dateOfBirth'].toString());
+      final parsedDob = DateTime.tryParse(json['dateOfBirth'].toString());
+      if (parsedDob != null) {
+        final localDate = parsedDob.toLocal();
+        dob = DateTime(localDate.year, localDate.month, localDate.day);
+      }
     }
 
     return UserEntity(
@@ -45,13 +53,16 @@ class UserEntity {
       avatar: (json['avatar'] ?? '').toString(),
       role: (json['role'] ?? 'user').toString(),
       gender: (json['gender'] ?? '').toString(),
-      monthlyBudget: double.tryParse(json['monthlyBudget']?.toString() ?? '0') ?? 0,
+      monthlyBudget:
+          double.tryParse(json['monthlyBudget']?.toString() ?? '0') ?? 0,
       dateOfBirth: dob,
       socialGithub: (json['socialGithub'] ?? '').toString(),
       socialInstagram: (json['socialInstagram'] ?? '').toString(),
       socialDiscord: (json['socialDiscord'] ?? '').toString(),
       socialTelegram: (json['socialTelegram'] ?? '').toString(),
       socialSpotify: (json['socialSpotify'] ?? '').toString(),
+      socialTikTok: (json['socialTikTok'] ?? '').toString(),
+      bio: (json['bio'] ?? '').toString(),
     );
   }
 
@@ -70,6 +81,8 @@ class UserEntity {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -86,6 +99,8 @@ class UserEntity {
       socialDiscord: socialDiscord ?? this.socialDiscord,
       socialTelegram: socialTelegram ?? this.socialTelegram,
       socialSpotify: socialSpotify ?? this.socialSpotify,
+      socialTikTok: socialTikTok ?? this.socialTikTok,
+      bio: bio ?? this.bio,
     );
   }
 
@@ -104,5 +119,7 @@ class UserEntity {
         'socialDiscord': socialDiscord,
         'socialTelegram': socialTelegram,
         'socialSpotify': socialSpotify,
+        'socialTikTok': socialTikTok,
+        'bio': bio,
       };
 }

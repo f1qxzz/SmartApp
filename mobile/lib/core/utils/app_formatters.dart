@@ -34,6 +34,12 @@ class AppFormatters {
     return _weekDays[date.weekday - 1];
   }
 
+  static String dateShort(DateTime date) {
+    final String day = date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
   static String relativeDate(DateTime date) {
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);
@@ -61,9 +67,7 @@ class AppFormatters {
     }
 
     // Older than 7 days, return dd/mm/yyyy
-    final String day = date.day.toString().padLeft(2, '0');
-    final String month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+    return dateShort(date);
   }
 
   static String compactCurrency(num value) {

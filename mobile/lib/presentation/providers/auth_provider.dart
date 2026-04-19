@@ -171,11 +171,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
-    if (password.length < 6) {
-      _setClientError('Password minimal 6 karakter.');
-      return;
-    }
-
     try {
       final result = await _useCases.login(
         identifier: normalizedIdentifier,
@@ -353,7 +348,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthState(
         status: AuthStatus.unauthenticated,
         successMessage:
-            'Jika email terdaftar, link reset password sudah dikirim.',
+            'Jika email terdaftar, kode reset password sudah dikirim.',
       );
     } catch (error) {
       debugPrint('[AUTH] forgot-password failed: $error');
@@ -445,6 +440,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   }) async {
     if (!state.isAuthenticated || state.user == null || state.token == null) {
       state = state.copyWith(
@@ -504,6 +501,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         socialDiscord: socialDiscord,
         socialTelegram: socialTelegram,
         socialSpotify: socialSpotify,
+        socialTikTok: socialTikTok,
+        bio: bio,
       );
       final refreshedProfile = await _refreshFromServerAndCache();
       state = state.copyWith(

@@ -33,22 +33,21 @@ class Habit {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'icon': icon,
-    'streak': streak,
-    'isCompletedToday': isCompletedToday,
-    'frequency': frequency,
-  };
+        'title': title,
+        'icon': icon,
+        'streak': streak,
+        'isCompletedToday': isCompletedToday,
+        'frequency': frequency,
+      };
 
   factory Habit.fromJson(Map<String, dynamic> json) => Habit(
-    id: json['id'],
-    title: json['title'],
-    icon: json['icon'],
-    streak: json['streak'] ?? 0,
-    isCompletedToday: json['isCompletedToday'] ?? false,
-    frequency: json['frequency'] ?? 'daily',
-  );
+        id: json['_id'] ?? json['id'] ?? '',
+        title: json['title'] ?? '',
+        icon: json['icon'] ?? 'water_drop',
+        streak: json['streak'] ?? 0,
+        isCompletedToday: json['isCompletedToday'] ?? false,
+        frequency: json['frequency'] ?? 'daily',
+      );
 }
 
 class LifeGoal {
@@ -86,20 +85,19 @@ class LifeGoal {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'progress': progress,
-    'deadline': deadline,
-    'category': category,
-    'isCompleted': isCompleted,
-  };
+        'title': title,
+        'progress': progress,
+        'deadline': deadline,
+        'category': category,
+        'isCompleted': isCompleted,
+      };
 
   factory LifeGoal.fromJson(Map<String, dynamic> json) => LifeGoal(
-    id: json['id'],
-    title: json['title'],
-    progress: (json['progress'] ?? 0.0).toDouble(),
-    deadline: json['deadline'],
-    category: json['category'] ?? 'General',
-    isCompleted: json['isCompleted'] ?? false,
-  );
+        id: json['_id'] ?? json['id'] ?? '',
+        title: json['title'] ?? '',
+        progress: (json['progress'] ?? 0.0).toDouble(),
+        deadline: json['deadline'] ?? '',
+        category: json['category'] ?? 'General',
+        isCompleted: json['isCompleted'] ?? false,
+      );
 }

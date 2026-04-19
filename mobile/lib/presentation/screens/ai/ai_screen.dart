@@ -1,11 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:smartlife_app/core/constants/app_constants.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/ai_message_entity.dart';
@@ -41,13 +41,14 @@ class _AIScreenState extends ConsumerState<AIScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final aiState = ref.watch(aiProvider);
+    final AiState aiState = ref.watch(aiProvider);
     final financeState = ref.watch(financeProvider);
 
     ref.listen<AiState>(aiProvider, (previous, next) {
       if (!mounted) {
         return;
       }
+
       if (next.errorMessage != null &&
           next.errorMessage!.isNotEmpty &&
           previous?.errorMessage != next.errorMessage) {
@@ -60,188 +61,75 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          const _MeshBackground(),
+          FluidBackground(isDark: isDark),
           const _NoiseOverlay(),
-          Column(
-            children: <Widget>[
-              _AiHeader(
-                isDark: isDark,
-                totalSpent: financeState.totalSpent,
-                budget: financeState.budget,
-                onClear: () => _clearConversation(aiState.messages.length),
-              ),
-              Expanded(
-                child: aiState.messages.length <= 1 && !aiState.isLoading
-                    ? _WelcomeView(
-                        suggestions: _suggestions,
-                        onSuggestion: _sendMessage,
-                      )
-                    : ListView.builder(
-                        controller: _scrollCtrl,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        itemCount: aiState.messages.length +
-                            (aiState.isLoading ? 1 : 0),
-                        itemBuilder: (_, int i) {
-                          if (i == aiState.messages.length) {
-                            return const _AiLoadingBubble();
-                          }
-                          final message = aiState.messages[i];
-                          return _AiBubble(
-                            message: message,
-                            onCopy: () => _copyMessage(message.text),
-                          )
-                              .animate()
-                              .fadeIn(duration: 200.ms)
-                              .slideY(begin: 0.1, end: 0);
-                        },
-                      ),
-              ),
-              _buildInputBar(
-                isDark,
-                aiState.isLoading,
-                aiState.messages.length <= 1,
-              ),
-            ],
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                  child: _AiHeader(
+                    isDark: isDark,
+                    totalSpent: financeState.totalSpent,
+                    budget: financeState.budget,
+                    onClear: () => _clearConversation(aiState.messages.length),
+                  ),
+                ),
+                Expanded(
+                  child: aiState.messages.length <= 1 && !aiState.isLoading
+                      ? SingleChildScrollView(
+                          controller: _scrollCtrl,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+                          child: _WelcomeView(
+                            isDark: isDark,
+                            totalSpent: financeState.totalSpent,
+                            budget: financeState.budget,
+                            suggestions: _suggestions,
+                            onSuggestion: _sendMessage,
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+                          itemCount: aiState.messages.length +
+                              (aiState.isLoading ? 1 : 0),
+                          itemBuilder: (_, int index) {
+                            if (index == aiState.messages.length) {
+                              return const _AiLoadingBubble();
+                            }
+
+                            final AiMessageEntity message =
+                                aiState.messages[index];
+                            return _AiBubble(
+                              message: message,
+                              isDark: isDark,
+                              onCopy: () => _copyMessage(message.text),
+                            )
+                                .animate()
+                                .fadeIn(duration: 220.ms)
+                                .slideY(begin: 0.05, end: 0);
+                          },
+                        ),
+                ),
+                _InputBar(
+                  controller: _msgCtrl,
+                  isDark: isDark,
+                  isLoading: aiState.isLoading,
+                  suggestions: aiState.messages.length <= 1 ? _suggestions : null,
+                  onSend: _sendMessage,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInputBar(bool isDark, bool isLoading, bool showSuggestions) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 12,
-            bottom: MediaQuery.of(context).padding.bottom + 8,
-          ),
-          decoration: BoxDecoration(
-            color: isDark 
-                ? const Color(0xFF0F172A).withValues(alpha: 0.7) 
-                : Colors.white.withValues(alpha: 0.7),
-            border: Border(
-              top: BorderSide(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (showSuggestions) ...<Widget>[
-                SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: _suggestions.map((suggestion) {
-                      return GestureDetector(
-                        onTap: () => _sendMessage(suggestion.$2),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.surfaceDark
-                                : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.dividerLight),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Icon(suggestion.$1,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(
-                                suggestion.$2,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: TextField(
-                        controller: _msgCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Tanya sesuatu tentang keuanganmu...',
-                          border: InputBorder.none,
-                          filled: false,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 14),
-                          hintStyle: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textTertiary,
-                          ),
-                        ),
-                        style: GoogleFonts.inter(fontSize: 14),
-                        onSubmitted: (value) => _sendMessage(value),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: isLoading ? null : () => _sendMessage(_msgCtrl.text),
-                    child: Opacity(
-                      opacity: isLoading ? 0.6 : 1,
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.gradientPrimary,
-                          shape: BoxShape.circle,
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Color(0x557C7E9D),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.send_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _sendMessage(String text) async {
-    final cleanText = text.trim();
+    final String cleanText = text.trim();
     if (cleanText.isEmpty) {
       return;
     }
@@ -249,14 +137,15 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     HapticFeedback.lightImpact();
     _msgCtrl.clear();
     await ref.read(aiProvider.notifier).ask(cleanText);
-    _scrollToBottom();
+    _scrollToBottom(delayMs: 180);
   }
 
-  void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 120), () {
+  void _scrollToBottom({int delayMs = 120}) {
+    Future<void>.delayed(Duration(milliseconds: delayMs), () {
       if (!_scrollCtrl.hasClients) {
         return;
       }
+
       _scrollCtrl.animateTo(
         _scrollCtrl.position.maxScrollExtent,
         duration: const Duration(milliseconds: 350),
@@ -270,10 +159,12 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     if (clean.isEmpty) {
       return;
     }
+
     await Clipboard.setData(ClipboardData(text: clean));
     if (!mounted) {
       return;
     }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pesan berhasil disalin')),
     );
@@ -283,6 +174,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     if (messageCount <= 1) {
       return;
     }
+
     ref.read(aiProvider.notifier).clearConversation();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Riwayat obrolan AI dibersihkan')),
@@ -306,99 +198,298 @@ class _AiHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double budgetPct =
-        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999);
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 14,
-        left: 20,
-        right: 20,
-        bottom: 14,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            padding: const EdgeInsets.all(16),
+        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
+    final bool isDanger = budgetPct >= 90;
+
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(18),
+      borderRadius: 28,
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF1E293B).withValues(alpha: 0.7)
-                  : Colors.white.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.3),
-              ),
+              gradient: AppColors.gradientPrimary,
+              borderRadius: BorderRadius.circular(18),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
-                  blurRadius: 15,
+                  color: AppColors.primary.withValues(alpha: 0.32),
+                  blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'SmartLife AI',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                    color: isDark ? Colors.white : AppColors.primaryDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isDanger
+                      ? 'Budget mulai ketat. Coba minta strategi hemat cepat.'
+                      : 'Asisten finansial untuk insight, strategi, dan keputusan harian.',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                    color: isDark ? Colors.white54 : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: (isDanger ? AppColors.error : AppColors.success)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  '${budgetPct.toStringAsFixed(0)}%',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: isDanger ? AppColors.error : AppColors.success,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TopBarAction(
+                icon: Icons.delete_sweep_rounded,
+                onPressed: onClear,
+                isDark: isDark,
+                tooltip: 'Bersihkan percakapan',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WelcomeView extends StatelessWidget {
+  final bool isDark;
+  final double totalSpent;
+  final double budget;
+  final List<(IconData, String)> suggestions;
+  final ValueChanged<String> onSuggestion;
+
+  const _WelcomeView({
+    required this.isDark,
+    required this.totalSpent,
+    required this.budget,
+    required this.suggestions,
+    required this.onSuggestion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double remaining = budget > totalSpent ? budget - totalSpent : 0;
+    final double budgetPct =
+        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        ModernGlassCard(
+          isDark: isDark,
+          borderRadius: 32,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: AppColors.gradientPrimary,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ).animate().scaleXY(
+                    begin: 0.8,
+                    curve: Curves.easeOutBack,
+                    duration: 500.ms,
+                  ),
+              const SizedBox(height: 22),
+              Text(
+                'Analisis cepat, gaya premium.',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                  color: isDark ? Colors.white : AppColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Gunakan AI untuk membaca tren pengeluaran, cari peluang hemat, dan dapatkan rekomendasi cepat tanpa harus buka banyak menu.',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  height: 1.6,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white60 : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _MetricCard(
+                      label: 'Spent',
+                      value: AppFormatters.currency(totalSpent),
+                      accent: AppColors.error,
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MetricCard(
+                      label: 'Remaining',
+                      value: AppFormatters.currency(remaining),
+                      accent: AppColors.success,
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MetricCard(
+                      label: 'Usage',
+                      value: '${budgetPct.toStringAsFixed(0)}%',
+                      accent: AppColors.primary,
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+        Text(
+          'Prompt Cepat',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: isDark ? Colors.white : AppColors.primaryDark,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Pilih salah satu untuk mulai obrolan lebih cepat.',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white38 : AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...suggestions.asMap().entries.map((entry) {
+          final int index = entry.key;
+          final (IconData, String) item = entry.value;
+          return _PromptCard(
+            isDark: isDark,
+            icon: item.$1,
+            label: item.$2,
+            onTap: () => onSuggestion(item.$2),
+          ).animate().fadeIn(delay: (150 + index * 80).ms).slideY(begin: 0.06);
+        }),
+      ],
+    );
+  }
+}
+
+class _PromptCard extends StatelessWidget {
+  final bool isDark;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _PromptCard({
+    required this.isDark,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernGlassCard(
+      isDark: isDark,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.zero,
+      borderRadius: 24,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: <Widget>[
                 Container(
                   width: 44,
                   height: 44,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.gradientPrimary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text('SmartLife AI', style: AppTextStyles.heading3(context)),
-                      Text(
-                        'Asisten insight keuangan real-time',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  child: Icon(icon, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Text(
-                    '${budgetPct.toStringAsFixed(0)}% budget',
+                    label,
                     style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.primary,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onClear,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color:
-                            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.cleaning_services_rounded, size: 18),
-                    ),
-                  ),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: isDark ? Colors.white24 : Colors.black26,
                 ),
               ],
             ),
@@ -409,96 +500,202 @@ class _AiHeader extends StatelessWidget {
   }
 }
 
-class _WelcomeView extends StatelessWidget {
-  final List<(IconData, String)> suggestions;
-  final ValueChanged<String> onSuggestion;
+class _MetricCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color accent;
+  final bool isDark;
 
-  const _WelcomeView({
-    required this.suggestions,
-    required this.onSuggestion,
+  const _MetricCard({
+    required this.label,
+    required this.value,
+    required this.accent,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.14),
+        ),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const SizedBox(height: 20),
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              gradient: AppColors.gradientPrimary,
-              shape: BoxShape.circle,
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              color: accent,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 36),
-          )
-              .animate()
-              .scaleXY(begin: 0.5, curve: Curves.elasticOut, duration: 600.ms),
-          const SizedBox(height: 16),
-          Text('SmartLife AI', style: AppTextStyles.heading2(context))
-              .animate()
-              .fadeIn(delay: 200.ms),
+          ),
           const SizedBox(height: 8),
           Text(
-            'Asisten keuangan pintar dengan data real dari transaksi kamu.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.body(context),
-          ).animate().fadeIn(delay: 300.ms),
-          const SizedBox(height: 32),
-          Text('Coba pertanyaan ini:', style: AppTextStyles.subtitle(context))
-              .animate()
-              .fadeIn(delay: 400.ms),
-          const SizedBox(height: 14),
-          ...suggestions.asMap().entries.map((entry) {
-            final int i = entry.key;
-            final (IconData, String) item = entry.value;
-            return GestureDetector(
-              onTap: () => onSuggestion(item.$2),
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.cardDark
-                      : AppColors.cardLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15)),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Icon(item.$1, size: 20, color: AppColors.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        item.$2,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                        ),
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : AppColors.primaryDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isDark;
+  final bool isLoading;
+  final List<(IconData, String)>? suggestions;
+  final ValueChanged<String> onSend;
+
+  const _InputBar({
+    required this.controller,
+    required this.isDark,
+    required this.isLoading,
+    required this.suggestions,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (suggestions != null) ...<Widget>[
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                children: suggestions!.map((suggestion) {
+                  return GestureDetector(
+                    onTap: () => onSend(suggestion.$2),
+                    child: (ModernGlassCard(
+                      isDark: isDark,
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
                       ),
+                      borderRadius: 22,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(
+                            suggestion.$1,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            suggestion.$2,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ))
+                        .animate()
+                        .fadeIn(duration: 380.ms)
+                        .slideX(begin: 0.08),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          ModernGlassCard(
+            isDark: isDark,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            borderRadius: 30,
+            child: Row(
+              children: <Widget>[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    minLines: 1,
+                    maxLines: 4,
+                    onSubmitted: onSend,
+                    decoration: InputDecoration(
+                      hintText: 'Tanya apa pun soal keuangan kamu...',
+                      border: InputBorder.none,
+                      hintStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white24 : Colors.black26,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded,
-                        size: 14, color: AppColors.primary),
-                  ],
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
                 ),
-              ).animate().fadeIn(delay: (400 + i * 100).ms).slideX(begin: 0.1),
-            );
-          }),
+                GestureDetector(
+                  onTap: isLoading ? null : () => onSend(controller.text),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: isLoading ? null : AppColors.gradientPrimary,
+                      color: isLoading ? Colors.white10 : null,
+                      shape: BoxShape.circle,
+                      boxShadow: isLoading
+                          ? const <BoxShadow>[]
+                          : <BoxShadow>[
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.35),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                    ),
+                    child: isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white24,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -507,16 +704,17 @@ class _WelcomeView extends StatelessWidget {
 
 class _AiBubble extends StatelessWidget {
   final AiMessageEntity message;
+  final bool isDark;
   final VoidCallback onCopy;
 
   const _AiBubble({
     required this.message,
+    required this.isDark,
     required this.onCopy,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool isAi = !message.isUser;
 
     return Padding(
@@ -528,109 +726,86 @@ class _AiBubble extends StatelessWidget {
         children: <Widget>[
           if (isAi) ...<Widget>[
             Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
                 gradient: AppColors.gradientPrimary,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 16),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 10),
           ],
           Flexible(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
+            child: GestureDetector(
               onLongPress: onCopy,
-              child: Container(
-                constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.78),
+              child: ModernGlassCard(
+                isDark: isDark,
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: isAi ? null : AppColors.gradientPrimary,
-                  color: isAi
-                      ? (isDark
-                          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
-                          : Colors.white.withValues(alpha: 0.9))
-                      : null,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(20),
-                    topRight: const Radius.circular(20),
-                    bottomLeft: Radius.circular(isAi ? 4 : 20),
-                    bottomRight: Radius.circular(isAi ? 20 : 4),
-                  ),
-                  border: isAi 
-                      ? Border.all(
-                          color: isDark 
-                              ? Colors.white.withValues(alpha: 0.05) 
-                              : Colors.black.withValues(alpha: 0.02),
-                        )
-                      : null,
-                  boxShadow: <BoxShadow>[
-                    if (isAi) ...[
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ] else
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                  ],
-                ),
+                borderRadius: 24,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    if (isAi)
-                      MarkdownBody(
-                        data: message.text,
-                        styleSheet: MarkdownStyleSheet(
-                          p: GoogleFonts.inter(
-                            fontSize: 14,
-                            height: 1.6,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimary,
-                          ),
-                          strong: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                          listBullet: GoogleFonts.inter(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        message.text,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isAi ? AppColors.primary : AppColors.info)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        isAi ? 'AI ANALYSIS' : 'YOU',
                         style: GoogleFonts.inter(
-                          fontSize: 14,
-                          height: 1.6,
-                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          color: isAi ? AppColors.primary : AppColors.info,
                         ),
                       ),
-                    const SizedBox(height: 8),
+                    ),
+                    const SizedBox(height: 12),
+                    MarkdownBody(
+                      data: message.text,
+                      styleSheet: MarkdownStyleSheet(
+                        p: GoogleFonts.inter(
+                          fontSize: 14,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                        ),
+                        strong: GoogleFonts.inter(
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                        listBullet: GoogleFonts.inter(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      '${AppFormatters.timeOnly(message.timestamp)}  •  tahan untuk salin',
+                      '${AppFormatters.timeOnly(message.timestamp)} • tahan untuk salin',
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: isAi
-                            ? (isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textTertiary)
-                            : Colors.white70,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white38 : Colors.black45,
                       ),
                     ),
                   ],
@@ -638,6 +813,29 @@ class _AiBubble extends StatelessWidget {
               ),
             ),
           ),
+          if (!isAi) ...<Widget>[
+            const SizedBox(width: 10),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.black.withValues(alpha: 0.05),
+                ),
+              ),
+              child: Icon(
+                Icons.person_rounded,
+                size: 18,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -661,92 +859,16 @@ class _AiLoadingBubble extends StatelessWidget {
               gradient: AppColors.gradientPrimary,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 16),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
           ),
           const SizedBox(width: 10),
           const TypingIndicator(),
         ],
       ).animate().fadeIn(duration: 200.ms),
-    );
-  }
-}
-
-class _MeshBackground extends StatelessWidget {
-  const _MeshBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      child: Stack(
-        children: [
-          // Dynamic Blobs
-          _Blob(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1),
-            size: 400,
-            initialOffset: const Offset(-100, -100),
-            animationDuration: 15.seconds,
-          ),
-          _Blob(
-            color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.12 : 0.08),
-            size: 350,
-            initialOffset: const Offset(200, 100),
-            animationDuration: 20.seconds,
-            begin: 0.2,
-          ),
-          _Blob(
-            color: const Color(0xFFEC4899).withValues(alpha: isDark ? 0.1 : 0.06),
-            size: 300,
-            initialOffset: const Offset(50, 400),
-            animationDuration: 18.seconds,
-            begin: 0.4,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Blob extends StatelessWidget {
-  final Color color;
-  final double size;
-  final Offset initialOffset;
-  final Duration animationDuration;
-  final double begin;
-
-  const _Blob({
-    required this.color,
-    required this.size,
-    required this.initialOffset,
-    required this.animationDuration,
-    this.begin = 0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: initialOffset.dx,
-      top: initialOffset.dy,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-          ),
-        ),
-      )
-          .animate(onPlay: (controller) => controller.repeat(reverse: true))
-          .move(
-            begin: Offset.zero,
-            end: const Offset(50, 80),
-            duration: animationDuration,
-            curve: Curves.easeInOut,
-          )
-          .scaleXY(begin: 1, end: 1.2, duration: animationDuration),
     );
   }
 }

@@ -76,7 +76,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          _FinanceBackground(isDark: isDark),
+          const FluidBackground(
+            orbColors: [
+              Color(0xFF6366F1), // Indigo
+              Color(0xFF10B981), // Emerald
+              Color(0xFFF59E0B), // Amber
+            ],
+          ),
           RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () async {
@@ -104,11 +110,20 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               children: <Widget>[
                                 Text(
                                   'Finance & Wealth',
-                                  style: AppTextStyles.heading2(context),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : AppColors.textPrimary,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
                                 Text(
                                   AppFormatters.monthYear(DateTime.now()),
-                                  style: AppTextStyles.caption(context),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white38 : Colors.black45,
+                                  ),
                                 ),
                               ],
                             ),
@@ -119,50 +134,49 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.cardDark : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : AppColors.dividerLight,
-                            ),
-                          ),
+                        const SizedBox(height: 20),
+                        ModernGlassCard(
+                          padding: const EdgeInsets.all(16),
+                          borderRadius: 24,
                           child: Row(
                             children: <Widget>[
                               Container(
-                                width: 38,
-                                height: 38,
+                                width: 42,
+                                height: 42,
                                 decoration: BoxDecoration(
                                   gradient: AppColors.gradientPrimary,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: const Icon(
                                   Icons.insights_rounded,
-                                  size: 20,
+                                  size: 22,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Text(
                                   'Satu menu untuk cashflow, budget, goal tabungan, dan komitmen rutin kamu.',
                                   style: GoogleFonts.inter(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                     color: isDark
-                                        ? AppColors.textSecondaryDark
+                                        ? Colors.white70
                                         : AppColors.textSecondary,
+                                    height: 1.4,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ).animate().fadeIn(duration: 350.ms),
+                        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05),
                         const SizedBox(height: 16),
                         BalanceCard(
                           totalSpent: financeState.totalSpent,
@@ -510,37 +524,35 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       },
     );
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppColors.dividerLight,
-        ),
-      ),
+    return ModernGlassCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   gradient: AppColors.gradientSecondary,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Icon(
-                  Icons.flag_circle_rounded,
+                  Icons.auto_graph_rounded,
                   color: Colors.white,
-                  size: 20,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,32 +560,45 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     Text(
                       'Planner Keuangan',
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     Text(
-                      'Finance dan Wealth sekarang digabung dalam satu alur.',
+                      'Monitoring Wealth & Komitment.',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: _openPlannerScreen,
-                child: const Text('Kelola'),
+              InkWell(
+                onTap: _openPlannerScreen,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Kelola',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.secondaryLight : AppColors.secondary,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           Row(
             children: <Widget>[
               Expanded(
@@ -581,19 +606,21 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   isDark: isDark,
                   label: 'Goal Aktif',
                   value: '$activeGoals',
+                  icon: Icons.flag_rounded,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: _PlannerStatChip(
                   isDark: isDark,
                   label: 'Subscription',
                   value: '$activeSubscriptions',
+                  icon: Icons.sync_rounded,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: <Widget>[
               Expanded(
@@ -601,29 +628,72 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   isDark: isDark,
                   label: 'Dana Terkumpul',
                   value: AppFormatters.compactCurrency(totalGoalSaved),
+                  icon: Icons.savings_rounded,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: _PlannerStatChip(
                   isDark: isDark,
-                  label: 'Komitmen/Bulan',
+                  label: 'Komitmen/Bln',
                   value: AppFormatters.compactCurrency(monthlyCommitments),
+                  icon: Icons.calendar_month_rounded,
                 ),
               ),
             ],
           ),
           if (totalGoalTarget > 0) ...<Widget>[
-            const SizedBox(height: 12),
-            Text(
-              'Progress target: ${AppFormatters.currency(totalGoalSaved)} / ${AppFormatters.currency(totalGoalTarget)}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-              ),
+            const SizedBox(height: 20),
+            Stack(
+              children: [
+                Container(
+                  height: 6,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: (totalGoalSaved / totalGoalTarget).clamp(0.01, 1.0),
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.gradientSecondary,
+                      borderRadius: BorderRadius.circular(3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.secondary.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Goal Progress',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+                Text(
+                  '${((totalGoalSaved / totalGoalTarget) * 100).toStringAsFixed(0)}%',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.secondaryLight : AppColors.secondary,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -1160,42 +1230,57 @@ class _PlannerStatChip extends StatelessWidget {
     required this.isDark,
     required this.label,
     required this.value,
+    this.icon,
   });
 
   final bool isDark;
   final String label;
   final String value;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.04)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
+        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : AppColors.textPrimary,
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: isDark ? Colors.white38 : Colors.black38),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -46,6 +46,8 @@ abstract class AuthRepository {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   });
   Future<String> uploadAvatar(File file);
   Future<(UserEntity user, String token)> restoreSession();

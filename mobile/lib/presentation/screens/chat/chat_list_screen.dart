@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,13 +9,13 @@ import 'package:smartlife_app/core/navigation/app_route.dart';
 import 'package:smartlife_app/core/storage/hive_boxes.dart';
 import 'package:smartlife_app/core/storage/hive_service.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
+import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/chat_conversation_entity.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 import 'package:smartlife_app/presentation/providers/chat_provider.dart';
+import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_detail_screen.dart';
 import 'package:smartlife_app/presentation/screens/chat/chat_user_profile_screen.dart';
-import 'package:smartlife_app/core/utils/app_formatters.dart';
-import 'package:smartlife_app/presentation/providers/reminder_provider.dart';
 import 'package:smartlife_app/presentation/screens/reminder/reminder_screen.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
@@ -30,10 +29,7 @@ class ChatListScreen extends ConsumerStatefulWidget {
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _searchDebounce;
-  Timer? _clockTicker;
-  String _searchQuery = '';
   bool _showUnreadOnly = false;
-  DateTime _currentTime = DateTime.now();
 
   @override
   void initState() {
@@ -41,18 +37,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(chatProvider.notifier).refreshChats();
     });
-    _clockTicker = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _currentTime = DateTime.now());
-    });
   }
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
-    _clockTicker?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -62,336 +51,181 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final ChatState chatState = ref.watch(chatProvider);
     final String currentUserId = ref.watch(authProvider).user?.id ?? '';
-    final bool isSearchActive = _searchQuery.trim().isNotEmpty;
     final bool lowDataMode = HiveService.getUserScopedAppBool(
       HiveBoxes.prefLowDataMode,
       userId: currentUserId,
       fallback: false,
       fallbackToLegacy: true,
     );
-
+    final bool isSearching = chatState.searchKeyword.trim().isNotEmpty;
     final List<ChatConversationEntity> sourceItems =
-        isSearchActive ? chatState.searchResults : chatState.chats;
+        isSearching ? chatState.searchResults : chatState.chats;
     final List<ChatConversationEntity> items = _showUnreadOnly
         ? sourceItems
-            .where((ChatConversationEntity chat) => chat.unreadCount > 0)
+            .where((ChatConversationEntity item) => item.unreadCount > 0)
             .toList()
         : sourceItems;
-    final int unreadMessagesCount = chatState.chats.fold<int>(
+    final List<ChatConversationEntity> onlineUsers = chatState.chats
+        .where((ChatConversationEntity item) => item.isOnline)
+        .toList();
+    final int unreadCount = chatState.chats.fold<int>(
       0,
-      (total, chat) => total + chat.unreadCount,
+      (int total, ChatConversationEntity item) => total + item.unreadCount,
     );
-    final List<ChatConversationEntity> onlineUsers =
-        chatState.chats.where((chat) => chat.isOnline).toList();
+    final int pendingReminders = ref
+        .watch(reminderProvider)
+        .reminders
+        .where((reminder) => !reminder.isCompleted)
+        .length;
 
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          _ChatBackground(isDark: isDark),
+          FluidBackground(isDark: isDark),
           RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () => ref.read(chatProvider.notifier).refreshChats(),
             child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               slivers: <Widget>[
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top + 14,
-                      left: 20,
-                      right: 20,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    'Messages',
-                                    style: AppTextStyles.heading2(context),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${chatState.chats.length} percakapan',
-                                    style: AppTextStyles.caption(context),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Sekarang ${_formatClock(_currentTime)}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? AppColors.textSecondaryDark
-                                          : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          _ChatHero(
+                            isDark: isDark,
+                            unreadCount: unreadCount,
+                            pendingReminders: pendingReminders,
+                            onOpenReminders: _openReminderScreen,
+                          ).animate().fadeIn(duration: 450.ms),
+                          const SizedBox(height: 16),
+                          _buildSearchBar(isDark)
+                              .animate()
+                              .fadeIn(delay: 80.ms, duration: 450.ms),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: _FilterChip(
+                                  isDark: isDark,
+                                  icon: Icons.inbox_rounded,
+                                  label: isSearching
+                                      ? '${items.length} hasil'
+                                      : 'Semua chat',
+                                  isActive: !_showUnreadOnly,
+                                  onTap: () {
+                                    if (_showUnreadOnly) {
+                                      setState(() => _showUnreadOnly = false);
+                                    }
+                                  },
+                                ),
                               ),
-                            ),
-                            _HeaderIcon(
-                              icon: Icons.close_rounded,
-                              isVisible: isSearchActive,
-                              onTap: _clearSearch,
-                            ),
-                            const SizedBox(width: 8),
-                            _HeaderIcon(
-                              icon: Icons.refresh_rounded,
-                              onTap: () => ref
-                                  .read(chatProvider.notifier)
-                                  .refreshChats(),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.10)
-                                  : AppColors.dividerLight,
-                            ),
-                            boxShadow: <BoxShadow>[
-                              BoxShadow(
-                                color: Colors.black
-                                    .withValues(alpha: isDark ? 0.25 : 0.06),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _FilterChip(
+                                  isDark: isDark,
+                                  icon: Icons.mark_chat_unread_rounded,
+                                  label: 'Belum dibaca',
+                                  badge: unreadCount > 0 ? unreadCount : null,
+                                  isActive: _showUnreadOnly,
+                                  onTap: () {
+                                    setState(() {
+                                      _showUnreadOnly = !_showUnreadOnly;
+                                    });
+                                  },
+                                ),
                               ),
                             ],
-                          ),
-                          child: TextField(
-                            controller: _searchCtrl,
-                            onChanged: _onSearchChanged,
-                            style: GoogleFonts.inter(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'Cari username untuk mulai chat...',
-                              border: InputBorder.none,
-                              filled: false,
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                size: 20,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                              hintStyle: GoogleFonts.inter(
-                                fontSize: 13,
+                          ).animate().fadeIn(delay: 140.ms, duration: 450.ms),
+                          if (onlineUsers.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 18),
+                            Text(
+                              'Sedang Online',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
                                 color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textTertiary,
+                                    ? Colors.white
+                                    : AppColors.primaryDark,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _ChatStatsStrip(
-                          totalChats: chatState.chats.length,
-                          onlineCount: onlineUsers.length,
-                          searchLabel: isSearchActive
-                              ? '${items.length} hasil'
-                              : 'Semua chat',
-                          isDark: isDark,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Smart Assistant Banner
-                        if (!isSearchActive)
-                          _SmartAssistantBanner(isDark: isDark),
-
-                        const SizedBox(height: 14),
-                        Row(
-                          children: <Widget>[
-                            _FilterToggleChip(
-                              icon: Icons.mark_chat_unread_rounded,
-                              label: 'Belum dibaca',
-                              badgeCount: unreadMessagesCount,
-                              isActive: _showUnreadOnly,
-                              onTap: () {
-                                setState(() {
-                                  _showUnreadOnly = !_showUnreadOnly;
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterToggleChip(
-                              icon: Icons.forum_rounded,
-                              label:
-                                  isSearchActive ? 'Mode Cari' : 'Semua Chat',
-                              isActive: !_showUnreadOnly,
-                              onTap: () {
-                                if (_showUnreadOnly) {
-                                  setState(() {
-                                    _showUnreadOnly = false;
-                                  });
-                                }
-                              },
-                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 88,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: onlineUsers.length,
+                                itemBuilder: (context, index) {
+                                  final ChatConversationEntity item =
+                                      onlineUsers[index];
+                                  return _OnlineUserChip(
+                                    item: item,
+                                    lowDataMode: lowDataMode,
+                                    onTap: () => _openConversation(item),
+                                  );
+                                },
+                              ),
+                            ).animate().fadeIn(delay: 200.ms, duration: 450.ms),
                           ],
-                        ),
-                        if (onlineUsers.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: 16),
-                          Text(
-                            'Online Sekarang',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            height: 92,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: onlineUsers.length,
-                              itemBuilder: (_, int index) {
-                                final chat = onlineUsers[index];
-                                return _OnlineUserChip(
-                                  username: chat.username,
-                                  avatarUrl: chat.avatar,
-                                  lowDataMode: lowDataMode,
-                                  onTap: () => _openUserProfilePage(chat),
-                                );
-                              },
-                            ),
-                          ),
+                          const SizedBox(height: 18),
                         ],
-                        const SizedBox(height: 16),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                if (chatState.isLoading && items.isEmpty)
+                if (chatState.isLoading && chatState.chats.isEmpty)
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (_, __) => const Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: Row(
-                            children: [
-                              LoadingSkeleton(
-                                  width: 52, height: 52, borderRadius: 26),
-                              SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    LoadingSkeleton(
-                                        width: 120,
-                                        height: 16,
-                                        borderRadius: 4),
-                                    SizedBox(height: 8),
-                                    LoadingSkeleton(
-                                        width: double.infinity,
-                                        height: 12,
-                                        borderRadius: 4),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LoadingSkeleton(
+                            width: double.infinity,
+                            height: 92,
+                            borderRadius: 24,
                           ),
                         ),
-                        childCount: 5,
+                        childCount: 6,
                       ),
                     ),
                   )
                 else if (items.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.cardDark : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.10)
-                                  : AppColors.dividerLight,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Icon(
-                                isSearchActive
-                                    ? Icons.search_off_rounded
-                                    : Icons.chat_bubble_outline_rounded,
-                                size: 30,
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondary,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                isSearchActive
-                                    ? 'Username tidak ditemukan.'
-                                    : 'Belum ada percakapan.',
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.body(context),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    child: _EmptyState(
+                      isDark: isDark,
+                      isSearching: isSearching,
                     ),
                   )
                 else
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
-                        (_, int index) {
-                          final item = items[index];
-                          return Dismissible(
-                            key: Key('chat_${item.chatId}_${item.userId}'),
-                            direction: DismissDirection.endToStart,
-                            confirmDismiss: (_) =>
-                                _confirmDeleteConversation(item),
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: const Icon(Icons.delete_forever_rounded,
-                                  color: Colors.red),
-                            ),
-                            child: _ConversationCard(
-                              item: item,
-                              lowDataMode: lowDataMode,
-                              now: _currentTime,
-                              onProfileTap: () => _openUserProfilePage(item),
-                            )
-                                .animate()
-                                .fadeIn(
-                                  delay: (40 * index).ms,
-                                  duration: 300.ms,
-                                )
-                                .slideX(begin: 0.05, end: 0),
-                          );
+                        (context, index) {
+                          final ChatConversationEntity item = items[index];
+                          return _ConversationCard(
+                            item: item,
+                            lowDataMode: lowDataMode,
+                            isDark: isDark,
+                            onOpen: () => _openConversation(item),
+                            onOpenProfile: () => _openProfile(item),
+                          ).animate().fadeIn(
+                                delay: (index * 40).ms,
+                                duration: 350.ms,
+                              );
                         },
                         childCount: items.length,
                       ),
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ),
           ),
@@ -400,80 +234,185 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     );
   }
 
-  void _clearSearch() {
-    _searchDebounce?.cancel();
-    _searchCtrl.clear();
-    setState(() => _searchQuery = '');
-    ref.read(chatProvider.notifier).searchUsers('');
+  Widget _buildSearchBar(bool isDark) {
+    return ModernGlassCard(
+      isDark: isDark,
+      borderRadius: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            Icons.search_rounded,
+            size: 18,
+            color: isDark ? Colors.white38 : Colors.black38,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: _onSearchChanged,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Cari orang atau percakapan...',
+                border: InputBorder.none,
+                hintStyle: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: isDark ? Colors.white24 : Colors.black26,
+                ),
+              ),
+            ),
+          ),
+          if (_searchCtrl.text.trim().isNotEmpty)
+            IconButton(
+              onPressed: _clearSearch,
+              icon: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   void _onSearchChanged(String value) {
-    setState(() => _searchQuery = value);
     _searchDebounce?.cancel();
-
-    if (value.trim().isEmpty) {
-      ref.read(chatProvider.notifier).searchUsers('');
-      return;
-    }
-
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) {
         return;
       }
       ref.read(chatProvider.notifier).searchUsers(value);
+      setState(() {});
     });
   }
 
-  String _formatClock(DateTime value) {
-    final String h = value.hour.toString().padLeft(2, '0');
-    final String m = value.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchCtrl.clear();
+    ref.read(chatProvider.notifier).searchUsers('');
+    setState(() {});
   }
 
-  Future<void> _openUserProfilePage(ChatConversationEntity user) async {
-    final bool? shouldOpenChat = await Navigator.push<bool>(
-      context,
-      AppRoute<bool>(
-        builder: (_) => ChatUserProfileScreen(
-          user: user,
-          allowOpenChat: true,
-        ),
-        beginOffset: const Offset(0.06, 0),
-      ),
-    );
-
-    if (shouldOpenChat != true || !mounted) {
+  Future<void> _openConversation(ChatConversationEntity item) async {
+    if (!item.hasChat) {
+      _openProfile(item);
       return;
     }
 
-    Navigator.push(
+    await Navigator.push<void>(
       context,
       AppRoute<void>(
-        builder: (_) => ChatDetailScreen(contact: user),
-        beginOffset: const Offset(0.10, 0),
+        builder: (_) => ChatDetailScreen(contact: item),
+        beginOffset: const Offset(0.08, 0),
       ),
     );
   }
 
-  Future<bool?> _confirmDeleteConversation(ChatConversationEntity item) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Percakapan?'),
-        content: Text(
-            'Hapus percakapan dengan ${item.username}? Semua pesan akan dihapus permanen.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context, true);
-              await ref
-                  .read(chatProvider.notifier)
-                  .deleteConversation(item.chatId);
-            },
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+  Future<void> _openProfile(ChatConversationEntity item) async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(
+        builder: (_) => ChatUserProfileScreen(user: item),
+        beginOffset: const Offset(0.08, 0),
+      ),
+    );
+  }
+
+  Future<void> _openReminderScreen() async {
+    await Navigator.push<void>(
+      context,
+      AppRoute<void>(builder: (_) => const ReminderScreen()),
+    );
+  }
+}
+
+class _ChatHero extends StatelessWidget {
+  final bool isDark;
+  final int unreadCount;
+  final int pendingReminders;
+  final VoidCallback onOpenReminders;
+
+  const _ChatHero({
+    required this.isDark,
+    required this.unreadCount,
+    required this.pendingReminders,
+    required this.onOpenReminders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernGlassCard(
+      isDark: isDark,
+      borderRadius: 32,
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Encrypted Messages',
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.9,
+                        color: isDark ? Colors.white : AppColors.primaryDark,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Komunikasi cepat, modern, dan tetap rapi untuk aktivitas harian kamu.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white54 : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              TopBarAction(
+                icon: Icons.notifications_active_rounded,
+                onPressed: onOpenReminders,
+                isDark: isDark,
+                tooltip: 'Buka pengingat',
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _HeroMetric(
+                  isDark: isDark,
+                  icon: Icons.mark_chat_unread_rounded,
+                  label: 'Unread',
+                  value: '$unreadCount',
+                  accent: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _HeroMetric(
+                  isDark: isDark,
+                  icon: Icons.schedule_rounded,
+                  label: 'Reminders',
+                  value: '$pendingReminders',
+                  accent: AppColors.success,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -481,181 +420,64 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 }
 
-class _ChatBackground extends StatelessWidget {
+class _HeroMetric extends StatelessWidget {
   final bool isDark;
-
-  const _ChatBackground({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-        ),
-        Positioned(
-          top: -120,
-          right: -80,
-          child: Container(
-            width: 240,
-            height: 240,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: <Color>[
-                  AppColors.primary.withValues(alpha: isDark ? 0.20 : 0.12),
-                  AppColors.secondary.withValues(alpha: isDark ? 0.16 : 0.08),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeaderIcon extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
-  final bool isVisible;
+  final String label;
+  final String value;
+  final Color accent;
 
-  const _HeaderIcon({
-    required this.icon,
-    required this.onTap,
-    this.isVisible = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (!isVisible) {
-      return const SizedBox.shrink();
-    }
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : AppColors.dividerLight,
-            ),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatStatsStrip extends StatelessWidget {
-  final int totalChats;
-  final int onlineCount;
-  final String searchLabel;
-  final bool isDark;
-
-  const _ChatStatsStrip({
-    required this.totalChats,
-    required this.onlineCount,
-    required this.searchLabel,
+  const _HeroMetric({
     required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _StatTag(
-            icon: Icons.forum_rounded,
-            text: '$totalChats chat',
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _StatTag(
-            icon: Icons.circle,
-            iconColor: AppColors.secondary,
-            text: '$onlineCount online',
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _StatTag(
-            icon: Icons.search_rounded,
-            text: searchLabel,
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatTag extends StatelessWidget {
-  final IconData icon;
-  final Color? iconColor;
-  final String text;
-  final bool isDark;
-
-  const _StatTag({
     required this.icon,
-    this.iconColor,
-    required this.text,
-    required this.isDark,
+    required this.label,
+    required this.value,
+    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.09)
-              : AppColors.dividerLight,
-        ),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withValues(alpha: 0.14)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Icon(
-            icon,
-            size: icon == Icons.circle ? 10 : 14,
-            color: iconColor ?? AppColors.primary,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-              ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
             ),
+            child: Icon(icon, color: accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white38 : AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.primaryDark,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -663,93 +485,88 @@ class _StatTag extends StatelessWidget {
   }
 }
 
-class _FilterToggleChip extends StatelessWidget {
+class _FilterChip extends StatelessWidget {
+  final bool isDark;
   final IconData icon;
   final String label;
-  final int badgeCount;
+  final int? badge;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _FilterToggleChip({
+  const _FilterChip({
+    required this.isDark,
     required this.icon,
     required this.label,
-    this.badgeCount = 0,
+    this.badge,
     required this.isActive,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             gradient: isActive ? AppColors.gradientPrimary : null,
-            color:
-                isActive ? null : (isDark ? AppColors.cardDark : Colors.white),
-            borderRadius: BorderRadius.circular(18),
+            color: isActive
+                ? null
+                : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isActive
                   ? Colors.transparent
                   : (isDark
                       ? Colors.white.withValues(alpha: 0.08)
-                      : AppColors.dividerLight),
+                      : Colors.black.withValues(alpha: 0.05)),
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Icon(
                 icon,
-                size: 14,
+                size: 16,
                 color: isActive
                     ? Colors.white
-                    : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary),
+                    : (isDark ? Colors.white54 : AppColors.primaryDark),
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: isActive
-                      ? Colors.white
-                      : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : AppColors.textSecondary),
+                  ),
                 ),
               ),
-              if (badgeCount > 0) ...<Widget>[
+              if (badge != null && badge! > 0) ...<Widget>[
                 const SizedBox(width: 8),
                 Container(
-                  constraints: const BoxConstraints(minWidth: 22),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isActive
-                        ? Colors.white.withValues(alpha: 0.22)
-                        : AppColors.primary.withValues(alpha: 0.12),
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isActive
-                          ? Colors.white.withValues(alpha: 0.16)
-                          : AppColors.primary.withValues(alpha: 0.16),
-                    ),
                   ),
                   child: Text(
-                    badgeCount > 99 ? '99+' : '$badgeCount',
-                    textAlign: TextAlign.center,
+                    '$badge',
                     style: GoogleFonts.inter(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
                       color: isActive ? Colors.white : AppColors.primary,
                     ),
                   ),
@@ -764,79 +581,52 @@ class _FilterToggleChip extends StatelessWidget {
 }
 
 class _OnlineUserChip extends StatelessWidget {
-  final String username;
-  final String avatarUrl;
+  final ChatConversationEntity item;
   final bool lowDataMode;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const _OnlineUserChip({
-    required this.username,
-    required this.avatarUrl,
-    this.lowDataMode = false,
-    this.onTap,
+    required this.item,
+    required this.lowDataMode,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 78,
-        margin: const EdgeInsets.only(right: 10),
-        child: Column(
-          children: <Widget>[
-            Stack(
+
+    return Container(
+      width: 78,
+      margin: const EdgeInsets.only(right: 12),
+      child: Column(
+        children: <Widget>[
+          GestureDetector(
+            onTap: onTap,
+            child: Stack(
               children: <Widget>[
                 Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: <Color>[Color(0xFF7C7E9D), Color(0xFF949AB1)],
-                    ),
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    shape: BoxShape.circle,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: lowDataMode || avatarUrl.isEmpty
-                          ? Container(
-                              key: ValueKey(
-                                  avatarUrl.isEmpty ? 'default' : avatarUrl),
-                              color: isDark ? AppColors.cardDark : Colors.white,
-                              child: const Icon(Icons.person_rounded),
-                            )
-                          : Image.network(
-                              avatarUrl,
-                              key: ValueKey(avatarUrl),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color:
-                                    isDark ? AppColors.cardDark : Colors.white,
-                                child: const Icon(Icons.person_rounded),
-                              ),
-                            ),
-                    ),
+                  child: AvatarWidget(
+                    url: item.avatar,
+                    radius: 24,
+                    lowDataMode: lowDataMode,
                   ),
                 ),
                 Positioned(
-                  right: 0,
-                  bottom: 0,
+                  right: 2,
+                  bottom: 2,
                   child: Container(
-                    width: 13,
-                    height: 13,
+                    width: 12,
+                    height: 12,
                     decoration: BoxDecoration(
                       color: AppColors.success,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark
-                            ? AppColors.backgroundDark
-                            : AppColors.backgroundLight,
+                        color: isDark ? const Color(0xFF101A31) : Colors.white,
                         width: 2,
                       ),
                     ),
@@ -844,22 +634,20 @@ class _OnlineUserChip extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              username,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 11.5,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.username,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -868,76 +656,59 @@ class _OnlineUserChip extends StatelessWidget {
 class _ConversationCard extends StatelessWidget {
   final ChatConversationEntity item;
   final bool lowDataMode;
-  final DateTime now;
-  final VoidCallback onProfileTap;
+  final bool isDark;
+  final VoidCallback onOpen;
+  final VoidCallback onOpenProfile;
 
   const _ConversationCard({
     required this.item,
-    this.lowDataMode = false,
-    required this.now,
-    required this.onProfileTap,
+    required this.lowDataMode,
+    required this.isDark,
+    required this.onOpen,
+    required this.onOpenProfile,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool hasUnread = item.unreadCount > 0;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          AppRoute<void>(
-            builder: (_) => ChatDetailScreen(contact: item),
-            beginOffset: const Offset(0.10, 0),
-          ),
-        ),
-        child: Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
-              child: Row(
-                children: <Widget>[
-                  // Circle Avatar
-                  Stack(
+    return ModernGlassCard(
+      isDark: isDark,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.zero,
+      borderRadius: 24,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: <Widget>[
+                GestureDetector(
+                  onTap: onOpenProfile,
+                  child: Stack(
                     children: <Widget>[
-                      InkWell(
-                        onTap: onProfileTap,
-                        borderRadius: BorderRadius.circular(24),
-                        child: CircleAvatar(
-                          key: ValueKey(item.avatar.isNotEmpty
-                              ? item.avatar
-                              : item.userId),
-                          radius: 24,
-                          backgroundColor: isDark
-                              ? AppColors.surfaceDark
-                              : AppColors.surfaceLight,
-                          backgroundImage: lowDataMode || item.avatar.isEmpty
-                              ? null
-                              : NetworkImage(item.avatar),
-                          child: lowDataMode || item.avatar.isEmpty
-                              ? Icon(Icons.person_rounded,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
-                                  size: 22)
-                              : null,
-                        ),
+                      AvatarWidget(
+                        url: item.avatar,
+                        radius: 28,
+                        lowDataMode: lowDataMode,
                       ),
                       if (item.isOnline)
                         Positioned(
-                          bottom: 0,
                           right: 0,
+                          bottom: 0,
                           child: Container(
-                            width: 13,
-                            height: 13,
+                            width: 14,
+                            height: 14,
                             decoration: BoxDecoration(
                               color: AppColors.success,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: isDark
-                                    ? AppColors.backgroundDark
-                                    : AppColors.backgroundLight,
+                                    ? const Color(0xFF101A31)
+                                    : Colors.white,
                                 width: 2,
                               ),
                             ),
@@ -945,290 +716,170 @@ class _ConversationCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(width: 14),
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      item.username,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 15,
-                                        fontWeight: item.unreadCount > 0
-                                            ? FontWeight.w700
-                                            : FontWeight.w600,
-                                        color: isDark
-                                            ? AppColors.textPrimaryDark
-                                            : AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  if (item.role == 'owner' ||
-                                      item.role == 'developer') ...[
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.verified_rounded,
-                                        color: Color(0xFFFFD700), size: 14),
-                                  ] else if (item.role == 'staff' ||
-                                      item.role == 'admin') ...[
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.verified_rounded,
-                                        color: Color(0xFF6366F1), size: 14),
-                                  ],
-                                ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              item.username,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.primaryDark,
                               ),
                             ),
-                            Text(
-                              _formatTime(item.updatedAt, now),
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                color: item.unreadCount > 0
-                                    ? AppColors.primary
-                                    : (isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textTertiary),
-                                fontWeight: item.unreadCount > 0
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                              ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTimestamp(item.updatedAt),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white38 : Colors.black38,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        item.lastMessage.trim().isEmpty
+                            ? 'Belum ada pesan. Buka profil untuk mulai percakapan.'
+                            : item.lastMessage,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          height: 1.5,
+                          fontWeight:
+                              hasUnread ? FontWeight.w700 : FontWeight.w500,
+                          color: hasUnread
+                              ? (isDark ? Colors.white : AppColors.textPrimary)
+                              : (isDark
+                                  ? Colors.white54
+                                  : AppColors.textSecondary),
                         ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                item.lastMessage.isEmpty
-                                    ? 'Mulai percakapan baru'
-                                    : item.lastMessage,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: item.unreadCount > 0
-                                      ? (isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimary)
-                                      : (isDark
-                                          ? AppColors.textSecondaryDark
-                                          : AppColors.textSecondary),
-                                  fontWeight: item.unreadCount > 0
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                            if (item.unreadCount > 0)
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                width: 22,
-                                height: 22,
-                                decoration: const BoxDecoration(
-                                  gradient: AppColors.gradientPrimary,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '${item.unreadCount}',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                if (hasUnread)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.gradientPrimary,
+                      borderRadius: BorderRadius.all(Radius.circular(999)),
+                    ),
+                    child: Text(
+                      '${item.unreadCount}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    item.hasChat
+                        ? Icons.arrow_forward_ios_rounded
+                        : Icons.person_search_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white24 : Colors.black26,
+                  ),
+              ],
             ),
-            // Subtle divider
-            Divider(
-              height: 1,
-              thickness: 0.5,
-              indent: 62,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : AppColors.dividerLight,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  String _formatTime(DateTime dt, DateTime now) {
-    if (dt.year < 2000) {
-      return '';
-    }
-    final Duration diff = now.difference(dt);
-    // Same day: show HH:mm
-    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    }
-    // Yesterday
-    final DateTime yesterday = now.subtract(const Duration(days: 1));
-    if (dt.year == yesterday.year &&
-        dt.month == yesterday.month &&
-        dt.day == yesterday.day) {
-      return 'Kemarin';
-    }
-    if (diff.inDays < 7) {
-      const List<String> days = [
-        'Sen',
-        'Sel',
-        'Rab',
-        'Kam',
-        'Jum',
-        'Sab',
-        'Min'
-      ];
-      return days[dt.weekday - 1];
-    }
-    return '${dt.day}/${dt.month}/${dt.year % 100}';
+  String _formatTimestamp(DateTime date) {
+    final DateTime now = DateTime.now();
+    final bool sameDay =
+        now.year == date.year && now.month == date.month && now.day == date.day;
+    return sameDay
+        ? AppFormatters.timeOnly(date)
+        : AppFormatters.relativeDate(date);
   }
 }
 
-class _SmartAssistantBanner extends ConsumerWidget {
+class _EmptyState extends StatelessWidget {
   final bool isDark;
+  final bool isSearching;
 
-  const _SmartAssistantBanner({required this.isDark});
+  const _EmptyState({
+    required this.isDark,
+    required this.isSearching,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final reminderState = ref.watch(reminderProvider);
-    final upcoming =
-        reminderState.reminders.where((r) => !r.isCompleted).toList();
-
-    if (upcoming.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final nextReminder = upcoming.first;
-    final isOverdue = nextReminder.isOverdue;
-
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        AppRoute<void>(
-          builder: (_) => const ReminderScreen(),
-          beginOffset: const Offset(0, 0.06),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: isOverdue
-              ? LinearGradient(colors: [
-                  Colors.red.withValues(alpha: 0.1),
-                  Colors.red.withValues(alpha: 0.02)
-                ])
-              : LinearGradient(
-                  begin: AppColors.gradientPrimary.begin,
-                  end: AppColors.gradientPrimary.end,
-                  colors: AppColors.gradientPrimary.colors
-                      .map((c) => c.withValues(alpha: 0.08))
-                      .toList(),
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ModernGlassCard(
+          isDark: isDark,
+          borderRadius: 30,
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isOverdue
-                ? Colors.red.withValues(alpha: 0.2)
-                : AppColors.primary.withValues(alpha: 0.15),
-            width: 1.5,
+                child: const Icon(
+                  Icons.forum_rounded,
+                  size: 34,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                isSearching
+                    ? 'Pencarian belum menemukan hasil.'
+                    : 'Belum ada percakapan aktif.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isSearching
+                    ? 'Coba kata kunci lain atau buka profil user untuk memulai chat baru.'
+                    : 'Saat percakapan pertama dibuat, daftar chat akan muncul di sini.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white54 : AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isOverdue
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isOverdue
-                    ? Icons.priority_high_rounded
-                    : Icons.auto_awesome_rounded,
-                size: 20,
-                color: isOverdue ? Colors.red : AppColors.primary,
-              ),
-            )
-                .animate(
-                    onPlay: (controller) => controller.repeat(reverse: true))
-                .scale(
-                    duration: 2.seconds,
-                    begin: const Offset(1, 1),
-                    end: const Offset(1.1, 1.1)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isOverdue ? 'Terlewatkan!' : 'Pengingat Berikutnya',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                      color: isOverdue ? Colors.red : AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    nextReminder.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatTime(nextReminder.dateTime),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Icon(Icons.arrow_forward_ios_rounded,
-                    size: 12, color: isDark ? Colors.white24 : Colors.black26),
-              ],
-            ),
-          ],
-        ),
-      ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
+      ),
     );
-  }
-
-  String _formatTime(DateTime dt) {
-    final now = DateTime.now();
-    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
-      return AppFormatters.timeOnly(dt);
-    }
-    return DateFormat('dd/MM').format(dt);
   }
 }

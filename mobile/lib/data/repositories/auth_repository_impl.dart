@@ -148,6 +148,8 @@ class AuthRepositoryImpl implements AuthRepository {
     String? socialDiscord,
     String? socialTelegram,
     String? socialSpotify,
+    String? socialTikTok,
+    String? bio,
   }) {
     return _authService.updateProfile(
       username: username,
@@ -163,6 +165,8 @@ class AuthRepositoryImpl implements AuthRepository {
       socialDiscord: socialDiscord,
       socialTelegram: socialTelegram,
       socialSpotify: socialSpotify,
+      socialTikTok: socialTikTok,
+      bio: bio,
     );
   }
 

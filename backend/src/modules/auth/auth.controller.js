@@ -132,7 +132,8 @@ const me = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const {
     username, email, gender, avatar, dateOfBirth, monthlyBudget, name,
-    socialGithub, socialInstagram, socialDiscord, socialTelegram, socialSpotify
+    socialGithub, socialInstagram, socialDiscord, socialTelegram, socialSpotify, socialTikTok,
+    bio,
   } = req.body;
   
   const user = await authService.updateProfile(req.user._id, {
@@ -148,6 +149,8 @@ const updateProfile = asyncHandler(async (req, res) => {
     socialDiscord,
     socialTelegram,
     socialSpotify,
+    socialTikTok,
+    bio,
   });
 
   return res.status(200).json({

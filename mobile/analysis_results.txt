@@ -1,0 +1,32 @@
+Analyzing mobile...                                             
+
+warning - The value of the field '_isSendingVoice' isn't used - lib\presentation\screens\chat\chat_detail_screen.dart:49:8 - unused_field
+warning - The value of the field '_isSending' isn't used - lib\presentation\screens\chat\chat_detail_screen.dart:63:8 - unused_field
+warning - The declaration '_toggleEmojiPicker' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:774:8 - unused_element
+warning - The declaration '_clearSearchQuery' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:935:8 - unused_element
+warning - The declaration '_goToPreviousSearchMatch' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:973:8 - unused_element
+warning - The declaration '_goToNextSearchMatch' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:984:8 - unused_element
+warning - The declaration '_formatLastSeen' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1026:10 - unused_element
+warning - The declaration '_startRecording' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1174:16 - unused_element
+warning - The declaration '_stopAndSendRecording' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1234:16 - unused_element
+warning - The declaration '_cancelRecording' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1321:16 - unused_element
+warning - The declaration '_formatDuration' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1364:10 - unused_element
+warning - The declaration '_buildComposerIconButton' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1525:10 - unused_element
+warning - The declaration '_buildComposerPrimaryButton' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1566:10 - unused_element
+warning - The declaration '_ChatDetailBackground' isn't referenced - lib\presentation\screens\chat\chat_detail_screen.dart:1610:7 - unused_element
+warning - Unused import: 'package:smartlife_app/presentation/screens/dashboard/widgets/dashboard_background.dart' - lib\presentation\screens\dashboard\dashboard_screen.dart:26:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\dashboard\dashboard_screen.dart:234:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\dashboard\dashboard_screen.dart:537:31 - prefer_const_constructors
+warning - Unused import: 'package:smartlife_app/core/theme/app_theme.dart' - lib\presentation\screens\dashboard\widgets\stat_cards.dart:3:8 - unused_import
+warning - The declaration '_FinanceBackground' isn't referenced - lib\presentation\screens\finance\finance_screen.dart:1292:7 - unused_element
+warning - Unused import: 'package:smartlife_app/presentation/screens/life_hub/widgets/life_hub_background.dart' - lib\presentation\screens\life_hub\life_hub_screen.dart:11:8 - unused_import
+warning - The declaration '_ProfileBackground' isn't referenced - lib\presentation\screens\profile\profile_screen.dart:836:7 - unused_element
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\profile_screen.dart:880:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\profile_screen.dart:1301:39 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\presentation\screens\profile\profile_screen.dart:1302:39 - prefer_const_literals_to_create_immutables
+warning - The declaration '_OrganicBlobPainter' isn't referenced - lib\presentation\screens\profile\profile_screen.dart:1858:7 - unused_element
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\profile_screen.dart:1991:26 - prefer_const_constructors
+warning - A value for optional parameter 'validator' isn't ever given - lib\presentation\screens\profile\profile_screen.dart:2122:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\profile_screen.dart:2679:17 - prefer_const_constructors
+warning - The declaration '_GlowOrb' isn't referenced - lib\presentation\screens\wealth\wealth_hub_screen.dart:1620:7 - unused_element
+
