@@ -316,6 +316,7 @@ async function createSubscription(userId, payload) {
     billingCycle: payload.billingCycle || 'monthly',
     icon: payload.icon || 'card_giftcard_rounded',
     color: payload.color || '#6366F1',
+    status: payload.status || 'active',
     nextBillingDate: payload.nextBillingDate ? new Date(payload.nextBillingDate) : null,
   });
 }

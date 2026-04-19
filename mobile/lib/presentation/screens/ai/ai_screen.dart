@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:smartlife_app/core/theme/app_theme.dart';
@@ -589,18 +590,37 @@ class _AiBubble extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      message.text,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        height: 1.6,
-                        color: isAi
-                            ? (isDark
+                    if (isAi)
+                      MarkdownBody(
+                        data: message.text,
+                        styleSheet: MarkdownStyleSheet(
+                          p: GoogleFonts.inter(
+                            fontSize: 14,
+                            height: 1.6,
+                            color: isDark
                                 ? AppColors.textPrimaryDark
-                                : AppColors.textPrimary)
-                            : Colors.white,
+                                : AppColors.textPrimary,
+                          ),
+                          strong: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                          listBullet: GoogleFonts.inter(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        message.text,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          height: 1.6,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                     Text(
                       '${AppFormatters.timeOnly(message.timestamp)}  •  tahan untuk salin',

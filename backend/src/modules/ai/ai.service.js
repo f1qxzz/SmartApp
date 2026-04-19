@@ -2,8 +2,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Finance = require('../finance/finance.model');
 
 function getModelCandidates() {
-  const primary = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-flash-latest')
+  const primary = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-1.5-flash-8b,gemini-1.5-pro')
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
@@ -13,24 +13,28 @@ function getModelCandidates() {
 
 function buildPrompt(financeData, userQuestion) {
   return [
-    'Kamu adalah asisten keuangan yang cerdas pada aplikasi SmartLife.',
-    'Tugasmu: analisis data pengeluaran user dan berikan saran yang actionable dalam Bahasa Indonesia.',
+    'Kamu adalah asisten keuangan cerdas SmartLife yang profesional, empati, dan to-the-point.',
+    'Tugasmu: Analisis data keuangan user dan berikan insight yang tajam namun ringkas dalam Bahasa Indonesia.',
     '',
-    'Berikut data pengeluaran user (JSON):',
+    '### Data Keuangan User (Internal):',
     JSON.stringify(financeData, null, 2),
     '',
-    `Pertanyaan user: ${userQuestion}`,
+    `### Pertanyaan User: "${userQuestion}"`,
     '',
-    'Instruksi Penting:',
-    '- Format jawaban: HARUS berbentuk teks paragraf biasa. DILARANG KERAS menggunakan tanda bintang (*) atau format markdown apapun.',
-    '- Jawaban harus RINGKAS tapi sangat DETAIL (high information density). Langsung ke poin permasalahan tanpa kata pengantar bertele-tele.',
-    '- Jika ada pola boros, sebutkan kategorinya dengan spesifik dan angka pengeluarannya.',
-    '- Berikan 3 saran konkret yang realistis menggunakan format penomoran angka biasa (1. 2. 3.).',
+    '### Instruksi Output:',
+    '- Gunakan format Markdown untuk keterbacaan (gunakan **bold** untuk angka/kata kunci, dan list poin jika perlu).',
+    '- Jawaban harus DETAIL (berbasis data nyata di atas) namun SINGKAT (langsung ke solusi).',
+    '- Jika pengeluaran mendekati atau melebihi budget, berikan peringatan yang tegas namun sopan.',
+    '- Berikan maksimal 3 saran konkret yang actionable.',
+    '- Gunakan nada asisten premium. Jangan bertele-tele.',
   ].join('\n');
 }
 
 async function collectFinanceSummary(userId) {
-  const transactions = await Finance.find({ userId }).sort({ date: -1 }).limit(200);
+  const [transactions, user] = await Promise.all([
+    Finance.find({ userId }).sort({ date: -1 }).limit(200),
+    User.findById(userId).select('monthlyBudget name'),
+  ]);
 
   const total = transactions.reduce((sum, item) => sum + item.amount, 0);
   const byCategory = transactions.reduce((acc, item) => {
@@ -39,14 +43,20 @@ async function collectFinanceSummary(userId) {
     return acc;
   }, {});
 
+  const budget = user?.monthlyBudget || 0;
+
   return {
-    total,
+    userName: user?.name,
+    monthlyBudget: budget,
+    totalSpent: total,
+    remainingBudget: Math.max(0, budget - total),
+    isOverBudget: total > budget,
     transactionCount: transactions.length,
     topCategories: Object.entries(byCategory)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([category, amount]) => ({ category, amount })),
-    latestTransactions: transactions.slice(0, 20).map((item) => ({
+    latestTransactions: transactions.slice(0, 15).map((item) => ({
       amount: item.amount,
       category: item.category,
       description: item.description,

@@ -24,6 +24,7 @@ dependencies:
   lottie: ^2.7.0
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.9
+  flutter_markdown: ^0.7.5
 
   # Charts
   fl_chart: ^0.66.1
