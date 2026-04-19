@@ -1,93 +1,98 @@
 <p align="center">
-  <img src="assets/readme/logo.png" width="200" alt="SmartLife AI Logo" />
+  <img src="mobile/assets/images/app_logo.png" width="220" alt="SmartLife Logo">
 </p>
 
-<h1 align="center">✨ SmartLife AI ✨</h1>
+<h1 align="center">✨ SmartLife ✨</h1>
 
 <p align="center">
-  <strong>The Ultimate Glassmorphic Lifestyle Companion</strong>
-  <br />
-  <em>Manage your life, habits, and finances with elegance and AI-powered precision.</em>
+  <img src="https://img.shields.io/badge/Flutter-Mobile_App-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
+  <img src="https://img.shields.io/badge/Node.js-Backend-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
+  <img src="https://img.shields.io/badge/Socket.io-Realtime-010101?style=for-the-badge&logo=socketdotio&logoColor=white" alt="Socket.io">
+  <img src="https://img.shields.io/badge/Gemini-AI_Assistant-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/stars/f1qxzz/SmartApp?style=for-the-badge&logo=github&color=365DF5" alt="Stars" />
-  <img src="https://img.shields.io/github/forks/f1qxzz/SmartApp?style=for-the-badge&logo=github&color=44C2FF" alt="Forks" />
-  <img src="https://img.shields.io/github/license/f1qxzz/SmartApp?style=for-the-badge&logo=github&color=8BE4C8" alt="License" />
+  <b>SmartLife</b> adalah modern mobile app yang menyatukan personal finance, real-time chat, pengingat, dan AI assistance dalam satu connected experience yang terpadu.
+</p>
+
+<p align="center">
+  <a href="https://github.com/f1qxzz/SmartApp/releases/latest">
+    <img src="https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
+  </a>
 </p>
 
 ---
 
-## 🚀 Experience the Future of Lifestyle Apps
+## 🌟 Overview
 
-SmartLife AI isn't just another productivity tool. It's a hyper-personalized ecosystem designed with **Glassmorphism** at its core, providing a fluid, premium, and extremely modern experience.
+**SmartLife** bukan sekadar standard finance tracker biasa. Ini adalah life management workspace di mana pengguna bisa:
 
-### 💎 Key Features
-
-- 🧠 **Smart AI Assistant**: A dedicated Gemini-powered companion for insights, chat, and life coaching.
-- 🎯 **Life Hub**: Full CRUD persistence for your habits and life goals. Synchronized across devices.
-- 💰 **Finance Mastery**: track entries, manage savings goals, and analyze subscriptions with stunning charts.
-- 🔔 **Intelligent Reminders**: Never miss a beat with a sleek, interactive notification center.
-- 🎨 **Glassmorphism UI**: A breathable, transparent interface with vibrant micro-animations.
+- 💰 **Manage spending & budget bulanan** dengan praktis
+- 🎯 **Monitor savings goals & recurring subscriptions** secara real-time
+- 💬 **Chatting & sharing multimedia** secara instan
+- 🤖 **Dapatkan AI-powered financial insights** yang cerdas
+- 📊 **Tetap terorganisir** lewat satu central dashboard yang intuitif
 
 ---
 
-## 🎨 Visual Identity
+## 🔥 Fitur Utama | Core Features
 
-> [!TIP]
-> **Premium Aesthetics**: We believe that the tools you use should be as beautiful as the life you're building. Every pixel in SmartLife AI is crafted for visual excellence.
+### 1. ⚡ Smart Dashboard
+Hub sentral untuk monitor finance snapshot, pengingat, dan akses cepat ke AI entry points.
 
-<div align="center">
-  <table>
-    <tr>
-      <td width="50%">
-        <strong>Fluid Transitions</strong><br />
-        Powered by <code>flutter_animate</code> for a smooth, organic feel.
-      </td>
-      <td width="50%">
-        <strong>Dark Mode First</strong><br />
-        A sophisticated deep-theming engine that looks stunning on every screen.
-      </td>
-    </tr>
-  </table>
-</div>
+### 2. 💳 Finance & Wealth
+Lacak transaksi secara detail, pantau budget progress, dan kelola savings goals langsung dari satu menu.
+
+### 3. 💬 Realtime Chat
+One-to-one messaging menggunakan Socket.io dengan fitur pencarian, reaksi, share multimedia, dan online status indicator.
+
+### 4. 🧠 SmartLife AI
+Smart financial assistant yang didukung Gemini untuk memberikan actionable advice berdasarkan konteks transaksi kamu.
+
+### 5. 🔐 Auth & Security
+Alur autentikasi yang clean dengan dukungan Google Sign-In dan desain UI yang secure serta modern.
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
-| Category | Technology |
-| :--- | :--- |
-| **Mobile Framework** | [Flutter](https://flutter.dev) |
-| **State Management** | [Riverpod](https://riverpod.dev) |
-| **Backend** | [Node.js](https://nodejs.org) & [Express](https://expressjs.com) |
-| **Database** | [MongoDB](https://www.mongodb.com) |
-| **Real-time** | [Socket.io](https://socket.io) |
-| **AI Engine** | [Google Gemini AI](https://deepmind.google/technologies/gemini/) |
+### 📱 Mobile (Frontend)
+- **Framework**: Flutter & Dart
+- **State Management**: Riverpod (Functional & Reactive)
+- **Local Database**: Hive (Lightning Fast)
+- **Networking**: Client Socket.IO & Dio
+- **Animations**: Flutter Animate
+
+### 💻 Backend (API)
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB dengan Mongoose
+- **Real-time**: Socket.io Server
+- **AI Engine**: Gemini AI API
+- **Auth**: JWT & Bcrypt encryption
 
 ---
 
-## 📦 Getting Started
+## 🚀 Getting Started | Cara Memulai
 
-### 1. Prerequisites
-- Flutter SDK 3.x
-- Node.js 18+
-- MongoDB Instance
+### 1. Prasyarat | Prerequisites
+- Flutter SDK 3.x & Dart SDK
+- Node.js 18+ (Recommended)
+- MongoDB Atlas atau Local
 - Gemini API Key
 
-### 2. Quick Installation
-
+### 2. Instalasi | Installation
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/f1qxzz/SmartApp.git
 cd SmartApp
 
-# 2. Start the Engine (Backend)
+# Run Backend
 cd backend
 npm install
 npm run dev
 
-# 3. Launch the Experience (Mobile)
+# Run Mobile
 cd ../mobile
 flutter pub get
 flutter run
@@ -95,10 +100,20 @@ flutter run
 
 ---
 
-## 🛡 License & Contribution
+## 💎 Key Highlights
+- **Clean Architecture**: Kode terstruktur yang gampang di-maintain dan di-skala.
+- **Glassmorphism UI**: Tampilan transparan yang memberikan kesan premium & modern vibe.
+- **Fluid Animations**: Transisi yang smooth berkat flutter_animate.
 
-SmartLife AI is licensed under the **MIT License**. We welcome contributions from the community to help make lifestyle management even more beautiful.
+---
+
+## 📄 License
+Project ini dilisensikan di bawah Lisensi MIT.
+*This project is licensed under the MIT License.*
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/f1qxzz">@f1qxzz</a>
+  <img src="https://img.shields.io/github/stars/f1qxzz/SmartApp?style=social" />
+  <img src="https://img.shields.io/github/forks/f1qxzz/SmartApp?style=social" />
+  <br />
+  Made with ❤️ by [@f1qxzz](https://github.com/f1qxzz)
 </p>
