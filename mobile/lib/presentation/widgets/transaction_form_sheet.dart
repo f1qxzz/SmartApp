@@ -48,40 +48,14 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
   late String _selectedCategory;
   bool _submitting = false;
 
-  final List<(String, IconData, String, Color)> _categories =
-      <(String, IconData, String, Color)>[
-    ('food', Icons.restaurant_rounded, 'Makanan', AppColors.categoryColors[0]),
-    (
-      'transport',
-      Icons.directions_car_rounded,
-      'Transport',
-      AppColors.categoryColors[1],
-    ),
-    (
-      'shopping',
-      Icons.shopping_bag_rounded,
-      'Belanja',
-      AppColors.categoryColors[2],
-    ),
-    (
-      'health',
-      Icons.favorite_rounded,
-      'Kesehatan',
-      AppColors.categoryColors[3]
-    ),
-    (
-      'entertainment',
-      Icons.movie_rounded,
-      'Hiburan',
-      AppColors.categoryColors[4],
-    ),
-    (
-      'bills',
-      Icons.receipt_long_rounded,
-      'Tagihan',
-      AppColors.categoryColors[6]
-    ),
-    ('other', Icons.more_horiz_rounded, 'Lainnya', AppColors.categoryColors[7]),
+  final List<(String, IconData, String, Color)> _categories = [
+    ('food', Icons.restaurant_rounded, 'Makanan', AppColors.categoryColors['Food']!),
+    ('transport', Icons.directions_car_rounded, 'Transport', AppColors.categoryColors['Transport']!),
+    ('shopping', Icons.shopping_bag_rounded, 'Belanja', AppColors.categoryColors['Shopping']!),
+    ('health', Icons.favorite_rounded, 'Kesehatan', AppColors.categoryColors['Health']!),
+    ('entertainment', Icons.movie_rounded, 'Hiburan', AppColors.categoryColors['Entertainment']!),
+    ('bills', Icons.receipt_long_rounded, 'Tagihan', AppColors.categoryColors['Bills']!),
+    ('other', Icons.more_horiz_rounded, 'Lainnya', AppColors.categoryColors['Other']!),
   ];
 
   @override

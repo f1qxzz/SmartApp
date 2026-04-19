@@ -50,7 +50,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final ChatState chatState = ref.watch(chatProvider);
-    final String currentUserId = ref.watch(authProvider).user?.id ?? '';
+    final AuthState authState = ref.watch(authProvider);
+    final String currentUserId = authState.user?.id ?? '';
     final bool lowDataMode = HiveService.getUserScopedAppBool(
       HiveBoxes.prefLowDataMode,
       userId: currentUserId,
@@ -100,6 +101,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                         children: <Widget>[
                           _ChatHero(
                             isDark: isDark,
+                            userAvatar: authState.user?.avatar ?? '',
                             unreadCount: unreadCount,
                             pendingReminders: pendingReminders,
                             onOpenReminders: _openReminderScreen,
@@ -299,11 +301,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Future<void> _openConversation(ChatConversationEntity item) async {
-    if (!item.hasChat) {
-      _openProfile(item);
-      return;
-    }
-
     await Navigator.push<void>(
       context,
       AppRoute<void>(
@@ -333,12 +330,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
 class _ChatHero extends StatelessWidget {
   final bool isDark;
+  final String userAvatar;
   final int unreadCount;
   final int pendingReminders;
   final VoidCallback onOpenReminders;
 
   const _ChatHero({
     required this.isDark,
+    required this.userAvatar,
     required this.unreadCount,
     required this.pendingReminders,
     required this.onOpenReminders,
@@ -355,6 +354,12 @@ class _ChatHero extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
+              AvatarWidget(
+                url: userAvatar,
+                radius: 26,
+                lowDataMode: false,
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +367,7 @@ class _ChatHero extends StatelessWidget {
                     Text(
                       'Encrypted Messages',
                       style: GoogleFonts.poppins(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.9,
                         color: isDark ? Colors.white : AppColors.primaryDark,

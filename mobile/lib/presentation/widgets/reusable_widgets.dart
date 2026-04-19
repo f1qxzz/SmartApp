@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,6 +71,7 @@ class _CustomButtonState extends State<CustomButton>
       onTapUp: _isEnabled
           ? (_) {
               _controller.reverse();
+              HapticFeedback.lightImpact();
               widget.onPressed?.call();
             }
           : null,
@@ -94,58 +96,38 @@ class _CustomButtonState extends State<CustomButton>
                       ? AppColors.surfaceElevatedDark
                       : Colors.white)
                   : null,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               border: widget.isOutlined
                   ? Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.56),
-                      width: 1.3,
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                      width: 1.5,
                     )
                   : Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: Colors.white.withValues(alpha: 0.12),
                     ),
-              boxShadow: widget.isOutlined
-                  ? <BoxShadow>[
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.10),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : <BoxShadow>[
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: (widget.isOutlined ? AppColors.primary : AppColors.primary)
+                      .withValues(alpha: widget.isOutlined ? 0.05 : 0.20),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               child: Stack(
                 children: <Widget>[
                   if (!widget.isOutlined)
                     Positioned(
-                      top: -30,
-                      right: -10,
+                      top: -40,
+                      right: -20,
                       child: Container(
-                        width: 96,
-                        height: 74,
+                        width: 120,
+                        height: 100,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(34),
-                        ),
-                      ),
-                    ),
-                  if (!widget.isOutlined)
-                    Positioned(
-                      bottom: -18,
-                      left: -14,
-                      child: Container(
-                        width: 82,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(28),
+                          color: Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                         ),
                       ),
                     ),
@@ -168,7 +150,7 @@ class _CustomButtonState extends State<CustomButton>
                             children: <Widget>[
                               if (widget.icon != null) ...<Widget>[
                                 widget.icon!,
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 10),
                               ],
                               Text(
                                 widget.text,
@@ -177,7 +159,6 @@ class _CustomButtonState extends State<CustomButton>
                                       (widget.isOutlined
                                           ? AppColors.primary
                                           : Colors.white),
-                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -237,43 +218,25 @@ class _InputFieldState extends State<InputField> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? <Color>[
-                    AppColors.surfaceDark.withValues(alpha: 0.96),
-                    AppColors.surfaceElevatedDark.withValues(alpha: 0.92),
-                  ]
-                : <Color>[
-                    Colors.white,
-                    const Color(0xFFF7FBFF),
-                  ],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: _isFocused
-                ? AppColors.primary.withValues(alpha: 0.74)
+                ? AppColors.primary.withValues(alpha: 0.8)
                 : (isDark
-                    ? Colors.white.withValues(alpha: 0.10)
-                    : AppColors.outlineLight.withValues(alpha: 0.72)),
-            width: _isFocused ? 1.3 : 1,
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.outlineLight.withValues(alpha: 0.5)),
+            width: _isFocused ? 1.5 : 1,
           ),
           boxShadow: _isFocused
-              ? <BoxShadow>[
+              ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.18),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ]
-              : <BoxShadow>[
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+              : null,
         ),
         child: TextFormField(
           controller: widget.controller,
@@ -285,7 +248,7 @@ class _InputFieldState extends State<InputField> {
           readOnly: widget.readOnly,
           inputFormatters: widget.inputFormatters,
           style: GoogleFonts.inter(
-            fontSize: 14.2,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
           ),
@@ -294,25 +257,29 @@ class _InputFieldState extends State<InputField> {
             filled: true,
             hintText: widget.hint,
             hintStyle: GoogleFonts.inter(
-              fontSize: 13.5,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? AppColors.textSecondaryDark.withValues(alpha: 0.78)
-                  : AppColors.textTertiary,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
             ),
             prefixIcon: widget.prefixIcon != null
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: widget.prefixIcon,
+                    child: IconTheme(
+                      data: IconThemeData(
+                        color: _isFocused ? AppColors.primary : AppColors.textTertiary,
+                        size: 20,
+                      ),
+                      child: widget.prefixIcon!,
+                    ),
                   )
                 : null,
             prefixIconConstraints:
-                const BoxConstraints(minWidth: 52, minHeight: 52),
+                const BoxConstraints(minWidth: 48, minHeight: 48),
             suffixIcon: widget.suffixIcon,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 14,
+              vertical: 16,
             ),
           ),
         ),
@@ -367,174 +334,193 @@ class ChatBubble extends StatelessWidget {
         _looksLikeDocumentAttachment(normalizedAttachment);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Align(
-        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: _SwipeToReply(
-          onReply: onReply,
-          child: GestureDetector(
-            onLongPressStart: onLongPress != null
-                ? (details) => onLongPress!(details.globalPosition)
-                : null,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  clipBehavior: isImageMessage ? Clip.antiAlias : Clip.none,
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width *
-                        (isImageMessage || isDocumentMessage ? 0.74 : 0.78),
-                  ),
-                  padding: isImageMessage
-                      ? EdgeInsets.zero
-                      : const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                  margin: EdgeInsets.only(
-                    bottom:
-                        (reactions != null && reactions!.isNotEmpty) ? 8 : 0,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: isMe ? AppColors.gradientPrimary : null,
-                    color: isMe
-                        ? null
-                        : (isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.white),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(24),
-                      topRight: const Radius.circular(24),
-                      bottomLeft: Radius.circular(isMe ? 24 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 24),
-                    ),
-                    border: Border.all(
-                      color: isMe
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : (isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.05)),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isMe
-                            ? AppColors.primary.withValues(alpha: 0.25)
-                            : Colors.black
-                                .withValues(alpha: isDark ? 0.2 : 0.05),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMe) ...[
+            AvatarWidget(
+              url: avatarUrl ?? '',
+              radius: 16,
+            ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+            child: _SwipeToReply(
+              onReply: onReply,
+              child: GestureDetector(
+                onLongPressStart: onLongPress != null
+                    ? (details) => onLongPress!(details.globalPosition)
+                    : null,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      clipBehavior: isImageMessage ? Clip.antiAlias : Clip.none,
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width *
+                            (isImageMessage || isDocumentMessage ? 0.70 : 0.74),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      if (!isMe &&
-                          (senderRole == 'owner' ||
-                              senderRole == 'staff' ||
-                              senderRole == 'developer' ||
-                              senderRole == 'admin'))
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: isImageMessage ? 10 : 0,
-                            left: isImageMessage ? 12 : 1,
-                            bottom: 6,
+                      padding: isImageMessage
+                          ? EdgeInsets.zero
+                          : const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                      margin: EdgeInsets.only(
+                        bottom:
+                            (reactions != null && reactions!.isNotEmpty) ? 8 : 0,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: isMe ? AppColors.gradientPrimary : null,
+                        color: isMe
+                            ? null
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white),
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(24),
+                          topRight: const Radius.circular(24),
+                          bottomLeft: Radius.circular(isMe ? 24 : 4),
+                          bottomRight: Radius.circular(isMe ? 4 : 24),
+                        ),
+                        border: Border.all(
+                          color: isMe
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : (isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.black.withValues(alpha: 0.05)),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isMe
+                                ? AppColors.primary.withValues(alpha: 0.25)
+                                : Colors.black
+                                    .withValues(alpha: isDark ? 0.2 : 0.05),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (senderRole == 'owner' ||
-                                  senderRole == 'developer') ...[
-                                const Icon(Icons.verified_rounded,
-                                    color: Color(0xFFFFD700), size: 14),
-                                const SizedBox(width: 4),
-                              ] else if (senderRole == 'staff' ||
-                                  senderRole == 'admin') ...[
-                                const Icon(Icons.verified_rounded,
-                                    color: Color(0xFF6366F1), size: 14),
-                                const SizedBox(width: 4),
-                              ],
-                              Text(
-                                senderRole.toUpperCase(),
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                  color: senderRole == 'owner' ||
-                                          senderRole == 'developer'
-                                      ? const Color(0xFFFFD700)
-                                      : const Color(0xFF6366F1),
-                                ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          if (!isMe &&
+                              (senderRole == 'owner' ||
+                                  senderRole == 'staff' ||
+                                  senderRole == 'developer' ||
+                                  senderRole == 'admin'))
+                            Padding(
+                              padding: EdgeInsets.only(
+                                top: isImageMessage ? 10 : 0,
+                                left: isImageMessage ? 12 : 1,
+                                bottom: 6,
                               ),
-                            ],
-                          ),
-                        ),
-                      if (replyToMessage != null)
-                        _ReplyPreview(
-                          message: replyToMessage!,
-                          isMe: isMe,
-                          isDark: isDark,
-                        ),
-                      if (isImageMessage)
-                        _ImageContent(
-                          imageUrl:
-                              attachmentUrl.isEmpty ? imageUrl : attachmentUrl,
-                          isMe: isMe,
-                          isDark: isDark,
-                          text: text,
-                          timestamp: timestamp,
-                          isRead: isRead,
-                        ),
-                      if (isVoiceMessage)
-                        Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: VoiceMessagePlayer(
-                            url: attachmentUrl,
-                            isMe: isMe,
-                            timestamp: timestamp,
-                            isRead: isRead,
-                          ),
-                        ),
-                      if (isDocumentMessage)
-                        _DocumentContent(
-                          fileName: text,
-                          url: attachmentUrl,
-                          isMe: isMe,
-                          isDark: isDark,
-                          timestamp: timestamp,
-                          isRead: isRead,
-                        ),
-                      if (!isImageMessage &&
-                          !isVoiceMessage &&
-                          !isDocumentMessage)
-                        _TextContent(
-                          text: text,
-                          isMe: isMe,
-                          isDark: isDark,
-                          timestamp: timestamp,
-                          isRead: isRead,
-                        ),
-                    ],
-                  ),
-                ),
-                if (reactions != null && reactions!.isNotEmpty)
-                  Positioned(
-                    bottom: -10,
-                    right: isMe ? -4 : null,
-                    left: isMe ? null : -4,
-                    child: _ReactionBadge(
-                      reactions: reactions!,
-                      isMe: isMe,
-                      isDark: isDark,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (senderRole == 'owner' ||
+                                      senderRole == 'developer') ...[
+                                    const Icon(Icons.verified_rounded,
+                                        color: Color(0xFFFFD700), size: 14),
+                                    const SizedBox(width: 4),
+                                  ] else if (senderRole == 'staff' ||
+                                      senderRole == 'admin') ...[
+                                    const Icon(Icons.verified_rounded,
+                                        color: Color(0xFF6366F1), size: 14),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
+                                    senderRole.toUpperCase(),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                      color: senderRole == 'owner' ||
+                                              senderRole == 'developer'
+                                          ? const Color(0xFFFFD700)
+                                          : const Color(0xFF6366F1),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (replyToMessage != null)
+                            _ReplyPreview(
+                              message: replyToMessage!,
+                              isMe: isMe,
+                              isDark: isDark,
+                            ),
+                          if (isImageMessage)
+                            _ImageContent(
+                              imageUrl:
+                                  attachmentUrl.isEmpty ? imageUrl : attachmentUrl,
+                              isMe: isMe,
+                              isDark: isDark,
+                              text: text,
+                              timestamp: timestamp,
+                              isRead: isRead,
+                            ),
+                          if (isVoiceMessage)
+                            Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: VoiceMessagePlayer(
+                                url: attachmentUrl,
+                                isMe: isMe,
+                                timestamp: timestamp,
+                                isRead: isRead,
+                              ),
+                            ),
+                          if (isDocumentMessage)
+                            _DocumentContent(
+                              fileName: text,
+                              url: attachmentUrl,
+                              isMe: isMe,
+                              isDark: isDark,
+                              timestamp: timestamp,
+                              isRead: isRead,
+                            ),
+                          if (!isImageMessage &&
+                              !isVoiceMessage &&
+                              !isDocumentMessage)
+                            _TextContent(
+                              text: text,
+                              isMe: isMe,
+                              isDark: isDark,
+                              timestamp: timestamp,
+                              isRead: isRead,
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                    if (reactions != null && reactions!.isNotEmpty)
+                      Positioned(
+                        bottom: -10,
+                        right: isMe ? -4 : null,
+                        left: isMe ? null : -4,
+                        child: _ReactionBadge(
+                          reactions: reactions!,
+                          isMe: isMe,
+                          isDark: isDark,
+                        ),
+                      ),
+                  ],
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 200.ms)
+                  .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
             ),
-          )
-              .animate()
-              .fadeIn(duration: 200.ms)
-              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
-        ),
+          ),
+          if (isMe) ...[
+            const SizedBox(width: 10),
+            AvatarWidget(
+              url: avatarUrl ?? '',
+              radius: 16,
+            ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
+          ],
+        ],
       ),
     );
   }
@@ -643,7 +629,11 @@ class _VoiceMessagePlayerState extends State<VoiceMessagePlayer> {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
-      await _audioPlayer.play(UrlSource(widget.url));
+      if (widget.url.startsWith('http')) {
+        await _audioPlayer.play(UrlSource(widget.url));
+      } else {
+        await _audioPlayer.play(DeviceFileSource(widget.url));
+      }
     }
   }
 
@@ -1357,12 +1347,12 @@ class AppAlert {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 60,
-                          height: 60,
+                          width: 64,
+                          height: 64,
                           decoration: BoxDecoration(
                             color:
                                 (isError ? AppColors.error : AppColors.success)
-                                    .withValues(alpha: 0.12),
+                                    .withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -1374,22 +1364,22 @@ class AppAlert {
                             size: 32,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 19,
+                          style: GoogleFonts.outfit(
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Text(
                           message,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
-                            fontSize: 14,
+                            fontSize: 15,
                             color:
                                 Theme.of(context).brightness == Brightness.dark
                                     ? AppColors.textSecondaryDark
@@ -1397,14 +1387,14 @@ class AppAlert {
                             height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 32),
                         CustomButton(
                           text: 'Lanjutkan',
                           onPressed: () => Navigator.of(context).pop(),
                           gradient: isError
                               ? const LinearGradient(colors: [
-                                  Color(0xFFEF4444),
-                                  Color(0xFF991B1B)
+                                  Color(0xFFF43F5E),
+                                  Color(0xFFBE123C)
                                 ])
                               : AppColors.gradientPrimary,
                         ),
@@ -2027,66 +2017,73 @@ class _ImageContent extends StatelessWidget {
                       minHeight: 120,
                       minWidth: 180,
                     ),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        final double? progress =
-                            loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null;
-                        return Container(
-                          width: double.infinity,
-                          height: 200,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.black.withValues(alpha: 0.04),
-                          child: Center(
-                            child: SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                value: progress,
-                                color:
-                                    isMe ? Colors.white70 : AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: double.infinity,
-                          height: 160,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.black.withValues(alpha: 0.04),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.broken_image_outlined,
-                                color: isDark ? Colors.white38 : Colors.black26,
-                                size: 32,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Gagal memuat gambar',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color:
-                                      isDark ? Colors.white38 : Colors.black26,
+                    child: imageUrl.startsWith('http') 
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              final double? progress =
+                                  loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null;
+                              return Container(
+                                width: double.infinity,
+                                height: 200,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.04),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 36,
+                                    height: 36,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      value: progress,
+                                      color:
+                                          isMe ? Colors.white70 : AppColors.primary,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: double.infinity,
+                                height: 160,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.04),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image_outlined,
+                                      color: isDark ? Colors.white38 : Colors.black26,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Gagal memuat gambar',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color:
+                                            isDark ? Colors.white38 : Colors.black26,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          )
+                        : Image.file(
+                            File(imageUrl),
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.error)),
                           ),
-                        );
-                      },
-                    ),
                   ),
 
                   // Gradient overlay at bottom for timestamp readability
@@ -2520,9 +2517,9 @@ class ModernGlassCard extends StatelessWidget {
     this.height,
     this.padding,
     this.margin,
-    this.blur = 32,
+    this.blur = 30,
     this.opacity = 0.08,
-    this.borderRadius = 32,
+    this.borderRadius = 28,
     this.isDark,
   });
 
@@ -2531,12 +2528,14 @@ class ModernGlassCard extends StatelessWidget {
     final bool resolvedIsDark =
         isDark ?? Theme.of(context).brightness == Brightness.dark;
     final BorderRadius radius = BorderRadius.circular(borderRadius);
+    
     final Color baseColor = resolvedIsDark
-        ? const Color(0xFF101B34).withValues(alpha: opacity + 0.04)
-        : Colors.white.withValues(alpha: 0.82);
-    final Color tintColor = resolvedIsDark
-        ? AppColors.primary.withValues(alpha: opacity * 0.16)
-        : const Color(0xFFEFF6FF).withValues(alpha: 0.90);
+        ? AppColors.surfaceDark.withValues(alpha: 0.8)
+        : Colors.white.withValues(alpha: 0.9);
+        
+    final Color borderSideColor = resolvedIsDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.6);
 
     return Container(
       margin: margin,
@@ -2544,18 +2543,11 @@ class ModernGlassCard extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         borderRadius: radius,
-        boxShadow: <BoxShadow>[
+        boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: resolvedIsDark ? 0.28 : 0.06),
-            blurRadius: resolvedIsDark ? 36 : 30,
-            offset: const Offset(0, 16),
-          ),
-          BoxShadow(
-            color: AppColors.primary.withValues(
-              alpha: resolvedIsDark ? 0.16 : 0.10,
-            ),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: resolvedIsDark ? 0.3 : 0.06),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -2565,82 +2557,29 @@ class ModernGlassCard extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[
-                  baseColor,
-                  tintColor,
-                ],
-              ),
+              color: baseColor,
               borderRadius: radius,
               border: Border.all(
-                color: resolvedIsDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.90),
+                color: borderSideColor,
                 width: 1.2,
               ),
             ),
             child: Stack(
               children: <Widget>[
+                // Soft gradient spot top-right
                 Positioned(
-                  top: -42,
-                  right: -18,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: <Color>[
-                            Colors.white.withValues(
-                              alpha: resolvedIsDark ? 0.10 : 0.28,
-                            ),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            Colors.white.withValues(
-                              alpha: resolvedIsDark ? 0.05 : 0.18,
-                            ),
-                            Colors.transparent,
-                            Colors.black.withValues(
-                              alpha: resolvedIsDark ? 0.08 : 0.02,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -46,
-                  left: -26,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: 150,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          colors: <Color>[
-                            AppColors.chatAccent.withValues(
-                              alpha: resolvedIsDark ? 0.12 : 0.10,
-                            ),
-                            Colors.transparent,
-                          ],
-                        ),
+                  top: -60,
+                  right: -40,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: resolvedIsDark ? 0.08 : 0.05),
+                          Colors.transparent,
+                        ],
                       ),
                     ),
                   ),
@@ -2862,11 +2801,11 @@ class ModernGlassButton extends StatelessWidget {
               ],
               Text(
                 text,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  letterSpacing: 0.5,
+                  fontSize: 16,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
@@ -2888,125 +2827,127 @@ class FluidBackground extends StatelessWidget {
     final bool resolvedIsDark =
         isDark ?? Theme.of(context).brightness == Brightness.dark;
     final List<Color> colors = orbColors ??
-        <Color>[
-          const Color(0xFF365DF5),
-          const Color(0xFF44C2FF),
-          const Color(0xFF8BE4C8),
+        const <Color>[
+          Color(0xFF4F46E5), // Indigo
+          Color(0xFF10B981), // Emerald
+          Color(0xFF0EA5E9), // Sky
         ];
 
-    return Stack(
-      children: <Widget>[
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: resolvedIsDark
-                  ? const <Color>[
-                      Color(0xFF081325),
-                      Color(0xFF0F1C34),
-                      Color(0xFF132645),
-                    ]
-                  : const <Color>[
-                      Color(0xFFFAFCFF),
-                      Color(0xFFF4F8FF),
-                      Color(0xFFEAF3FF),
-                    ],
+    return RepaintBoundary(
+      child: Stack(
+        children: <Widget>[
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: resolvedIsDark
+                    ? const <Color>[
+                        Color(0xFF081325),
+                        Color(0xFF0F1C34),
+                        Color(0xFF132645),
+                      ]
+                    : const <Color>[
+                        Color(0xFFFAFCFF),
+                        Color(0xFFF4F8FF),
+                        Color(0xFFEAF3FF),
+                      ],
+              ),
             ),
           ),
-        ),
-        Positioned.fill(
-          child: IgnorePointer(
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: <Color>[
+                      colors.first.withValues(
+                        alpha: resolvedIsDark ? 0.10 : 0.06,
+                      ),
+                      Colors.transparent,
+                      colors[1 % colors.length].withValues(
+                        alpha: resolvedIsDark ? 0.05 : 0.04,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: <Color>[
-                    colors.first.withValues(
-                      alpha: resolvedIsDark ? 0.10 : 0.06,
+                    Colors.white.withValues(
+                      alpha: resolvedIsDark ? 0.02 : 0.38,
                     ),
                     Colors.transparent,
-                    colors[1 % colors.length].withValues(
-                      alpha: resolvedIsDark ? 0.05 : 0.04,
+                    Colors.black.withValues(
+                      alpha: resolvedIsDark ? 0.14 : 0.03,
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  Colors.white.withValues(
-                    alpha: resolvedIsDark ? 0.02 : 0.38,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0.85, -0.9),
+                    radius: 1.3,
+                    colors: <Color>[
+                      colors.first.withValues(
+                        alpha: resolvedIsDark ? 0.16 : 0.10,
+                      ),
+                      Colors.transparent,
+                    ],
                   ),
-                  Colors.transparent,
-                  Colors.black.withValues(
-                    alpha: resolvedIsDark ? 0.14 : 0.03,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0.85, -0.9),
-                  radius: 1.3,
-                  colors: <Color>[
-                    colors.first.withValues(
-                      alpha: resolvedIsDark ? 0.16 : 0.10,
-                    ),
-                    Colors.transparent,
-                  ],
                 ),
               ),
             ),
           ),
-        ),
-        _Orb(
-          size: 470,
-          color: colors[0].withValues(alpha: resolvedIsDark ? 0.14 : 0.10),
-          duration: 12.seconds,
-          beginOffset: const Offset(-0.2, -0.1),
-          endOffset: const Offset(0.35, 0.2),
-        ),
-        _Orb(
-          size: 420,
-          color: colors[1].withValues(alpha: resolvedIsDark ? 0.12 : 0.09),
-          duration: 18.seconds,
-          beginOffset: const Offset(0.5, 0.46),
-          endOffset: const Offset(-0.28, -0.2),
-        ),
-        if (colors.length > 2)
           _Orb(
-            size: 330,
-            color: colors[2].withValues(alpha: resolvedIsDark ? 0.10 : 0.07),
-            duration: 14.seconds,
-            beginOffset: const Offset(0.12, 0.62),
-            endOffset: const Offset(-0.42, 0.24),
+            size: 470,
+            color: colors[0].withValues(alpha: resolvedIsDark ? 0.14 : 0.10),
+            duration: 12.seconds,
+            beginOffset: const Offset(-0.2, -0.1),
+            endOffset: const Offset(0.35, 0.2),
           ),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(
-                  alpha: resolvedIsDark ? 0 : 0.018,
+          _Orb(
+            size: 420,
+            color: colors[1].withValues(alpha: resolvedIsDark ? 0.12 : 0.09),
+            duration: 18.seconds,
+            beginOffset: const Offset(0.5, 0.46),
+            endOffset: const Offset(-0.28, -0.2),
+          ),
+          if (colors.length > 2)
+            _Orb(
+              size: 330,
+              color: colors[2].withValues(alpha: resolvedIsDark ? 0.10 : 0.07),
+              duration: 14.seconds,
+              beginOffset: const Offset(0.12, 0.62),
+              endOffset: const Offset(-0.42, 0.24),
+            ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(
+                    alpha: resolvedIsDark ? 0 : 0.018,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -3028,31 +2969,33 @@ class _Orb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedAlign(
-      duration: duration,
-      alignment: Alignment(beginOffset.dx, beginOffset.dy),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-          ),
-        ),
-      )
-          .animate(onPlay: (c) => c.repeat(reverse: true))
-          .scaleXY(
-              begin: 0.8, end: 1.2, duration: duration, curve: Curves.easeInOut)
-          .move(
-            begin: Offset.zero,
-            end: Offset(
-              (endOffset.dx - beginOffset.dx) * 100,
-              (endOffset.dy - beginOffset.dy) * 100,
+    return RepaintBoundary(
+      child: AnimatedAlign(
+        duration: duration,
+        alignment: Alignment(beginOffset.dx, beginOffset.dy),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0)],
             ),
-            duration: duration,
-            curve: Curves.easeInOut,
           ),
+        )
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .scaleXY(
+                begin: 0.8, end: 1.2, duration: duration, curve: Curves.easeInOut)
+            .move(
+              begin: Offset.zero,
+              end: Offset(
+                (endOffset.dx - beginOffset.dx) * 100,
+                (endOffset.dy - beginOffset.dy) * 100,
+              ),
+              duration: duration,
+              curve: Curves.easeInOut,
+            ),
+      ),
     );
   }
 }

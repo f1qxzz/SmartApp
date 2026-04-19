@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema(
     isSystem: { type: Boolean, default: false, index: true },
     role: {
       type: String,
-      enum: ['owner', 'developer', 'staff', 'user'],
+      enum: ['owner', 'developer', 'staff', 'vanguard', 'ace_tester', 'user'],
       default: 'user',
       index: true,
     },

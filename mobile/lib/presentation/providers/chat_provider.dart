@@ -290,6 +290,73 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
+  Future<void> sendMediaMessage({
+    required File file,
+    String? text,
+    required String chatId,
+    required String type,
+    String? replyToId,
+  }) async {
+    final tempId = 'temp_media_${DateTime.now().millisecondsSinceEpoch}';
+    final targetChatId = chatId.isNotEmpty ? chatId : 'unknown';
+
+    // Create optimistic message with LOCAL path
+    final tempMessage = ChatMessageEntity(
+      id: tempId,
+      chatId: targetChatId,
+      senderId: _currentUserId ?? 'me',
+      senderUsername: '',
+      senderAvatar: '',
+      text: text ?? '',
+      type: type,
+      attachmentUrl: file.path, // Store local path for instant preview
+      createdAt: DateTime.now(),
+      replyToId: replyToId,
+      replyToMessage: state.replyMessage,
+    );
+
+    _appendMessage(tempMessage);
+    state = state.copyWith(clearReply: true);
+
+    try {
+      // 1. Upload in background
+      final remoteUrl = await uploadFile(file);
+
+      // 2. Finalize sending
+      final message = await _useCases.sendMessage(
+        text: text ?? '',
+        chatId: chatId,
+        type: type,
+        attachmentUrl: remoteUrl,
+        replyToId: replyToId,
+      );
+
+      // 3. Replace temp message
+      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      final cId = message.chatId.isNotEmpty ? message.chatId : targetChatId;
+      final list = List<ChatMessageEntity>.from(map[cId] ?? const []);
+      
+      final index = list.indexWhere((m) => m.id == tempId);
+      if (index != -1) {
+        list[index] = message;
+      } else {
+        list.add(message);
+      }
+      map[cId] = list;
+      
+      state = state.copyWith(messagesByChatId: map);
+      await _refreshChatsSilent();
+    } catch (error) {
+      // Revert on failure
+      final map = Map<String, List<ChatMessageEntity>>.from(state.messagesByChatId);
+      final list = List<ChatMessageEntity>.from(map[targetChatId] ?? const []);
+      list.removeWhere((m) => m.id == tempId);
+      map[targetChatId] = list;
+      
+      state = state.copyWith(messagesByChatId: map, errorMessage: 'Gagal mengupload media: $error');
+    }
+  }
+
   void setReplyMessage(ChatMessageEntity? message) {
     state = state.copyWith(replyMessage: message);
   }

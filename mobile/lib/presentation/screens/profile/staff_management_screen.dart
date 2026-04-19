@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/domain/entities/user_entity.dart';
 import 'package:smartlife_app/presentation/providers/user_provider.dart';
+import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 
 class StaffManagementScreen extends ConsumerStatefulWidget {
   const StaffManagementScreen({super.key});
@@ -43,6 +44,10 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       case 'staff':
       case 'admin':
         return 'Staff / Admin';
+      case 'vanguard':
+        return 'Elite Pioneer';
+      case 'ace_tester':
+        return 'Ace Tester';
       default:
         return 'Regular User';
     }
@@ -56,6 +61,10 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       case 'staff':
       case 'admin':
         return const Color(0xFF6366F1);
+      case 'vanguard':
+        return const Color(0xFF8B5CF6);
+      case 'ace_tester':
+        return const Color(0xFF06B6D4);
       default:
         return const Color(0xFF10B981);
     }
@@ -186,12 +195,21 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                           itemCount: state.users.length,
                           itemBuilder: (context, index) {
                             final user = state.users[index];
+                            final currentUser = ref.watch(authProvider).user;
+                            final bool isTargetAdministrative = 
+                                user.role == 'owner' || user.role == 'developer' || 
+                                user.role == 'staff' || user.role == 'admin';
+                            final bool isRequesterTopTier = 
+                                currentUser?.role == 'owner' || currentUser?.role == 'developer';
+                            
+                            final bool canManageThisUser = isRequesterTopTier || !isTargetAdministrative;
+
                             return _UserCard(
                               user: user,
                               isDark: isDark,
                               roleLabel: _roleLabel(user.role),
                               roleColor: _roleColor(user.role),
-                              onTap: () => _showRoleDialog(context, user),
+                              onTap: canManageThisUser ? () => _showRoleDialog(context, user) : () {},
                             ).animate()
                              .fadeIn(delay: (50 * index).ms, duration: 400.ms)
                              .slideX(begin: 0.05);
@@ -207,12 +225,16 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   }
 
   void _showRoleDialog(BuildContext context, UserEntity user) {
+    // Get current logged in user role
+    final currentUserRole = ref.read(authProvider).user?.role ?? 'user';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => _RolePickerSheet(
         user: user,
+        currentUserRole: currentUserRole,
         onRoleSelected: (role) {
           ref.read(userProvider.notifier).updateRole(user.id, role);
           Navigator.pop(context);
@@ -377,15 +399,22 @@ class _UserCard extends StatelessWidget {
   IconData _getRoleIcon(String role) {
     if (role == 'owner' || role == 'developer') return Icons.star_rounded;
     if (role == 'staff' || role == 'admin') return Icons.shield_rounded;
+    if (role == 'vanguard') return Icons.verified_user_rounded;
+    if (role == 'ace_tester') return Icons.offline_bolt_rounded;
     return Icons.person_rounded;
   }
 }
 
 class _RolePickerSheet extends StatelessWidget {
   final UserEntity user;
+  final String currentUserRole;
   final Function(String) onRoleSelected;
 
-  const _RolePickerSheet({required this.user, required this.onRoleSelected});
+  const _RolePickerSheet({
+    required this.user, 
+    required this.currentUserRole,
+    required this.onRoleSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -457,8 +486,13 @@ class _RolePickerSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
-              _roleOption(context, 'owner', 'Owner / Dev', 'Akses penuh sistem, analitik & manajemen.', const Color(0xFFFFD700), Icons.star_rounded),
-              _roleOption(context, 'staff', 'Staff / Admin', 'Akses moderasi chat & kelola pustaka.', const Color(0xFF6366F1), Icons.shield_rounded),
+              if (currentUserRole == 'owner' || currentUserRole == 'developer') 
+                _roleOption(context, 'owner', 'Owner / Dev', 'Akses penuh sistem, analitik & manajemen.', const Color(0xFFFFD700), Icons.star_rounded),
+              
+              if (currentUserRole == 'owner' || currentUserRole == 'developer')
+                _roleOption(context, 'staff', 'Staff / Admin', 'Akses moderasi chat & kelola pustaka.', const Color(0xFF6366F1), Icons.shield_rounded),
+              _roleOption(context, 'vanguard', 'Elite Pioneer', 'Vanguard / Early adopters dengan badge verified.', const Color(0xFF8B5CF6), Icons.verified_user_rounded),
+              _roleOption(context, 'ace_tester', 'Ace Tester', 'Penguji sistem utama dengan akses QA.', const Color(0xFF06B6D4), Icons.offline_bolt_rounded),
               _roleOption(context, 'user', 'Regular User', 'Akses standar pengguna aplikasi.', const Color(0xFF10B981), Icons.person_rounded),
               const SizedBox(height: 20),
             ],

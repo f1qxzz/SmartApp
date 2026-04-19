@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 
 class ChatImagePreviewScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
   final TextEditingController _captionCtrl = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isTyping = false;
+  late File _currentFile;
 
   late final AnimationController _enterCtrl;
   late final Animation<double> _fadeIn;
@@ -28,6 +30,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
   @override
   void initState() {
     super.initState();
+    _currentFile = File(widget.image.path);
 
     _enterCtrl = AnimationController(
       vsync: this,
@@ -179,9 +182,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(100),
-                          onTap: () {
-                            // Future: crop/edit functionality
-                          },
+                          onTap: _cropImage,
                           child: Container(
                             width: 38,
                             height: 38,
@@ -218,7 +219,7 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.file(
-                          File(widget.image.path),
+                          _currentFile,
                           fit: BoxFit.contain,
                           width: double.infinity,
                           height: double.infinity,
@@ -327,7 +328,10 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
                                     HapticFeedback.mediumImpact();
                                     Navigator.pop(
                                       context,
-                                      _captionCtrl.text.trim(),
+                                      {
+                                        'caption': _captionCtrl.text.trim(),
+                                        'file': _currentFile,
+                                      },
                                     );
                                   },
                                   child: AnimatedContainer(
@@ -368,5 +372,35 @@ class _ChatImagePreviewScreenState extends State<ChatImagePreviewScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _cropImage() async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: _currentFile.path,
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 100,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Potong Gambar',
+          toolbarColor: AppColors.primary,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          activeControlsWidgetColor: AppColors.primary,
+          backgroundColor: const Color(0xFF0F172A),
+        ),
+        IOSUiSettings(
+          title: 'Potong Gambar',
+          doneButtonTitle: 'Selesai',
+          cancelButtonTitle: 'Batal',
+        ),
+      ],
+    );
+
+    if (croppedFile != null) {
+      setState(() {
+        _currentFile = File(croppedFile.path);
+      });
+    }
   }
 }

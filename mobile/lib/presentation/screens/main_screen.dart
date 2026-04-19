@@ -158,25 +158,25 @@ class _BottomNav extends StatelessWidget {
         Icons.chat_bubble_outline_rounded,
         Icons.chat_bubble_rounded,
         'Chat',
-        const Color(0xFF3B82F6),
+        const Color(0xFF4F46E5), // Primary Indigo
       ),
       (
         Icons.account_balance_wallet_outlined,
         Icons.account_balance_wallet_rounded,
         'Finance',
-        const Color(0xFF06B6D4),
+        const Color(0xFF10B981), // Emerald
       ),
       (
         Icons.bar_chart_outlined,
         Icons.bar_chart_rounded,
         'Dashboard',
-        const Color(0xFF4F46E5),
+        const Color(0xFF6366F1), // Indigo Light
       ),
       (
         Icons.person_outline_rounded,
         Icons.person_rounded,
         'Profile',
-        const Color(0xFF0EA5A4),
+        const Color(0xFF0EA5E9), // Sky
       ),
     ];
 
@@ -311,22 +311,23 @@ class _BottomNav extends StatelessWidget {
                                           ),
                                   ),
                                   const SizedBox(height: 5),
-                                  Text(
-                                    items[i].$3,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: isActive
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                      color: isActive
-                                          ? Colors.white
-                                          : (isDark
-                                              ? AppColors.textSecondaryDark
-                                              : AppColors.textSecondary),
+                                    Text(
+                                      items[i].$3,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 12,
+                                        fontWeight: isActive
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                        color: isActive
+                                            ? Colors.white
+                                            : (isDark
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondary),
+                                        letterSpacing: 0.2,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),

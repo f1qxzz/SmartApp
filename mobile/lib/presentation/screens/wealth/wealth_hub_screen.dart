@@ -51,7 +51,7 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          const FluidBackground(),
+          const RepaintBoundary(child: FluidBackground()),
           RefreshIndicator(
             onRefresh: () => ref.read(financeProvider.notifier).load(),
             color: AppColors.primary,
@@ -89,40 +89,50 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate(
                         <Widget>[
-                          _buildSnapshotCard(
-                            isDark: isDark,
-                            state: financeState,
-                            commitmentPerMonth: commitmentPerMonth,
-                            totalGoalTarget: totalGoalTarget,
-                            totalGoalSaved: totalGoalSaved,
-                          )
-                              .animate()
-                              .fadeIn(duration: 500.ms)
-                              .slideY(begin: 0.06),
+                          RepaintBoundary(
+                            child: _buildSnapshotCard(
+                              isDark: isDark,
+                              state: financeState,
+                              commitmentPerMonth: commitmentPerMonth,
+                              totalGoalTarget: totalGoalTarget,
+                              totalGoalSaved: totalGoalSaved,
+                            )
+                                .animate()
+                                .fadeIn(duration: 500.ms)
+                                .slideY(begin: 0.06),
+                          ),
                           const SizedBox(height: 18),
                           _buildQuickActions(isDark)
                               .animate()
                               .fadeIn(delay: 100.ms, duration: 500.ms)
                               .slideY(begin: 0.08),
                           const SizedBox(height: 18),
-                          _buildInsightSection(isDark, insights)
-                              .animate()
-                              .fadeIn(delay: 180.ms, duration: 500.ms),
+                          RepaintBoundary(
+                            child: _buildInsightSection(isDark, insights)
+                                .animate()
+                                .fadeIn(delay: 180.ms, duration: 500.ms),
+                          ),
                           const SizedBox(height: 18),
-                          _buildCashflowSection(isDark, financeState.entries)
-                              .animate()
-                              .fadeIn(delay: 240.ms, duration: 500.ms)
-                              .slideY(begin: 0.08),
+                          RepaintBoundary(
+                            child: _buildCashflowSection(isDark, financeState.entries)
+                                .animate()
+                                .fadeIn(delay: 240.ms, duration: 500.ms)
+                                .slideY(begin: 0.08),
+                          ),
                           const SizedBox(height: 18),
-                          _buildGoalSection(isDark, financeState.goals)
-                              .animate()
-                              .fadeIn(delay: 300.ms, duration: 500.ms)
-                              .slideY(begin: 0.08),
+                          RepaintBoundary(
+                            child: _buildGoalSection(isDark, financeState.goals)
+                                .animate()
+                                .fadeIn(delay: 300.ms, duration: 500.ms)
+                                .slideY(begin: 0.08),
+                          ),
                           const SizedBox(height: 18),
-                          _buildSubscriptionSection(isDark, activeSubscriptions)
-                              .animate()
-                              .fadeIn(delay: 360.ms, duration: 500.ms)
-                              .slideY(begin: 0.08),
+                          RepaintBoundary(
+                            child: _buildSubscriptionSection(isDark, activeSubscriptions)
+                                .animate()
+                                .fadeIn(delay: 360.ms, duration: 500.ms)
+                                .slideY(begin: 0.08),
+                          ),
                           const SizedBox(height: 110),
                         ],
                       ),
@@ -1617,33 +1627,6 @@ class _WealthHubScreenState extends ConsumerState<WealthHubScreen> {
 
 // _WealthBackground removed in favor of FluidBackground
 
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: color,
-              blurRadius: 80,
-              spreadRadius: 10,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _BudgetFormResult {
   const _BudgetFormResult({required this.monthlyBudget});

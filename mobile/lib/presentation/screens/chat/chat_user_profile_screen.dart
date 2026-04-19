@@ -1118,6 +1118,8 @@ bool _isVerified(String role) {
     case 'developer':
     case 'staff':
     case 'admin':
+    case 'vanguard':
+    case 'ace_tester':
       return true;
     default:
       return false;
@@ -1134,6 +1136,10 @@ String _roleLabel(String role) {
       return 'Staff';
     case 'admin':
       return 'Admin';
+    case 'vanguard':
+      return 'Elite Pioneer';
+    case 'ace_tester':
+      return 'Ace Tester';
     default:
       return 'Member';
   }
@@ -1149,6 +1155,10 @@ Color _roleColor(String role) {
       return const Color(0xFF2F80ED);
     case 'admin':
       return const Color(0xFF4B67D1);
+    case 'vanguard':
+      return const Color(0xFF8B5CF6);
+    case 'ace_tester':
+      return const Color(0xFF06B6D4);
     default:
       return AppColors.primary;
   }

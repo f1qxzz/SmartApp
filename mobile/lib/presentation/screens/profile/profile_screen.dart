@@ -331,7 +331,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onEdit: () => _showEditSocialLinksBottomSheet(context),
                 ),
                 const SizedBox(height: 14),
-                if (user.role == 'owner' || user.role == 'developer') ...[
+                if (user.role == 'owner' ||
+                    user.role == 'developer' ||
+                    user.role == 'staff' ||
+                    user.role == 'admin' ||
+                    user.role == 'ace_tester') ...[
                   _StaffManagementCard(isDark: isDark),
                   const SizedBox(height: 14),
                 ],
@@ -1165,12 +1169,16 @@ class _HeroProfileCardState extends ConsumerState<_HeroProfileCard>
   String _roleLabel(String role) {
     if (role == 'owner' || role == 'developer') return 'Owner / Developer';
     if (role == 'staff' || role == 'admin') return 'Staff / Admin';
+    if (role == 'vanguard') return 'Elite Pioneer';
+    if (role == 'ace_tester') return 'Ace Tester';
     return 'Regular User';
   }
 
   Color _roleColor(String role) {
     if (role == 'owner' || role == 'developer') return AppColors.primaryDark;
     if (role == 'staff' || role == 'admin') return AppColors.primary;
+    if (role == 'vanguard') return const Color(0xFF8B5CF6); // Violet
+    if (role == 'ace_tester') return const Color(0xFF06B6D4); // Cyan
     return AppColors.softHeaderGray;
   }
 

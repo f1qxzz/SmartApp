@@ -41,12 +41,12 @@ class DashboardHeader extends ConsumerWidget {
                       greeting,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.outfit(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color:
                             isDark ? Colors.white60 : const Color(0xFF475569),
-                        letterSpacing: 0.5,
+                        letterSpacing: 1.5,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -54,13 +54,13 @@ class DashboardHeader extends ConsumerWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 30,
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
                         fontWeight: FontWeight.w800,
-                        height: 1.0,
+                        height: 1.1,
                         color:
                             isDark ? Colors.white : const Color(0xFF1E293B),
-                        letterSpacing: -1.1,
+                        letterSpacing: -1.0,
                       ),
                     ),
                   ],
@@ -170,9 +170,9 @@ class DashboardHeader extends ConsumerWidget {
                 AppFormatters.monthYear(DateTime.now()),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                 ),
               ),

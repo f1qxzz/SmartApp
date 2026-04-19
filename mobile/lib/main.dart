@@ -30,6 +30,7 @@ Future<void> main() async {
 Future<void> _backgroundBootTasks() async {
   try {
     await NotificationService.instance.initialize();
+    await NotificationService.instance.requestPermissions();
     await NotificationService.instance.syncReminderNotificationsFromStorage();
   } catch (e) {
     debugPrint('[BOOT] Background tasks failed: $e');

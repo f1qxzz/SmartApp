@@ -76,12 +76,14 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          const FluidBackground(
-            orbColors: [
-              Color(0xFF6366F1), // Indigo
-              Color(0xFF10B981), // Emerald
-              Color(0xFFF59E0B), // Amber
-            ],
+          const RepaintBoundary(
+            child: FluidBackground(
+              orbColors: <Color>[
+                Color(0xFF6366F1), // Indigo
+                Color(0xFF10B981), // Emerald
+                Color(0xFFF59E0B), // Amber
+              ],
+            ),
           ),
           RefreshIndicator(
             color: AppColors.primary,
@@ -135,54 +137,58 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        ModernGlassCard(
-                          padding: const EdgeInsets.all(16),
-                          borderRadius: 24,
-                          child: Row(
-                            children: <Widget>[
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.gradientPrimary,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.insights_rounded,
-                                  size: 22,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Text(
-                                  'Satu menu untuk cashflow, budget, goal tabungan, dan komitmen rutin kamu.',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : AppColors.textSecondary,
-                                    height: 1.4,
+                        RepaintBoundary(
+                          child: ModernGlassCard(
+                            padding: const EdgeInsets.all(16),
+                            borderRadius: 24,
+                            child: Row(
+                              children: <Widget>[
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    gradient: AppColors.gradientPrimary,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.insights_rounded,
+                                    size: 22,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    'Satu menu untuk cashflow, budget, goal tabungan, dan komitmen rutin kamu.',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : AppColors.textSecondary,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05),
+                        ),
                         const SizedBox(height: 16),
-                        BalanceCard(
-                          totalSpent: financeState.totalSpent,
-                          budget: financeState.budget,
-                          income: financeState.budget,
-                        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                        RepaintBoundary(
+                          child: BalanceCard(
+                            totalSpent: financeState.totalSpent,
+                            budget: financeState.budget,
+                            income: financeState.budget,
+                          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                        ),
                         const SizedBox(height: 18),
                         Row(
                           children: <Widget>[
@@ -216,10 +222,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        _buildPlannerBridgeCard(financeState, isDark)
-                            .animate()
-                            .fadeIn(delay: 120.ms, duration: 380.ms)
-                            .slideY(begin: 0.08),
+                        RepaintBoundary(
+                          child: _buildPlannerBridgeCard(financeState, isDark)
+                              .animate()
+                              .fadeIn(delay: 120.ms, duration: 380.ms)
+                              .slideY(begin: 0.08),
+                        ),
                       ],
                     ),
                   ),
@@ -1289,36 +1297,3 @@ class _PlannerStatChip extends StatelessWidget {
   }
 }
 
-class _FinanceBackground extends StatelessWidget {
-  final bool isDark;
-
-  const _FinanceBackground({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-        ),
-        Positioned(
-          top: -120,
-          left: -80,
-          child: Container(
-            width: 260,
-            height: 260,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: <Color>[
-                  AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.12),
-                  AppColors.secondary.withValues(alpha: isDark ? 0.14 : 0.08),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

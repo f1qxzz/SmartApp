@@ -38,9 +38,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _touchedPieIndex = -1;
-  static const String _menuAssetIconPath =
-      'assets/images/app_logo_transparent.png';
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -77,8 +74,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       body: Stack(
-        children: [
-          const FluidBackground(),
+        children: <Widget>[
+          const RepaintBoundary(child: FluidBackground()),
           RefreshIndicator(
             color: AppColors.primary,
             onRefresh: _refreshDashboard,
@@ -104,10 +101,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // Search Bar & Actions
-                      _buildSearchBar(isDark)
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .slideY(begin: -0.1),
+                      RepaintBoundary(
+                        child: _buildSearchBar(isDark)
+                            .animate()
+                            .fadeIn(duration: 600.ms)
+                            .slideY(begin: -0.1),
+                      ),
                       const SizedBox(height: 24),
 
                       _buildQuickActions(isDark)
@@ -116,94 +115,110 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(height: 28),
 
                       // Main Balance Module
-                      AppBalanceCard(
-                        totalSpent: totalSpent,
-                        budgetUsage: budgetUsage,
-                        isDark: isDark,
-                      ).animate().fadeIn(duration: 800.ms).scale(
-                          begin: const Offset(0.95, 0.95),
-                          curve: Curves.easeOutCubic),
+                      RepaintBoundary(
+                        child: AppBalanceCard(
+                          totalSpent: totalSpent,
+                          budgetUsage: budgetUsage,
+                          isDark: isDark,
+                        ).animate().fadeIn(duration: 800.ms).scale(
+                            begin: const Offset(0.95, 0.95),
+                            curve: Curves.easeOutCubic),
+                      ),
                       const SizedBox(height: 20),
 
                       // Stat Grid
-                      Row(
-                        children: [
-                          Expanded(
-                            child: StatCard(
-                              title: 'Transaksi',
-                              value: '$totalTransactions',
-                              icon: Icons.swap_vert_rounded,
-                              gradient: AppColors.gradientPrimary,
-                              isDark: isDark,
+                      RepaintBoundary(
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: StatCard(
+                                title: 'Transaksi',
+                                value: '$totalTransactions',
+                                icon: Icons.swap_vert_rounded,
+                                gradient: AppColors.gradientPrimary,
+                                isDark: isDark,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: StatCard(
-                              title: 'Reminders',
-                              value:
-                                  '${ref.watch(reminderProvider).reminders.where((r) => !r.isCompleted).length}',
-                              icon: Icons.notifications_active_rounded,
-                              gradient: AppColors.gradientChatHeader,
-                              isDark: isDark,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: StatCard(
+                                title: 'Reminders',
+                                value:
+                                    '${ref.watch(reminderProvider.select((s) => s.reminders.where((r) => !r.isCompleted).length))}',
+                                icon: Icons.notifications_active_rounded,
+                                gradient: AppColors.gradientChatHeader,
+                                isDark: isDark,
+                              ),
                             ),
-                          ),
-                        ],
-                      )
-                          .animate()
-                          .fadeIn(delay: 200.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                          ],
+                        )
+                            .animate()
+                            .fadeIn(delay: 200.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
                       // Savings Goal
-                      _buildSavingsGoalBento(isDark)
-                          .animate()
-                          .fadeIn(delay: 300.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: _buildSavingsGoalBento(isDark)
+                            .animate()
+                            .fadeIn(delay: 300.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
                       // Insight Spotlight
-                      InsightCard(
-                        isDark: isDark,
-                        onAskAi: _openSmartAi,
-                      )
-                          .animate()
-                          .fadeIn(delay: 400.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: InsightCard(
+                          isDark: isDark,
+                          onAskAi: _openSmartAi,
+                        )
+                            .animate()
+                            .fadeIn(delay: 400.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
                       // Life Hub Status
-                      _buildLifeHubStatusBento(isDark)
-                          .animate()
-                          .fadeIn(delay: 450.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: _buildLifeHubStatusBento(isDark)
+                            .animate()
+                            .fadeIn(delay: 450.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
                       // Detailed Charts
-                      TrendChart(
-                        spots: weeklySeries.spots,
-                        isDark: isDark,
-                        maxY: math.max(
-                            100000.0,
-                            weeklySeries.spots.fold<double>(
-                                    0, (max, spot) => math.max(max, spot.y)) *
-                                1.3),
-                      )
-                          .animate()
-                          .fadeIn(delay: 500.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: TrendChart(
+                          spots: weeklySeries.spots,
+                          isDark: isDark,
+                          maxY: math.max(
+                              100000.0,
+                              weeklySeries.spots.fold<double>(
+                                      0, (max, spot) => math.max(max, spot.y)) *
+                                  1.3),
+                        )
+                            .animate()
+                            .fadeIn(delay: 500.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
-                      _buildCategoryBentoCard(categoryData, isDark)
-                          .animate()
-                          .fadeIn(delay: 600.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: _buildCategoryBentoCard(categoryData, isDark)
+                            .animate()
+                            .fadeIn(delay: 600.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                       const SizedBox(height: 20),
 
-                      _buildRemindersBento(isDark)
-                          .animate()
-                          .fadeIn(delay: 700.ms, duration: 600.ms)
-                          .slideY(begin: 0.1),
+                      RepaintBoundary(
+                        child: _buildRemindersBento(isDark)
+                            .animate()
+                            .fadeIn(delay: 700.ms, duration: 600.ms)
+                            .slideY(begin: 0.1),
+                      ),
                     ]),
                   ),
                 ),
@@ -263,14 +278,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 children: [
                   Text(
                     'DAILY MOTIVATION',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                       letterSpacing: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
                       if (allDone) ...<Widget>[
@@ -284,9 +299,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Expanded(
                         child: Text(
                           statusText,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                             color:
                                 isDark ? Colors.white : AppColors.textPrimary,
                             letterSpacing: -0.3,
@@ -540,54 +555,93 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSearchBar(bool isDark) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white10
-                  : Colors.black.withValues(alpha: 0.05),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
-          child: Row(
-            children: [
-              Icon(Icons.search_rounded,
-                  color: isDark ? Colors.white54 : Colors.black38, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  readOnly: true,
-                  onTap: _openSmartAi,
-                  decoration: InputDecoration(
-                    hintText: 'Tanya AI apa saja...',
-                    hintStyle: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: isDark ? Colors.white24 : Colors.black26,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    border: InputBorder.none,
-                  ),
-                ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.primary.withValues(alpha: 0.1),
+                width: 1.2,
               ),
-              GestureDetector(
-                onTap: _openSmartAi,
-                child: Container(
+            ),
+            child: Row(
+              children: [
+                Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.gradientPrimary,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.mic_none_rounded,
-                      color: Colors.white, size: 18),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: AppColors.primary, size: 18),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: TextField(
+                    readOnly: true,
+                    onTap: _openSmartAi,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'TANYA AI APA SAJA...',
+                      hintStyle: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: isDark
+                            ? Colors.white38
+                            : AppColors.primary.withValues(alpha: 0.4),
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.8,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _openSmartAi,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.gradientPrimary,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.bolt_rounded,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -671,8 +725,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 8),
                       Text(
                         action.label,
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
+                        style: GoogleFonts.outfit(
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: isDark
                                 ? Colors.white
@@ -789,9 +843,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(width: 8),
                     Text(
                       'SAVINGS GOAL',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 1.5,
                         color: goalColor,
                       ),

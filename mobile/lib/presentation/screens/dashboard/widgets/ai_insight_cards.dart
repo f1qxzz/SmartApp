@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
-import 'package:smartlife_app/core/constants/app_constants.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class InsightCard extends StatelessWidget {

@@ -67,11 +67,11 @@ class AppBalanceCard extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               'PENGELUARAN BULAN INI',
-                              style: GoogleFonts.inter(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2.0,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
                               ),
                             ),
                           ],
@@ -79,12 +79,7 @@ class AppBalanceCard extends StatelessWidget {
                         const SizedBox(height: 10),
                         Text(
                           AppFormatters.currency(totalSpent),
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 38,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1.5,
-                          ),
+                          style: AppTextStyles.moneyLarge(context),
                         ),
                       ],
                     ),
@@ -146,10 +141,10 @@ class _BudgetProgress extends StatelessWidget {
               ),
               child: Text(
                 '${(usage * 100).toStringAsFixed(0)}%',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.outfit(
                   color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),

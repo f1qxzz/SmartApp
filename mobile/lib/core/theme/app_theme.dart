@@ -3,177 +3,197 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Core palette
-  static const softCream = Color(0xFFF5F8FF);
-  static const softLilac = Color(0xFFDDE8FF);
-  static const softBlueGrayLight = Color(0xFF8BB9FF);
-  static const softBlueGray = Color(0xFF4369F2);
-  static const softNavy = Color(0xFF14213D);
-  static const softPurple = Color(0xFF51C4FF);
-  static const softMutedPurple = Color(0xFF6B8FD6);
-  static const softHeaderGray = Color(0xFF64748B);
-  static const softHeaderDark = Color(0xFF1E3A8A);
+  // Core palette - Premium Slate & Indigo
+  static const softCream = Color(0xFFF8FAFC);
+  static const softIndigo = Color(0xFF4F46E5);
+  static const softIndigoLight = Color(0xFF818CF8);
+  static const softSlate = Color(0xFF0F172A);
+  static const softSlateMuted = Color(0xFF64748B);
+  static const softIndigoDark = Color(0xFF312E81);
+  static const softTeal = Color(0xFF14B8A6);
+  static const softSky = Color(0xFF0EA5E9);
 
   // Primary palette
-  static const primary = softBlueGray;
-  static const primaryLight = softBlueGrayLight;
-  static const primaryDark = softNavy;
+  static const primary = softIndigo;
+  static const primaryLight = softIndigoLight;
+  static const primaryDark = softIndigoDark;
 
-  // Secondary
-  static const secondary = Color(0xFFBEE7FF);
-  static const secondaryLight = Color(0xFFE9F7FF);
-
-  // Accent
-  static const accent = Color(0xFF8BE4C8);
-  static const accentLight = Color(0xFFE1FFF5);
+  // Secondary & Accent
+  static const secondary = softSky;
+  static const accent = softTeal;
 
   // Semantic
-  static const success = Color(0xFF22C55E);
-  static const error = Color(0xFFEF4444);
+  static const success = Color(0xFF10B981);
+  static const error = Color(0xFFF43F5E);
   static const warning = Color(0xFFF59E0B);
   static const info = Color(0xFF3B82F6);
-  static const chatPrimary = softMutedPurple;
-  static const chatAccent = softPurple;
+  static const chatPrimary = Color(0xFF6366F1);
+  static const chatAccent = Color(0xFF818CF8);
 
   // Light mode
-  static const backgroundLight = softCream;
+  static const backgroundLight = Color(0xFFF8FAFC);
   static const cardLight = Color(0xFFFFFFFF);
-  static const surfaceLight = Color(0xFFF8FAFF);
-  static const surfaceElevatedLight = Color(0xFFF2F7FF);
-  static const textPrimary = softNavy;
-  static const textSecondary = softHeaderGray;
-  static const textTertiary = Color(0xFF9AA9C6);
-  static const textLight = softNavy;
-  static const dividerLight = Color(0xFFDCE6FF);
-  static const outlineLight = Color(0xFFCFDCF9);
+  static const surfaceLight = Color(0xFFF1F5F9);
+  static const surfaceElevatedLight = Color(0xFFE2E8F0);
+  static const textPrimary = Color(0xFF0F172A);
+  static const textSecondary = Color(0xFF475569);
+  static const textTertiary = Color(0xFF94A3B8);
+  static const dividerLight = Color(0xFFE2E8F0);
+  static const outlineLight = Color(0xFFCBD5E1);
 
   // Dark mode
-  static const backgroundDark = Color(0xFF0F172A);
-  static const cardDark = Color(0xFF16233F);
-  static const surfaceDark = Color(0xFF203055);
-  static const surfaceElevatedDark = Color(0xFF182847);
-  static const textPrimaryDark = Color(0xFFF5F8FF);
-  static const textSecondaryDark = Color(0xFFB8C6E6);
-  static const dividerDark = Color(0xFF33486F);
-  static const outlineDark = Color(0xFF3C4F78);
+  static const backgroundDark = Color(0xFF010409);
+  static const cardDark = Color(0xFF0D1117);
+  static const surfaceDark = Color(0xFF161B22);
+  static const surfaceElevatedDark = Color(0xFF21262D);
+  static const textPrimaryDark = Color(0xFFF0F6FC);
+  static const textSecondaryDark = Color(0xFF8B949E);
+  static const dividerDark = Color(0xFF30363D);
+  static const outlineDark = Color(0xFF30363D);
 
-  // Gradients
+  // Gradients - Professional subtly
   static const gradientPrimary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF365DF5), Color(0xFF44C2FF)],
+    colors: <Color>[Color(0xFF4F46E5), Color(0xFF6366F1)],
   );
 
   static const gradientSecondary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF8BE4C8), Color(0xFFDDF8FF)],
+    colors: <Color>[Color(0xFF0EA5E9), Color(0xFF38BDF8)],
   );
 
   static const gradientAccent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFFFFFFFF), Color(0xFFEAF4FF)],
+    colors: <Color>[Color(0xFF14B8A6), Color(0xFF2DD4BF)],
   );
 
   static const gradientDark = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF0C1527), Color(0xFF1B2D57)],
+    colors: <Color>[Color(0xFF010409), Color(0xFF161B22)],
   );
 
   static const gradientChatHeader = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF365DF5), Color(0xFF0EA5E9)],
+    colors: <Color>[Color(0xFF4F46E5), Color(0xFF06B6D4)],
   );
 
-  // Category colors
-  static const List<Color> categoryColors = <Color>[
-    Color(0xFF365DF5),
-    Color(0xFF44C2FF),
-    Color(0xFF8BE4C8),
-    Color(0xFF14213D),
-    Color(0xFF6B8FD6),
-    Color(0xFFBEE7FF),
-    Color(0xFF7AA4FF),
-    Color(0xFF1E3A8A),
+  // Glassmorphism tokens - Refined
+  static const glassBlur = 24.0;
+  static const glassOpacityLight = 0.65;
+  static const glassOpacityDark = 0.45;
+  static final Color glassBorderLight = Colors.white.withValues(alpha: 0.12);
+  static final Color glassBorderDark = Colors.white.withValues(alpha: 0.05);
+
+  // Light variants for compatibility
+  static const secondaryLight = Color(0xFF7DD3FC);
+  static const accentLight = Color(0xFF5EEAD4);
+  static const successLight = Color(0xFF6EE7B7);
+  static const errorLight = Color(0xFFFDA4AF);
+  static const warningLight = Color(0xFFFCD34D);
+  static const infoLight = Color(0xFF93C5FD);
+  static const softNavy = Color(0xFF0F172A);
+  static const softHeaderGray = Color(0xFFF1F5F9);
+
+  // Category colors - Refined Professional Palette
+  static const Map<String, Color> categoryColors = {
+    'Food': Color(0xFFF43F5E), // Rose
+    'Transport': Color(0xFF0EA5E9), // Sky
+    'Shopping': Color(0xFFF59E0B), // Amber
+    'Health': Color(0xFF10B981), // Emerald
+    'Entertainment': Color(0xFF8B5CF6), // Violet
+    'Bills': Color(0xFF4F46E5), // Indigo
+    'Income': Color(0xFF10B981), // Emerald
+    'Other': Color(0xFF64748B), // Slate
+  };
+
+  // For indexed access (Compatibility)
+  static final List<Color> categoryColorsList = [
+    categoryColors['Food']!,
+    categoryColors['Transport']!,
+    categoryColors['Shopping']!,
+    categoryColors['Health']!,
+    categoryColors['Entertainment']!,
+    categoryColors['Bills']!,
+    categoryColors['Income']!,
+    categoryColors['Other']!,
   ];
 
-  // Glassmorphism tokens
-  static const glassBlur = 24.0;
-  static const glassOpacityLight = 0.12;
-  static const glassOpacityDark = 0.06;
-  static final Color glassBorderLight = Colors.white.withValues(alpha: 0.4);
-  static final Color glassBorderDark = Colors.white.withValues(alpha: 0.08);
+  static Color getCategoryColor(String category) {
+    return categoryColors[category] ?? categoryColors['Other']!;
+  }
 }
 
 class AppTextStyles {
-  static TextStyle heading1(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 30,
+  static TextStyle heading1(BuildContext context) => GoogleFonts.outfit(
+        fontSize: 32,
         fontWeight: FontWeight.w800,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
-        letterSpacing: -0.8,
-        height: 1.1,
+        letterSpacing: -1.0,
+        height: 1.15,
       );
 
-  static TextStyle heading2(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 24,
+  static TextStyle heading2(BuildContext context) => GoogleFonts.outfit(
+        fontSize: 26,
         fontWeight: FontWeight.w700,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
-        letterSpacing: -0.5,
+        letterSpacing: -0.6,
       );
 
-  static TextStyle heading3(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 19,
+  static TextStyle heading3(BuildContext context) => GoogleFonts.outfit(
+        fontSize: 20,
         fontWeight: FontWeight.w700,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
-        letterSpacing: -0.2,
+        letterSpacing: -0.4,
       );
 
   static TextStyle subtitle(BuildContext context) => GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: FontWeight.w600,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textSecondaryDark
             : AppColors.textSecondary,
-        height: 1.35,
+        height: 1.4,
       );
 
   static TextStyle body(BuildContext context) => GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w500,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
-        height: 1.55,
+        height: 1.6,
       );
 
   static TextStyle caption(BuildContext context) => GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textSecondaryDark
             : AppColors.textSecondary,
       );
 
-  static TextStyle button = GoogleFonts.poppins(
-    fontSize: 15,
+  static TextStyle button = GoogleFonts.outfit(
+    fontSize: 16,
     fontWeight: FontWeight.w700,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   );
 
-  static TextStyle moneyLarge(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 32,
+  static TextStyle moneyLarge(BuildContext context) => GoogleFonts.outfit(
+        fontSize: 36,
         fontWeight: FontWeight.w800,
         color: Colors.white,
-        letterSpacing: -1,
+        letterSpacing: -1.2,
       );
 }
 
@@ -189,6 +209,18 @@ class AppTheme {
     },
   );
 
+  // Category items - Order for selection
+  static const List<String> categories = [
+    'Food',
+    'Transport',
+    'Shopping',
+    'Health',
+    'Entertainment',
+    'Bills',
+    'Income',
+    'Other',
+  ];
+
   static TextTheme _buildTextTheme(Brightness brightness) {
     final bool isDark = brightness == Brightness.dark;
     final Color titleColor =
@@ -199,76 +231,76 @@ class AppTheme {
         isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
 
     return TextTheme(
-      displayLarge: GoogleFonts.poppins(
-        fontSize: 36,
+      displayLarge: GoogleFonts.outfit(
+        fontSize: 40,
         fontWeight: FontWeight.w800,
-        letterSpacing: -1,
+        letterSpacing: -1.2,
         color: titleColor,
       ),
-      displayMedium: GoogleFonts.poppins(
-        fontSize: 30,
+      displayMedium: GoogleFonts.outfit(
+        fontSize: 32,
         fontWeight: FontWeight.w800,
-        letterSpacing: -0.8,
+        letterSpacing: -1.0,
         color: titleColor,
       ),
-      headlineLarge: GoogleFonts.poppins(
-        fontSize: 26,
+      headlineLarge: GoogleFonts.outfit(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+        color: titleColor,
+      ),
+      headlineMedium: GoogleFonts.outfit(
+        fontSize: 24,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
         color: titleColor,
       ),
-      headlineMedium: GoogleFonts.poppins(
+      titleLarge: GoogleFonts.outfit(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.4,
         color: titleColor,
       ),
-      titleLarge: GoogleFonts.poppins(
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
-        color: titleColor,
-      ),
-      titleMedium: GoogleFonts.poppins(
-        fontSize: 16,
+      titleMedium: GoogleFonts.outfit(
+        fontSize: 18,
         fontWeight: FontWeight.w600,
         color: titleColor,
       ),
-      titleSmall: GoogleFonts.poppins(
-        fontSize: 14,
+      titleSmall: GoogleFonts.outfit(
+        fontSize: 15,
         fontWeight: FontWeight.w600,
         color: titleColor,
       ),
       bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        height: 1.55,
+        height: 1.6,
         color: bodyColor,
       ),
       bodyMedium: GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w500,
-        height: 1.5,
+        height: 1.55,
         color: bodyColor,
       ),
       bodySmall: GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: bodyMutedColor,
       ),
       labelLarge: GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w700,
-        letterSpacing: 0.2,
+        letterSpacing: 0.3,
         color: bodyColor,
       ),
       labelMedium: GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
         color: bodyMutedColor,
       ),
       labelSmall: GoogleFonts.inter(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
         color: bodyMutedColor,
       ),
@@ -320,11 +352,11 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 22,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
-          letterSpacing: -0.2,
+          letterSpacing: -0.4,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -538,11 +570,11 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.textPrimaryDark),
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 22,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimaryDark,
-          letterSpacing: -0.2,
+          letterSpacing: -0.4,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

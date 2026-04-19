@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/presentation/widgets/reusable_widgets.dart';
 
 class StatCard extends StatelessWidget {
@@ -46,21 +45,23 @@ class StatCard extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             value,
-            style: GoogleFonts.poppins(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
+            style: GoogleFonts.outfit(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
               color: isDark ? Colors.white : const Color(0xFF0F172A),
-              letterSpacing: -1,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             title.toUpperCase(),
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B),
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.0,
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : const Color(0xFF64748B),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
             ),
           ),
         ],

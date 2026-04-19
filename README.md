@@ -1,119 +1,80 @@
 <p align="center">
-  <img src="mobile/assets/images/app_logo.png" width="220" alt="SmartLife Logo">
+  <img src="smartlife_ai_banner_1776587541123.png" width="100%" alt="SmartLife AI Banner">
 </p>
 
-<h1 align="center">✨ SmartLife ✨</h1>
+# 📱 SmartLife AI - V.1 Premium Release
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Flutter-Mobile_App-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
-  <img src="https://img.shields.io/badge/Node.js-Backend-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
-  <img src="https://img.shields.io/badge/Socket.io-Realtime-010101?style=for-the-badge&logo=socketdotio&logoColor=white" alt="Socket.io">
-  <img src="https://img.shields.io/badge/Gemini-AI_Assistant-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI">
-</p>
-
-<p align="center">
-  <b>SmartLife</b> adalah modern mobile app yang menyatukan personal finance, real-time chat, pengingat, dan AI assistance dalam satu connected experience yang terpadu.
-</p>
-
-<p align="center">
-  <a href="https://github.com/f1qxzz/SmartApp/releases/latest">
-    <img src="https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
-  </a>
+  <img src="https://img.shields.io/badge/Release-v1.0.0-4F46E5?style=for-the-badge&logo=rocket" alt="Release">
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
+  <img src="https://img.shields.io/badge/Modern-UI%2FUX-Slate?style=for-the-badge&logo=design" alt="Modern UI">
 </p>
 
 ---
 
-## 🌟 Overview
+## ✨ Experience the Future of Life Management
 
-**SmartLife** bukan sekadar standard finance tracker biasa. Ini adalah life management workspace di mana pengguna bisa:
+**SmartLife** adalah ekosistem mobile modern yang menggabungkan *Personal Finance*, *Real-time Communication*, dan *Generative AI* ke dalam satu antarmuka yang elegan dan profesional. Dirancang dengan filosofi **Slate & Indigo**, memberikan pengalaman visual premium yang menenangkan namun powerful.
 
-- 💰 **Manage spending & budget bulanan** dengan praktis
-- 🎯 **Monitor savings goals & recurring subscriptions** secara real-time
-- 💬 **Chatting & sharing multimedia** secara instan
-- 🤖 **Dapatkan AI-powered financial insights** yang cerdas
-- 📊 **Tetap terorganisir** lewat satu central dashboard yang intuitif
-
----
-
-## 🔥 Fitur Utama | Core Features
-
-### 1. ⚡ Smart Dashboard
-Hub sentral untuk monitor finance snapshot, pengingat, dan akses cepat ke AI entry points.
-
-### 2. 💳 Finance & Wealth
-Lacak transaksi secara detail, pantau budget progress, dan kelola savings goals langsung dari satu menu.
-
-### 3. 💬 Realtime Chat
-One-to-one messaging menggunakan Socket.io dengan fitur pencarian, reaksi, share multimedia, dan online status indicator.
-
-### 4. 🧠 SmartLife AI
-Smart financial assistant yang didukung Gemini untuk memberikan actionable advice berdasarkan konteks transaksi kamu.
-
-### 5. 🔐 Auth & Security
-Alur autentikasi yang clean dengan dukungan Google Sign-In dan desain UI yang secure serta modern.
+### 📥 Download Sekarang
+> [!IMPORTANT]
+> Dapatkan rilis stabil pertama kami melalui link di bawah ini.
+> [**Download SmartLife V.1 (APK)**](https://github.com/f1qxzz/SmartApp/releases/download/v1.0.0/app-release.apk)
 
 ---
 
-## 🛠️ Tech Stack
-
-### 📱 Mobile (Frontend)
-- **Framework**: Flutter & Dart
-- **State Management**: Riverpod (Functional & Reactive)
-- **Local Database**: Hive (Lightning Fast)
-- **Networking**: Client Socket.IO & Dio
-- **Animations**: Flutter Animate
-
-### 💻 Backend (API)
-- **Runtime**: Node.js & Express.js
-- **Database**: MongoDB dengan Mongoose
-- **Real-time**: Socket.io Server
-- **AI Engine**: Gemini AI API
-- **Auth**: JWT & Bcrypt encryption
+## 🎨 Design Philosophy: Slate & Indigo
+Aplikasi ini menggunakan palet warna khusus untuk menciptakan kesan profesional:
+- **Primary**: `Indigo` (#4F46E5) - Mewakili kecerdasan dan kepercayaan.
+- **Background**: `Slate` (#0F172A) - Memberikan kedalaman visual yang modern.
+- **Surface**: `Glassmorphism` - Blur 24px untuk kedalaman dan kejernihan.
 
 ---
 
-## 🚀 Getting Started | Cara Memulai
+## 🚀 Fitur Unggulan
 
-### 1. Prasyarat | Prerequisites
-- Flutter SDK 3.x & Dart SDK
-- Node.js 18+ (Recommended)
-- MongoDB Atlas atau Local
-- Gemini API Key
+### 💰 Finance Intelligence
+Kelola kekayaan Anda dengan presisi. Pantau pengeluaran, tetapkan target tabungan, dan kelola langganan bulanan tanpa repot.
 
-### 2. Instalasi | Installation
+### 💬 Seamless Connection
+Messenger real-time yang cepat dengan dukungan enkripsi end-to-end, pencarian pesan instan, dan integrasi multimedia yang fluid.
+
+### 🤖 Gemini AI Integration
+Asisten cerdas yang memahami konteks keuangan Anda. Dapatkan ringkasan percakapan otomatis dan saran penghematan berbasis data nyata.
+
+---
+
+## 🛠️ Stack Teknologi Modern
+
+| Component | Tech Used |
+|-----------|-----------|
+| **Core** | Flutter, Dart |
+| **State** | Riverpod |
+| **Logic** | Node.js (Express) |
+| **Data** | MongoDB, Hive |
+| **AI** | Google Gemini API |
+| **Realtime**| Socket.IO |
+
+---
+
+## 🛠️ Panduan Instalasi (Developer)
+
 ```bash
 # Clone the repository
 git clone https://github.com/f1qxzz/SmartApp.git
-cd SmartApp
 
-# Run Backend
-cd backend
-npm install
-npm run dev
+# Launch Backend Services
+cd backend && npm install && npm run dev
 
-# Run Mobile
-cd ../mobile
-flutter pub get
-flutter run
+# Launch Mobile Experience
+cd ../mobile && flutter pub get && flutter run
 ```
 
 ---
 
-## 💎 Key Highlights
-- **Clean Architecture**: Kode terstruktur yang gampang di-maintain dan di-skala.
-- **Glassmorphism UI**: Tampilan transparan yang memberikan kesan premium & modern vibe.
-- **Fluid Animations**: Transisi yang smooth berkat flutter_animate.
-
----
-
-## 📄 License
-Project ini dilisensikan di bawah Lisensi MIT.
-*This project is licensed under the MIT License.*
-
 <p align="center">
-  <img src="https://img.shields.io/github/stars/f1qxzz/SmartApp?style=social" />
-  <img src="https://img.shields.io/github/forks/f1qxzz/SmartApp?style=social" />
   <br />
-  Made with ❤️ by [@f1qxzz](https://github.com/f1qxzz)
+  Made with 💎 by <b>SmartLife Team</b>
+  <br />
+  <img src="https://img.shields.io/github/stars/f1qxzz/SmartApp?style=social" />
 </p>

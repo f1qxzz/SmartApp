@@ -16,7 +16,7 @@ const updateUserRole = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
 
-  const validRoles = ['owner', 'developer', 'staff', 'user'];
+  const validRoles = ['owner', 'developer', 'staff', 'vanguard', 'ace_tester', 'user'];
   if (!validRoles.includes(role)) {
     return res.status(400).json({
       success: false,
@@ -33,15 +33,37 @@ const updateUserRole = asyncHandler(async (req, res) => {
     });
   }
 
-  // Prevent modifying other owners unless you are a developer or owner too
-  // Actually, 'developer' and 'owner' are highest.
-  if ((userToUpdate.role === 'owner' || userToUpdate.role === 'developer') && req.user._id.toString() !== userToUpdate._id.toString()) {
-    // Only developer can modify owner, or owner can modify owner (we just allow both if they got this far, but usually owner is highest tier).
+  // Check authority for sensitive role assignments (Staff/Admin/Tester cannot promote to Owner/Dev/Staff)
+  if (req.user.role === 'staff' || req.user.role === 'admin' || req.user.role === 'ace_tester') {
+    const sensitiveRoles = ['owner', 'developer', 'staff', 'admin']; 
+    if (sensitiveRoles.includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak. Perubahan role administratif hanya dapat dilakukan oleh Owner atau Developer.',
+      });
+    }
+  }
+
+  // Prevent modifying owners/developers/staff unless you have superior authority (Owner/Dev)
+  if ((userToUpdate.role === 'owner' || userToUpdate.role === 'developer' || userToUpdate.role === 'staff' || userToUpdate.role === 'admin')) {
+    // Non-Top-Tier (Staff/Admin/Tester) cannot modify Staff/Admin/Owner/Developer
     if (req.user.role !== 'owner' && req.user.role !== 'developer') {
-        return res.status(403).json({
+         return res.status(403).json({
             success: false,
-            message: 'Anda tidak memiliki otoritas mengubah status owner/developer.',
+            message: 'Anda tidak memiliki otoritas untuk mengubah status Staff atau Owner.',
           });
+    }
+
+    // Owner/Dev protection
+    if ((userToUpdate.role === 'owner' || userToUpdate.role === 'developer')) {
+        // Redundant check but good for clarity: if they got here they are Owner/Dev.
+        // But Dev can modify Owner. Owner CANNOT modify Dev.
+        if (req.user.role === 'owner' && userToUpdate.role === 'developer' && req.user._id.toString() !== userToUpdate._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Owner tidak diizinkan mengubah status Developer.',
+            });
+        }
     }
   }
 
