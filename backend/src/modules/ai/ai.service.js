@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Finance = require('../finance/finance.model');
+const User = require('../auth/user.model');
 
 function getModelCandidates() {
   const primary = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
