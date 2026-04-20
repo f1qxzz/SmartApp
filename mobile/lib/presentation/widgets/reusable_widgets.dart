@@ -96,7 +96,7 @@ class _CustomButtonState extends State<CustomButton>
                       ? AppColors.surfaceElevatedDark
                       : Colors.white)
                   : null,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: widget.isOutlined
                   ? Border.all(
                       color: AppColors.primary.withValues(alpha: 0.5),
@@ -107,15 +107,17 @@ class _CustomButtonState extends State<CustomButton>
                     ),
               boxShadow: [
                 BoxShadow(
-                  color: (widget.isOutlined ? AppColors.primary : AppColors.primary)
-                      .withValues(alpha: widget.isOutlined ? 0.05 : 0.20),
-                  blurRadius: 24,
+                  color: (widget.isOutlined
+                          ? AppColors.primary
+                          : AppColors.primary)
+                      .withValues(alpha: widget.isOutlined ? 0.04 : 0.14),
+                  blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               child: Stack(
                 children: <Widget>[
                   if (!widget.isOutlined)
@@ -259,14 +261,17 @@ class _InputFieldState extends State<InputField> {
             hintStyle: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
+              color:
+                  isDark ? AppColors.textSecondaryDark : AppColors.textTertiary,
             ),
             prefixIcon: widget.prefixIcon != null
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: IconTheme(
                       data: IconThemeData(
-                        color: _isFocused ? AppColors.primary : AppColors.textTertiary,
+                        color: _isFocused
+                            ? AppColors.primary
+                            : AppColors.textTertiary,
                         size: 20,
                       ),
                       child: widget.prefixIcon!,
@@ -336,14 +341,18 @@ class ChatBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
             AvatarWidget(
               url: avatarUrl ?? '',
               radius: 16,
-            ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
+            )
+                .animate()
+                .fadeIn(duration: 300.ms)
+                .scale(begin: const Offset(0.8, 0.8)),
             const SizedBox(width: 10),
           ],
           Flexible(
@@ -367,8 +376,9 @@ class ChatBubble extends StatelessWidget {
                           : const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                       margin: EdgeInsets.only(
-                        bottom:
-                            (reactions != null && reactions!.isNotEmpty) ? 8 : 0,
+                        bottom: (reactions != null && reactions!.isNotEmpty)
+                            ? 8
+                            : 0,
                       ),
                       decoration: BoxDecoration(
                         gradient: isMe ? AppColors.gradientPrimary : null,
@@ -454,8 +464,9 @@ class ChatBubble extends StatelessWidget {
                             ),
                           if (isImageMessage)
                             _ImageContent(
-                              imageUrl:
-                                  attachmentUrl.isEmpty ? imageUrl : attachmentUrl,
+                              imageUrl: attachmentUrl.isEmpty
+                                  ? imageUrl
+                                  : attachmentUrl,
                               isMe: isMe,
                               isDark: isDark,
                               text: text,
@@ -507,10 +518,8 @@ class ChatBubble extends StatelessWidget {
                       ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 200.ms)
-                  .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
+              ).animate().fadeIn(duration: 200.ms).scale(
+                  begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
             ),
           ),
           if (isMe) ...[
@@ -518,7 +527,10 @@ class ChatBubble extends StatelessWidget {
             AvatarWidget(
               url: avatarUrl ?? '',
               radius: 16,
-            ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
+            )
+                .animate()
+                .fadeIn(duration: 300.ms)
+                .scale(begin: const Offset(0.8, 0.8)),
           ],
         ],
       ),
@@ -2017,7 +2029,7 @@ class _ImageContent extends StatelessWidget {
                       minHeight: 120,
                       minWidth: 180,
                     ),
-                    child: imageUrl.startsWith('http') 
+                    child: imageUrl.startsWith('http')
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
@@ -2042,8 +2054,9 @@ class _ImageContent extends StatelessWidget {
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
                                       value: progress,
-                                      color:
-                                          isMe ? Colors.white70 : AppColors.primary,
+                                      color: isMe
+                                          ? Colors.white70
+                                          : AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -2061,7 +2074,9 @@ class _ImageContent extends StatelessWidget {
                                   children: [
                                     Icon(
                                       Icons.broken_image_outlined,
-                                      color: isDark ? Colors.white38 : Colors.black26,
+                                      color: isDark
+                                          ? Colors.white38
+                                          : Colors.black26,
                                       size: 32,
                                     ),
                                     const SizedBox(height: 6),
@@ -2069,8 +2084,9 @@ class _ImageContent extends StatelessWidget {
                                       'Gagal memuat gambar',
                                       style: GoogleFonts.inter(
                                         fontSize: 11,
-                                        color:
-                                            isDark ? Colors.white38 : Colors.black26,
+                                        color: isDark
+                                            ? Colors.white38
+                                            : Colors.black26,
                                       ),
                                     ),
                                   ],
@@ -2082,7 +2098,8 @@ class _ImageContent extends StatelessWidget {
                             File(imageUrl),
                             fit: BoxFit.cover,
                             width: double.infinity,
-                            errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.error)),
+                            errorBuilder: (_, __, ___) =>
+                                const Center(child: Icon(Icons.error)),
                           ),
                   ),
 
@@ -2528,11 +2545,11 @@ class ModernGlassCard extends StatelessWidget {
     final bool resolvedIsDark =
         isDark ?? Theme.of(context).brightness == Brightness.dark;
     final BorderRadius radius = BorderRadius.circular(borderRadius);
-    
+
     final Color baseColor = resolvedIsDark
         ? AppColors.surfaceDark.withValues(alpha: 0.8)
         : Colors.white.withValues(alpha: 0.9);
-        
+
     final Color borderSideColor = resolvedIsDark
         ? Colors.white.withValues(alpha: 0.1)
         : Colors.white.withValues(alpha: 0.6);
@@ -2577,7 +2594,8 @@ class ModernGlassCard extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.primary.withValues(alpha: resolvedIsDark ? 0.08 : 0.05),
+                          AppColors.primary
+                              .withValues(alpha: resolvedIsDark ? 0.08 : 0.05),
                           Colors.transparent,
                         ],
                       ),
@@ -2759,9 +2777,11 @@ class AppAssetIcon extends StatelessWidget {
 
 class ModernGlassButton extends StatelessWidget {
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final IconData? icon;
   final bool isPrimary;
+  final bool isLoading;
+  final double? width;
 
   const ModernGlassButton({
     super.key,
@@ -2769,46 +2789,75 @@ class ModernGlassButton extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.isPrimary = true,
+    this.isLoading = false,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isEnabled = onTap != null && !isLoading;
+    final Color foregroundColor = isPrimary
+        ? Colors.white
+        : (isDark ? AppColors.textPrimaryDark : AppColors.primaryDark);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
+        onTap: isEnabled
+            ? () {
+                HapticFeedback.lightImpact();
+                onTap?.call();
+              }
+            : null,
         borderRadius: BorderRadius.circular(20),
-        child: GlassContainer(
-          borderRadius: 20,
-          blur: 15,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: isPrimary
-              ? AppColors.primary.withValues(alpha: 0.85)
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.04)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
-              ],
-              Text(
-                text,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  letterSpacing: 0.3,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 160),
+          opacity: isEnabled ? 1 : 0.6,
+          child: GlassContainer(
+            width: width,
+            borderRadius: 18,
+            blur: 14,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            color: isPrimary
+                ? AppColors.primary.withValues(alpha: 0.85)
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04)),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading)
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(foregroundColor),
+                    ),
+                  )
+                else if (icon != null) ...[
+                  Icon(icon, color: foregroundColor, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: foregroundColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2985,7 +3034,10 @@ class _Orb extends StatelessWidget {
         )
             .animate(onPlay: (c) => c.repeat(reverse: true))
             .scaleXY(
-                begin: 0.8, end: 1.2, duration: duration, curve: Curves.easeInOut)
+                begin: 0.8,
+                end: 1.2,
+                duration: duration,
+                curve: Curves.easeInOut)
             .move(
               begin: Offset.zero,
               end: Offset(

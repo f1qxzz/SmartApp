@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,8 +39,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final AudioRecorder _recorder = AudioRecorder();
-  Timer? _clockTicker;
-  DateTime _currentTime = DateTime.now();
   late String _chatId;
   bool _isRecording = false;
   String? _recordingPath;
@@ -60,7 +57,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   String _searchQuery = '';
   List<String> _searchMatchMessageIds = const <String>[];
   int _activeSearchMatchIndex = -1;
-  bool _isSending = false;
 
   @override
   void initState() {
@@ -78,13 +74,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       }
     });
 
-    _clockTicker = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _currentTime = DateTime.now());
-    });
-
     _msgCtrl.addListener(() {
       final bool shouldShowMic = _msgCtrl.text.trim().isEmpty;
       if (_showMic != shouldShowMic) {
@@ -95,7 +84,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   @override
   void dispose() {
-    _clockTicker?.cancel();
     _recordTimer?.cancel();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
@@ -157,51 +145,58 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 _buildAppBar(context, isDark, isTyping, lowDataMode),
                 Expanded(
                   child: messages.isEmpty
-                        ? _EmptyChatDetail(isDark: isDark)
-                        : ListView.builder(
-                            controller: _scrollCtrl,
-                            reverse: true, // New: latest messages at the bottom, growing upwards
-                            cacheExtent: 1000,
-                            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-                            itemCount: messages.length + (isTyping ? 1 : 0),
-                            itemBuilder: (_, int index) {
-                              // If reversed, the typing indicator (if it exists) should be at the bottom (index 0)
-                              if (isTyping && index == 0) {
-                                return RepaintBoundary(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 4, left: 40, bottom: 8),
-                                    child: Row(
-                                      children: <Widget>[
-                                        CircleAvatar(
-                                          radius: 16,
-                                          backgroundImage: lowDataMode ||
-                                                  widget.contact.avatar.isEmpty
-                                              ? null
-                                              : NetworkImage(widget.contact.avatar),
-                                          child: lowDataMode ||
-                                                  widget.contact.avatar.isEmpty
-                                              ? const Icon(Icons.person)
-                                              : null,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const TypingIndicator(),
-                                      ],
-                                    ).animate().fadeIn(duration: 220.ms),
-                                  ),
-                                );
-                              }
+                      ? _EmptyChatDetail(isDark: isDark)
+                      : ListView.builder(
+                          controller: _scrollCtrl,
+                          reverse:
+                              true, // New: latest messages at the bottom, growing upwards
+                          cacheExtent: 1000,
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                          itemCount: messages.length + (isTyping ? 1 : 0),
+                          itemBuilder: (_, int index) {
+                            // If reversed, the typing indicator (if it exists) should be at the bottom (index 0)
+                            if (isTyping && index == 0) {
+                              return RepaintBoundary(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 4, left: 40, bottom: 8),
+                                  child: Row(
+                                    children: <Widget>[
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundImage: lowDataMode ||
+                                                widget.contact.avatar.isEmpty
+                                            ? null
+                                            : NetworkImage(
+                                                widget.contact.avatar),
+                                        child: lowDataMode ||
+                                                widget.contact.avatar.isEmpty
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const TypingIndicator(),
+                                    ],
+                                  ).animate().fadeIn(duration: 220.ms),
+                                ),
+                              );
+                            }
 
-                            final int messageIndex = messages.length - 1 - (isTyping ? index - 1 : index);
-                            if (messageIndex < 0 || messageIndex >= messages.length) {
+                            final int messageIndex = messages.length -
+                                1 -
+                                (isTyping ? index - 1 : index);
+                            if (messageIndex < 0 ||
+                                messageIndex >= messages.length) {
                               return const SizedBox();
                             }
-                            final ChatMessageEntity msg = messages[messageIndex];
-                            
+                            final ChatMessageEntity msg =
+                                messages[messageIndex];
+
                             final bool isMatched =
                                 _matchesSearch(msg, _searchQuery);
                             final bool isActiveMatch =
                                 _currentSearchMatchId == msg.id;
-                                
+
                             return RepaintBoundary(
                               child: Container(
                                 key: _messageItemKey(msg.id),
@@ -236,7 +231,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                   timestamp: msg.createdAt,
                                   avatarUrl: msg.senderId == currentUserId
                                       ? (authState.user?.avatar ?? '')
-                                      : (lowDataMode ? null : widget.contact.avatar),
+                                      : (lowDataMode
+                                          ? null
+                                          : widget.contact.avatar),
                                   reactions: msg.reactions,
                                   replyToMessage: msg.replyToMessage,
                                   onReply: () => ref
@@ -326,14 +323,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           children: <Widget>[
             IconButton(
               icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 20, color: isDark ? Colors.white : AppColors.primaryDark),
+                  size: 20,
+                  color: isDark ? Colors.white : AppColors.primaryDark),
               onPressed: _handleBackPressed,
             ),
             InkWell(
               onTap: _openUserProfilePage,
               borderRadius: BorderRadius.circular(20),
               child: Hero(
-                tag: 'avatar_${widget.contact.chatId}_${widget.contact.userId}_list',
+                tag:
+                    'avatar_${widget.contact.chatId}_${widget.contact.userId}_list',
                 child: Stack(
                   children: <Widget>[
                     AvatarWidget(
@@ -351,10 +350,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           decoration: BoxDecoration(
                             color: Colors.greenAccent,
                             shape: BoxShape.circle,
-                            border: Border.all(color: isDark ? const Color(0xFF0F172A) : Colors.white, width: 2),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF0F172A)
+                                    : Colors.white,
+                                width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.greenAccent.withValues(alpha: 0.4),
+                                color:
+                                    Colors.greenAccent.withValues(alpha: 0.4),
                                 blurRadius: 4,
                               ),
                             ],
@@ -383,29 +387,36 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : AppColors.primaryDark,
+                              color:
+                                  isDark ? Colors.white : AppColors.primaryDark,
                             ),
                           ),
                         ),
-                        if (widget.contact.role == 'owner' || widget.contact.role == 'developer') ...[
+                        if (widget.contact.role == 'owner' ||
+                            widget.contact.role == 'developer') ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded, color: Color(0xFFFFD700), size: 14),
-                        ] else if (widget.contact.role == 'staff' || widget.contact.role == 'admin') ...[
+                          const Icon(Icons.verified_rounded,
+                              color: Color(0xFFFFD700), size: 14),
+                        ] else if (widget.contact.role == 'staff' ||
+                            widget.contact.role == 'admin') ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded, color: Color(0xFF6366F1), size: 14),
+                          const Icon(Icons.verified_rounded,
+                              color: Color(0xFF6366F1), size: 14),
                         ],
                       ],
                     ),
                     Text(
                       isTyping
                           ? 'typing...'
-                          : (widget.contact.isOnline ? 'Available' : 'Encrypted'),
+                          : (widget.contact.isOnline
+                              ? 'Available'
+                              : 'Encrypted'),
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: isTyping 
-                          ? AppColors.primary 
-                          : (isDark ? Colors.white24 : Colors.black26),
+                        color: isTyping
+                            ? AppColors.primary
+                            : (isDark ? Colors.white24 : Colors.black26),
                       ),
                     ),
                   ],
@@ -413,7 +424,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               ),
             ),
             IconButton(
-              icon: Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white38 : Colors.black26),
+              icon: Icon(Icons.search_rounded,
+                  size: 20, color: isDark ? Colors.white38 : Colors.black26),
               onPressed: _openSearchMode,
             ),
             _buildActionMenu(context),
@@ -726,15 +738,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           IconButton(
                             onPressed: _toggleEmojiPicker,
                             icon: Icon(Icons.emoji_emotions_outlined,
-                                color: isDark
-                                    ? Colors.white38
-                                    : Colors.black26),
+                                color:
+                                    isDark ? Colors.white38 : Colors.black26),
                           ),
                           IconButton(
                             icon: Icon(Icons.add_circle_outline_rounded,
-                                color: isDark
-                                    ? Colors.white38
-                                    : Colors.black26),
+                                color:
+                                    isDark ? Colors.white38 : Colors.black26),
                             onPressed: _showAttachmentMenu,
                           ),
                           Expanded(
@@ -755,9 +765,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                 border: InputBorder.none,
                                 hintStyle: GoogleFonts.inter(
                                   fontSize: 14,
-                                  color: isDark
-                                      ? Colors.white24
-                                      : Colors.black26,
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black26,
                                 ),
                               ),
                             ),
@@ -854,7 +863,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 ),
               ),
             ),
-            if (_searchQuery.isNotEmpty && _searchMatchMessageIds.isNotEmpty) ...[
+            if (_searchQuery.isNotEmpty &&
+                _searchMatchMessageIds.isNotEmpty) ...[
               Text(
                 '${_activeSearchMatchIndex + 1}/${_searchMatchMessageIds.length}',
                 style: GoogleFonts.inter(
@@ -932,15 +942,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 gradient: AppColors.gradientPrimary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.send_rounded,
-                  color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 20),
             ),
           ),
       ],
     );
   }
-
-
 
   void _toggleEmojiPicker() {
     HapticFeedback.lightImpact();
@@ -1188,29 +1196,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  String _formatClock(DateTime value) {
-    final String h = value.hour.toString().padLeft(2, '0');
-    final String m = value.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
-
-  String _formatLastSeen(DateTime value) {
-    if (value.year < 2000) {
-      return 'tidak tersedia';
-    }
-    final Duration diff = _currentTime.difference(value);
-    if (diff.inMinutes < 1) {
-      return 'barusan';
-    }
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m lalu';
-    }
-    if (diff.inHours < 24) {
-      return '${diff.inHours}j lalu';
-    }
-    return '${value.day}/${value.month} ${_formatClock(value)}';
-  }
-
   Future<void> _openUserProfilePage() async {
     await Navigator.push<bool>(
       context,
@@ -1262,7 +1247,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
       if (!mounted) return;
 
-      setState(() => _isSending = true);
       final String url = await ref.read(chatProvider.notifier).uploadFile(file);
       await ref.read(chatProvider.notifier).sendMessage(
             text: result.files.single.name,
@@ -1279,8 +1263,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         message: e.toString(),
         isError: true,
       );
-    } finally {
-      if (mounted) setState(() => _isSending = false);
     }
   }
 
@@ -1303,7 +1285,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     if (!mounted) return;
 
-    final Map<String, dynamic>? result = await Navigator.push<Map<String, dynamic>>(
+    final Map<String, dynamic>? result =
+        await Navigator.push<Map<String, dynamic>>(
       context,
       AppRoute<Map<String, dynamic>>(
         builder: (_) => ChatImagePreviewScreen(image: file),
@@ -1323,7 +1306,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             chatId: _chatId,
             type: 'image',
           );
-      
+
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
@@ -1392,8 +1375,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       }
     }
   }
-
-
 
   Future<void> _stopAndSendRecording() async {
     if (!_isRecording) {
@@ -1671,173 +1652,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComposerIconButton({
-    required IconData icon,
-    required bool isDark,
-    required VoidCallback onTap,
-    bool isActive = false,
-  }) {
-    final Color backgroundColor = isActive
-        ? AppColors.primary.withValues(alpha: isDark ? 0.26 : 0.14)
-        : (isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.92));
-
-    final Color borderColor = isActive
-        ? AppColors.primary.withValues(alpha: 0.28)
-        : (isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : const Color(0xFFE6ECF6));
-
-    final Color iconColor = isActive
-        ? (isDark ? Colors.white : AppColors.primary)
-        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: Icon(icon, color: iconColor, size: 21),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComposerPrimaryButton({
-    required IconData icon,
-    required Gradient gradient,
-    required Color shadowColor,
-    required VoidCallback? onTap,
-    bool isLoading = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Opacity(
-          opacity: onTap == null ? 0.55 : 1,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              gradient: gradient,
-              shape: BoxShape.circle,
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: shadowColor,
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Icon(icon, color: Colors.white, size: 22),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatDetailBackground extends StatelessWidget {
-  final bool isDark;
-
-  const _ChatDetailBackground({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? <Color>[
-                      const Color(0xFF1D2237),
-                      const Color(0xFF171B2E),
-                      const Color(0xFF121628),
-                    ]
-                  : <Color>[
-                      const Color(0xFFF6F4F8),
-                      const Color(0xFFF1EEF4),
-                      const Color(0xFFEDEAF1),
-                    ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: -120,
-          right: -90,
-          child: _BackgroundGlow(
-            diameter: 260,
-            color: AppColors.primary.withValues(alpha: isDark ? 0.22 : 0.12),
-          ),
-        ),
-        Positioned(
-          bottom: -110,
-          left: -80,
-          child: _BackgroundGlow(
-            diameter: 230,
-            color: AppColors.secondary.withValues(alpha: isDark ? 0.18 : 0.10),
-          ),
-        ),
-        if (!isDark)
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _BackgroundGlow extends StatelessWidget {
-  final double diameter;
-  final Color color;
-
-  const _BackgroundGlow({
-    required this.diameter,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: diameter,
-      height: diameter,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: <Color>[
-            color,
-            color.withValues(alpha: 0),
-          ],
         ),
       ),
     );

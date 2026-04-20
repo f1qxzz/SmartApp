@@ -49,6 +49,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
+  bool _showAdvancedProfileInfo = false;
   String _selectedGender = '';
   String _syncedSignature = '';
   DateTime _lastSyncedAt = DateTime.now();
@@ -233,6 +234,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final avatarProvider = _resolveAvatar(user);
     final genderValue = _toGenderValue(user.gender);
     final dobSummaryLabel = _formatDateOfBirth(user.dateOfBirth);
+    final bool canManageStaff = user.role == 'owner' ||
+        user.role == 'developer' ||
+        user.role == 'staff' ||
+        user.role == 'admin' ||
+        user.role == 'ace_tester';
 
     return Scaffold(
       body: Stack(
@@ -303,39 +309,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onSelectDOB: _selectDOB,
                 ),
                 const SizedBox(height: 14),
-                _AccountInsightCard(
-                  user: user,
-                  genderLabel: _genderLabel(_toGenderValue(user.gender)),
-                  genderIcon: _genderIcon(_toGenderValue(user.gender)),
-                  dobLabel:
-                      dobSummaryLabel.isEmpty ? 'Belum diisi' : dobSummaryLabel,
+                _CompactProfileMenu(
                   isDark: isDark,
-                  onCopyUsername: () => _copyToClipboard(
-                    label: 'Username',
-                    value: user.username,
-                  ),
-                  onCopyEmail: () => _copyToClipboard(
-                    label: 'Email',
-                    value: user.email,
-                  ),
+                  showAdvanced: _showAdvancedProfileInfo,
+                  onToggleAdvanced: () {
+                    setState(() {
+                      _showAdvancedProfileInfo = !_showAdvancedProfileInfo;
+                    });
+                  },
+                  onEditSocialLinks: () =>
+                      _showEditSocialLinksBottomSheet(context),
                 ),
                 const SizedBox(height: 14),
-                _SocialMediaCard(
-                  isDark: isDark,
-                  github: _socialGithub,
-                  instagram: _socialInstagram,
-                  discord: _socialDiscord,
-                  telegram: _socialTelegram,
-                  spotify: _socialSpotify,
-                  tiktok: _socialTikTok,
-                  onEdit: () => _showEditSocialLinksBottomSheet(context),
-                ),
-                const SizedBox(height: 14),
-                if (user.role == 'owner' ||
-                    user.role == 'developer' ||
-                    user.role == 'staff' ||
-                    user.role == 'admin' ||
-                    user.role == 'ace_tester') ...[
+                if (_showAdvancedProfileInfo) ...[
+                  _AccountInsightCard(
+                    user: user,
+                    genderLabel: _genderLabel(_toGenderValue(user.gender)),
+                    genderIcon: _genderIcon(_toGenderValue(user.gender)),
+                    dobLabel: dobSummaryLabel.isEmpty
+                        ? 'Belum diisi'
+                        : dobSummaryLabel,
+                    isDark: isDark,
+                    onCopyUsername: () => _copyToClipboard(
+                      label: 'Username',
+                      value: user.username,
+                    ),
+                    onCopyEmail: () => _copyToClipboard(
+                      label: 'Email',
+                      value: user.email,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SocialMediaCard(
+                    isDark: isDark,
+                    github: _socialGithub,
+                    instagram: _socialInstagram,
+                    discord: _socialDiscord,
+                    telegram: _socialTelegram,
+                    spotify: _socialSpotify,
+                    tiktok: _socialTikTok,
+                    onEdit: () => _showEditSocialLinksBottomSheet(context),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                if (canManageStaff && _showAdvancedProfileInfo) ...[
                   _StaffManagementCard(isDark: isDark),
                   const SizedBox(height: 14),
                 ],
@@ -723,113 +740,208 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final telegramCtrl = TextEditingController(text: _socialTelegram);
     final spotifyCtrl = TextEditingController(text: _socialSpotify);
     final tiktokCtrl = TextEditingController(text: _socialTikTok);
+    bool isSaving = false;
+
+    String normalizeValue(String value) => value.trim();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white12 : Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
+      builder: (sheetContext) {
+        final mediaQuery = MediaQuery.of(sheetContext);
+        return StatefulBuilder(
+          builder: (context, setModalState) => SafeArea(
+            top: false,
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: mediaQuery.size.height * 0.92,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(32)),
+                ),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    24,
+                    24,
+                    16 + mediaQuery.padding.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white12 : Colors.black12,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Edit Social Media Links',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Masukkan username atau link profil Anda.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: isDark ? Colors.white60 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _SocialLinkField(
+                          controller: githubCtrl,
+                          label: 'GitHub',
+                          hint: 'github.com/username',
+                          icon: FontAwesomeIcons.github,
+                          isDark: isDark),
+                      const SizedBox(height: 12),
+                      _SocialLinkField(
+                          controller: instagramCtrl,
+                          label: 'Instagram',
+                          hint: 'instagram.com/username',
+                          icon: Icons.camera_alt_rounded,
+                          isDark: isDark,
+                          isInstagram: true),
+                      const SizedBox(height: 12),
+                      _SocialLinkField(
+                          controller: discordCtrl,
+                          label: 'Discord',
+                          hint: 'discord.gg/your-server',
+                          icon: FontAwesomeIcons.discord,
+                          isDark: isDark),
+                      const SizedBox(height: 12),
+                      _SocialLinkField(
+                          controller: telegramCtrl,
+                          label: 'Telegram',
+                          hint: 't.me/username',
+                          icon: FontAwesomeIcons.telegram,
+                          isDark: isDark),
+                      const SizedBox(height: 12),
+                      _SocialLinkField(
+                          controller: spotifyCtrl,
+                          label: 'Spotify',
+                          hint: 'open.spotify.com/user/...',
+                          icon: FontAwesomeIcons.spotify,
+                          isDark: isDark),
+                      const SizedBox(height: 12),
+                      _SocialLinkField(
+                          controller: tiktokCtrl,
+                          label: 'TikTok',
+                          hint: 'tiktok.com/@username',
+                          icon: FontAwesomeIcons.tiktok,
+                          textInputAction: TextInputAction.done,
+                          isDark: isDark),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: CustomButton(
+                          text: 'Simpan',
+                          isLoading: isSaving,
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  FocusScope.of(sheetContext).unfocus();
+
+                                  final String nextGithub =
+                                      normalizeValue(githubCtrl.text);
+                                  final String nextInstagram =
+                                      normalizeValue(instagramCtrl.text);
+                                  final String nextDiscord =
+                                      normalizeValue(discordCtrl.text);
+                                  final String nextTelegram =
+                                      normalizeValue(telegramCtrl.text);
+                                  final String nextSpotify =
+                                      normalizeValue(spotifyCtrl.text);
+                                  final String nextTiktok =
+                                      normalizeValue(tiktokCtrl.text);
+
+                                  final bool hasChanges = nextGithub !=
+                                          normalizeValue(_socialGithub) ||
+                                      nextInstagram !=
+                                          normalizeValue(_socialInstagram) ||
+                                      nextDiscord !=
+                                          normalizeValue(_socialDiscord) ||
+                                      nextTelegram !=
+                                          normalizeValue(_socialTelegram) ||
+                                      nextSpotify !=
+                                          normalizeValue(_socialSpotify) ||
+                                      nextTiktok !=
+                                          normalizeValue(_socialTikTok);
+
+                                  if (!hasChanges) {
+                                    if (sheetContext.mounted) {
+                                      Navigator.pop(sheetContext);
+                                    }
+                                    return;
+                                  }
+
+                                  setModalState(() => isSaving = true);
+                                  try {
+                                    await _saveSocialLinks(
+                                      github: nextGithub,
+                                      instagram: nextInstagram,
+                                      discord: nextDiscord,
+                                      telegram: nextTelegram,
+                                      spotify: nextSpotify,
+                                      tiktok: nextTiktok,
+                                    );
+                                    if (sheetContext.mounted) {
+                                      Navigator.pop(sheetContext);
+                                    }
+                                  } catch (_) {
+                                    if (sheetContext.mounted) {
+                                      AppAlert.show(
+                                        sheetContext,
+                                        title: 'Gagal Menyimpan',
+                                        message:
+                                            'Terjadi kendala saat menyimpan tautan sosial.',
+                                        isError: true,
+                                      );
+                                    }
+                                  } finally {
+                                    if (sheetContext.mounted) {
+                                      setModalState(() => isSaving = false);
+                                    }
+                                  }
+                                },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Edit Social Media Links',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Masukkan username atau link profil Anda.',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: isDark ? Colors.white60 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _SocialLinkField(
-                  controller: githubCtrl,
-                  label: 'GitHub',
-                  icon: FontAwesomeIcons.github,
-                  isDark: isDark),
-              const SizedBox(height: 12),
-              _SocialLinkField(
-                  controller: instagramCtrl,
-                  label: 'Instagram',
-                  icon: Icons.camera_alt_rounded,
-                  isDark: isDark,
-                  isInstagram: true),
-              const SizedBox(height: 12),
-              _SocialLinkField(
-                  controller: discordCtrl,
-                  label: 'Discord',
-                  icon: FontAwesomeIcons.discord,
-                  isDark: isDark),
-              const SizedBox(height: 12),
-              _SocialLinkField(
-                  controller: telegramCtrl,
-                  label: 'Telegram',
-                  icon: FontAwesomeIcons.telegram,
-                  isDark: isDark),
-              const SizedBox(height: 12),
-              _SocialLinkField(
-                  controller: spotifyCtrl,
-                  label: 'Spotify',
-                  icon: FontAwesomeIcons.spotify,
-                  isDark: isDark),
-              const SizedBox(height: 12),
-              _SocialLinkField(
-                  controller: tiktokCtrl,
-                  label: 'TikTok',
-                  icon: FontAwesomeIcons.tiktok,
-                  isDark: isDark),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  text: 'Simpan',
-                  onPressed: () {
-                    _saveSocialLinks(
-                      github: githubCtrl.text.trim(),
-                      instagram: instagramCtrl.text.trim(),
-                      discord: discordCtrl.text.trim(),
-                      telegram: telegramCtrl.text.trim(),
-                      spotify: spotifyCtrl.text.trim(),
-                      tiktok: tiktokCtrl.text.trim(),
-                    );
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
+      },
+    ).whenComplete(() {
+      githubCtrl.dispose();
+      instagramCtrl.dispose();
+      discordCtrl.dispose();
+      telegramCtrl.dispose();
+      spotifyCtrl.dispose();
+      tiktokCtrl.dispose();
+    });
   }
 
   Future<void> _setChatNotifications(bool value) async {
@@ -885,17 +997,17 @@ class _TopBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Icon(
+                      const Icon(
                         Icons.auto_awesome_rounded,
                         size: 14,
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Your Personal Hub',
+                        'Profil',
                         style: GoogleFonts.inter(
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.primary,
                         ),
                       ),
@@ -904,19 +1016,19 @@ class _TopBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Account Settings',
+                  'Pengaturan Akun',
                   style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                    letterSpacing: -1.2,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 24,
+                    letterSpacing: -0.4,
                     color: isDark ? Colors.white : AppColors.primaryDark,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Rapikan identitas, bio publik, dan tautan sosial kamu dalam satu tempat.',
+                  'Kelola profil dan preferensi utama dengan cepat.',
                   style: GoogleFonts.inter(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1.45,
                     color: isDark ? Colors.white60 : AppColors.textSecondary,
@@ -1313,7 +1425,7 @@ class _HeroProfileCardState extends ConsumerState<_HeroProfileCard>
                           height: 96,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: SweepGradient(
+                            gradient: const SweepGradient(
                               colors: <Color>[
                                 AppColors.primary,
                                 AppColors.secondary,
@@ -1935,7 +2047,7 @@ class _EditProfileCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.edit_note_rounded,
+                  child: const Icon(Icons.edit_note_rounded,
                       color: AppColors.primary, size: 22),
                 ),
                 const SizedBox(width: 15),
@@ -2054,7 +2166,6 @@ class _ModernTextField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final bool isDark;
-  final String? Function(String?)? validator;
   final TextInputType keyboardType;
   final bool readOnly;
   final int maxLines;
@@ -2066,7 +2177,6 @@ class _ModernTextField extends StatelessWidget {
     required this.hint,
     required this.icon,
     required this.isDark,
-    this.validator,
     this.keyboardType = TextInputType.text,
     this.readOnly = false,
     this.maxLines = 1,
@@ -2094,7 +2204,6 @@ class _ModernTextField extends StatelessWidget {
           ),
           child: TextFormField(
             controller: controller,
-            validator: validator,
             keyboardType: keyboardType,
             readOnly: readOnly,
             minLines: maxLines > 1 ? maxLines : 1,
@@ -2250,6 +2359,66 @@ class _ModernGenderPicker extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _CompactProfileMenu extends StatelessWidget {
+  final bool isDark;
+  final bool showAdvanced;
+  final VoidCallback onToggleAdvanced;
+  final VoidCallback onEditSocialLinks;
+
+  const _CompactProfileMenu({
+    required this.isDark,
+    required this.showAdvanced,
+    required this.onToggleAdvanced,
+    required this.onEditSocialLinks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(18),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final bool isCompact = constraints.maxWidth < 380;
+
+          final Widget socialButton = ModernGlassButton(
+            text: 'Kelola Sosial',
+            icon: Icons.hub_rounded,
+            onTap: onEditSocialLinks,
+            isPrimary: false,
+          );
+
+          final Widget detailButton = ModernGlassButton(
+            text: showAdvanced ? 'Sembunyikan' : 'Lihat Detail',
+            icon: showAdvanced
+                ? Icons.unfold_less_rounded
+                : Icons.unfold_more_rounded,
+            onTap: onToggleAdvanced,
+          );
+
+          if (isCompact) {
+            return Column(
+              children: <Widget>[
+                SizedBox(width: double.infinity, child: socialButton),
+                const SizedBox(height: 10),
+                SizedBox(width: double.infinity, child: detailButton),
+              ],
+            );
+          }
+
+          return Row(
+            children: <Widget>[
+              Expanded(child: socialButton),
+              const SizedBox(width: 10),
+              Expanded(child: detailButton),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -2623,7 +2792,8 @@ class _LogoutCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+                const Icon(Icons.logout_rounded,
+                    color: AppColors.error, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   'SIGN OUT ACCOUNT',
@@ -2807,31 +2977,44 @@ class _InstagramGradientIcon extends StatelessWidget {
 class _SocialLinkField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
+  final String hint;
   final dynamic icon;
   final bool isDark;
   final bool isInstagram;
+  final TextInputAction textInputAction;
 
   const _SocialLinkField({
     required this.controller,
     required this.label,
+    required this.hint,
     required this.icon,
     required this.isDark,
     this.isInstagram = false,
+    this.textInputAction = TextInputAction.next,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      keyboardType: TextInputType.url,
+      textInputAction: textInputAction,
+      autocorrect: false,
+      enableSuggestions: false,
       style: GoogleFonts.inter(
         fontSize: 14,
         color: isDark ? Colors.white : const Color(0xFF0F172A),
       ),
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint,
         labelStyle: GoogleFonts.inter(
           fontSize: 13,
           color: isDark ? Colors.white54 : Colors.black45,
+        ),
+        hintStyle: GoogleFonts.inter(
+          fontSize: 12.5,
+          color: isDark ? Colors.white38 : Colors.black38,
         ),
         prefixIcon: Padding(
           padding: const EdgeInsets.all(12),

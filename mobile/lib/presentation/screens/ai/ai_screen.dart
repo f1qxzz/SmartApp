@@ -5,7 +5,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:smartlife_app/core/constants/app_constants.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
 import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/domain/entities/ai_message_entity.dart';
@@ -117,7 +116,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                   controller: _msgCtrl,
                   isDark: isDark,
                   isLoading: aiState.isLoading,
-                  suggestions: aiState.messages.length <= 1 ? _suggestions : null,
+                  suggestions:
+                      aiState.messages.length <= 1 ? _suggestions : null,
                   onSend: _sendMessage,
                 ),
               ],
@@ -197,8 +197,9 @@ class _AiHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double budgetPct =
-        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
+    final double budgetPct = budget <= 0
+        ? 0
+        : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
     final bool isDanger = budgetPct >= 90;
 
     return ModernGlassCard(
@@ -310,8 +311,9 @@ class _WelcomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double remaining = budget > totalSpent ? budget - totalSpent : 0;
-    final double budgetPct =
-        budget <= 0 ? 0 : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
+    final double budgetPct = budget <= 0
+        ? 0
+        : ((totalSpent / budget) * 100).clamp(0, 999).toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,10 +620,7 @@ class _InputBar extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ))
-                        .animate()
-                        .fadeIn(duration: 380.ms)
-                        .slideX(begin: 0.08),
+                    )).animate().fadeIn(duration: 380.ms).slideX(begin: 0.08),
                   );
                 }).toList(),
               ),
@@ -672,7 +671,8 @@ class _InputBar extends StatelessWidget {
                           ? const <BoxShadow>[]
                           : <BoxShadow>[
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.35),
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.35),
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),

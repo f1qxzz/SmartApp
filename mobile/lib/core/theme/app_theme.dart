@@ -131,7 +131,7 @@ class AppColors {
 class AppTextStyles {
   static TextStyle heading1(BuildContext context) => GoogleFonts.outfit(
         fontSize: 32,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
@@ -141,7 +141,7 @@ class AppTextStyles {
 
   static TextStyle heading2(BuildContext context) => GoogleFonts.outfit(
         fontSize: 26,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
@@ -150,7 +150,7 @@ class AppTextStyles {
 
   static TextStyle heading3(BuildContext context) => GoogleFonts.outfit(
         fontSize: 20,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textPrimaryDark
             : AppColors.textPrimary,
@@ -159,7 +159,7 @@ class AppTextStyles {
 
   static TextStyle subtitle(BuildContext context) => GoogleFonts.inter(
         fontSize: 16,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
         color: Theme.of(context).brightness == Brightness.dark
             ? AppColors.textSecondaryDark
             : AppColors.textSecondary,
@@ -185,13 +185,13 @@ class AppTextStyles {
 
   static TextStyle button = GoogleFonts.outfit(
     fontSize: 16,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     letterSpacing: 0.3,
   );
 
   static TextStyle moneyLarge(BuildContext context) => GoogleFonts.outfit(
         fontSize: 36,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         color: Colors.white,
         letterSpacing: -1.2,
       );
@@ -233,42 +233,42 @@ class AppTheme {
     return TextTheme(
       displayLarge: GoogleFonts.outfit(
         fontSize: 40,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         letterSpacing: -1.2,
         color: titleColor,
       ),
       displayMedium: GoogleFonts.outfit(
         fontSize: 32,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         letterSpacing: -1.0,
         color: titleColor,
       ),
       headlineLarge: GoogleFonts.outfit(
         fontSize: 28,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.6,
         color: titleColor,
       ),
       headlineMedium: GoogleFonts.outfit(
         fontSize: 24,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.5,
         color: titleColor,
       ),
       titleLarge: GoogleFonts.outfit(
         fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.4,
         color: titleColor,
       ),
       titleMedium: GoogleFonts.outfit(
         fontSize: 18,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
         color: titleColor,
       ),
       titleSmall: GoogleFonts.outfit(
         fontSize: 15,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
         color: titleColor,
       ),
       bodyLarge: GoogleFonts.inter(
@@ -290,18 +290,18 @@ class AppTheme {
       ),
       labelLarge: GoogleFonts.inter(
         fontSize: 15,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.3,
         color: bodyColor,
       ),
       labelMedium: GoogleFonts.inter(
         fontSize: 13,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         color: bodyMutedColor,
       ),
       labelSmall: GoogleFonts.inter(
         fontSize: 12,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
         color: bodyMutedColor,
       ),
     );
@@ -354,7 +354,7 @@ class AppTheme {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 22,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
           letterSpacing: -0.4,
         ),
@@ -395,7 +395,7 @@ class AppTheme {
           foregroundColor: AppColors.primary,
           textStyle: GoogleFonts.inter(
             fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -479,7 +479,7 @@ class AppTheme {
         secondaryColor: AppColors.primary,
         labelStyle: GoogleFonts.inter(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ).copyWith(
         backgroundColor: AppColors.surfaceElevatedLight,
@@ -504,7 +504,7 @@ class AppTheme {
         labelTextStyle: WidgetStatePropertyAll<TextStyle>(
           GoogleFonts.inter(
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -572,7 +572,7 @@ class AppTheme {
         iconTheme: const IconThemeData(color: AppColors.textPrimaryDark),
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 22,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryDark,
           letterSpacing: -0.4,
         ),
@@ -613,7 +613,7 @@ class AppTheme {
           foregroundColor: AppColors.primaryLight,
           textStyle: GoogleFonts.inter(
             fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -630,7 +630,7 @@ class AppTheme {
         contentTextStyle: GoogleFonts.inter(
           color: AppColors.softNavy,
           fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -698,7 +698,7 @@ class AppTheme {
         secondaryColor: AppColors.primaryLight,
         labelStyle: GoogleFonts.inter(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ).copyWith(
         backgroundColor: AppColors.surfaceElevatedDark,
@@ -723,7 +723,7 @@ class AppTheme {
         labelTextStyle: WidgetStatePropertyAll<TextStyle>(
           GoogleFonts.inter(
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: AppColors.textSecondaryDark,
           ),
         ),

@@ -33,16 +33,20 @@ function toChatUser(user) {
   };
 }
 
-function toConversation(chat, currentUserId) {
+function toConversation(chat, currentUserId, latestMessage = null) {
   const otherUser = (chat.participants || []).find(
     (participant) => String(participant._id) !== String(currentUserId)
   );
+  const lastMessage = latestMessage
+    ? buildLastMessagePreview(latestMessage.messageType, latestMessage.text)
+    : '';
+  const updatedAt = latestMessage?.createdAt || chat.createdAt || chat.updatedAt;
 
   return {
     chatId: String(chat._id),
     otherUser: otherUser ? toChatUser(otherUser) : null,
-    lastMessage: chat.lastMessage || '',
-    updatedAt: chat.updatedAt,
+    lastMessage,
+    updatedAt,
     unreadCount: 0,
   };
 }
@@ -86,6 +90,64 @@ function buildLastMessagePreview(messageType, text) {
   }
 
   return normalizedText || `[${type}]`;
+}
+
+async function getLatestMessagesByChatId(chatIds) {
+  if (!chatIds.length) {
+    return new Map();
+  }
+
+  const latestMessages = await Message.aggregate([
+    {
+      $match: {
+        chatId: { $in: chatIds },
+      },
+    },
+    {
+      $sort: {
+        chatId: 1,
+        createdAt: -1,
+        _id: -1,
+      },
+    },
+    {
+      $group: {
+        _id: '$chatId',
+        message: { $first: '$$ROOT' },
+      },
+    },
+  ]);
+
+  return new Map(
+    latestMessages.map((item) => [String(item._id), item.message])
+  );
+}
+
+async function syncChatLastMessage(chatId) {
+  const chat = await Chat.findById(chatId).select('_id createdAt');
+  if (!chat) {
+    return;
+  }
+
+  const latestMessage = await Message.findOne({ chatId: chat._id })
+    .sort({ createdAt: -1, _id: -1 })
+    .select('text messageType createdAt');
+
+  const nextLastMessage = latestMessage
+    ? buildLastMessagePreview(latestMessage.messageType, latestMessage.text)
+    : '';
+  const nextUpdatedAt = latestMessage?.createdAt || chat.createdAt || new Date();
+
+  await Chat.updateOne(
+    { _id: chat._id },
+    {
+      $set: {
+        lastMessage: nextLastMessage,
+        updatedAt: nextUpdatedAt,
+      },
+    },
+    { timestamps: false }
+  );
 }
 
 async function findUserOrThrow(userId) {
@@ -136,10 +198,20 @@ async function getChats(currentUserId) {
       },
     })
     .sort({ updatedAt: -1 });
+  const latestMessagesByChatId = await getLatestMessagesByChatId(
+    chats.map((chat) => chat._id)
+  );
 
   return chats
-    .map((chat) => toConversation(chat, currentUserId))
-    .filter((chat) => chat.otherUser);
+    .map((chat) =>
+      toConversation(
+        chat,
+        currentUserId,
+        latestMessagesByChatId.get(String(chat._id)) || null
+      )
+    )
+    .filter((chat) => chat.otherUser)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 async function ensureChatBetweenUsers(userId, otherUserId) {
@@ -265,6 +337,7 @@ async function deleteMessage(currentUserId, messageId) {
   }
 
   await Message.deleteOne({ _id: messageId });
+  await syncChatLastMessage(message.chatId);
   return { success: true };
 }
 

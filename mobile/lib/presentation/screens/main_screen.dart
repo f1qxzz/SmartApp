@@ -311,23 +311,23 @@ class _BottomNav extends StatelessWidget {
                                           ),
                                   ),
                                   const SizedBox(height: 5),
-                                    Text(
-                                      items[i].$3,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 12,
-                                        fontWeight: isActive
-                                            ? FontWeight.w700
-                                            : FontWeight.w600,
-                                        color: isActive
-                                            ? Colors.white
-                                            : (isDark
-                                                ? AppColors.textSecondaryDark
-                                                : AppColors.textSecondary),
-                                        letterSpacing: 0.2,
-                                      ),
+                                  Text(
+                                    items[i].$3,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 12,
+                                      fontWeight: isActive
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: isActive
+                                          ? Colors.white
+                                          : (isDark
+                                              ? AppColors.textSecondaryDark
+                                              : AppColors.textSecondary),
+                                      letterSpacing: 0.2,
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
