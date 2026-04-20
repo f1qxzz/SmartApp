@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/f1qxzz/SmartApp/releases/latest">
+  <a href="https://github.com/f1qxzz/SmartApp/raw/main/SmartLife_Stable.apk">
     <img src="https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
   </a>
 </p>
