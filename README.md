@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/f1qxzz/SmartApp/releases/download/v1.2.0/SmartLife_Stable.apk">
-    <img src="https://img.shields.io/badge/Download-SmartLife_v1.2.0_APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download SmartLife v1.2.0 APK">
+  <a href="https://github.com/f1qxzz/SmartApp/releases/download/v1.3.0/SmartLife_v1.3.0.apk">
+    <img src="https://img.shields.io/badge/Download-SmartLife_v1.3.0_APK-success?style=for-the-badge&logo=android&logoColor=white" alt="Download SmartLife v1.3.0 APK">
   </a>
 </p>
 
