@@ -246,9 +246,8 @@ class _LifeHubScreenState extends ConsumerState<LifeHubScreen> {
         : const Color(0xFF334155).withValues(alpha: 0.90);
     final Color titleStrongColor =
         isDark ? Colors.white : const Color(0xFF0F172A);
-    final Color subtitleColor = isDark
-        ? Colors.white.withValues(alpha: 0.86)
-        : const Color(0xFF1E293B).withValues(alpha: 0.82);
+
+
 
     return ModernGlassCard(
       padding: const EdgeInsets.all(24),
@@ -338,14 +337,13 @@ class _LifeHubScreenState extends ConsumerState<LifeHubScreen> {
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
         ),
-        Icon(
+        const Icon(
           Icons.rocket_launch_rounded,
           color: AppColors.primary,
           size: 24,
         ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
       ],
     );
-  }
   }
 
   Widget _buildAiSuggestionCard(bool isDark) {

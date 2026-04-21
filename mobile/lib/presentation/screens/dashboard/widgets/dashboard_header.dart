@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartlife_app/core/theme/app_theme.dart';
-import 'package:smartlife_app/core/utils/app_formatters.dart';
 import 'package:smartlife_app/presentation/providers/auth_provider.dart';
 
 class DashboardHeader extends ConsumerWidget {
@@ -206,54 +205,6 @@ class DashboardHeader extends ConsumerWidget {
           ),
         ),
       ],
-    ).animate().scale(duration: 600.ms, curve: Curves.backOut);
-  }
+    ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack);
   }
 }
-
-  class _TopDateBadge extends StatelessWidget {
-    const _TopDateBadge();
-  
-    @override
-    Widget build(BuildContext context) {
-      final bool isDark = Theme.of(context).brightness == Brightness.dark;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.08),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.calendar_today_rounded,
-                size: 14,
-                color: isDark ? AppColors.primaryLight : AppColors.primary),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                AppFormatters.monthYear(DateTime.now()),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
