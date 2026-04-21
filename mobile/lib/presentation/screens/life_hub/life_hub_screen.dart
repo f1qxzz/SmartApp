@@ -60,57 +60,14 @@ class _LifeHubScreenState extends ConsumerState<LifeHubScreen> {
           ),
         ),
         titleSpacing: 2,
-        title: Row(
-          children: <Widget>[
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color:
-                    AppColors.primary.withValues(alpha: isDark ? 0.24 : 0.14),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.28),
-                ),
-              ),
-              child: const Icon(
-                Icons.rocket_launch_rounded,
-                size: 18,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Life Hub',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: appBarForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    _todayLabel(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.72)
-                          : const Color(0xFF334155).withValues(alpha: 0.72),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        title: Text(
+          'LIFE HUB',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: appBarForeground.withValues(alpha: 0.8),
+            letterSpacing: 2.0,
+          ),
         ),
         actions: <Widget>[
           Padding(
@@ -294,87 +251,101 @@ class _LifeHubScreenState extends ConsumerState<LifeHubScreen> {
         : const Color(0xFF1E293B).withValues(alpha: 0.82);
 
     return ModernGlassCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      borderRadius: 28,
+      padding: const EdgeInsets.all(24),
+      borderRadius: 32,
       isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: <Widget>[
-              _TopBadge(
-                label: 'Life Planner',
-                icon: Icons.track_changes_rounded,
-                isDark: isDark,
-                tint: const Color(0xFF44C2FF),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Text(
+                    'Hallo,',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: titleSoftColor,
+                    ),
+                  ),
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: titleStrongColor,
+                      letterSpacing: -1.0,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
               ),
-              _TopBadge(
-                label: '$doneHabits/$totalHabits selesai',
-                icon: Icons.bolt_rounded,
-                isDark: isDark,
-                tint: const Color(0xFF7C9CFF),
-              ),
-              _TopBadge(
-                label: _todayLabel(),
-                icon: Icons.calendar_month_rounded,
-                isDark: isDark,
-                tint: const Color(0xFF22C55E),
-              ),
+              _buildProgressCircle(doneHabits, totalHabits, isDark),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Halo,',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: titleSoftColor,
+          const SizedBox(height: 20),
+          Divider(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                 _StatPill(
+                  label: '$doneHabits/$totalHabits Habit',
+                  icon: Icons.bolt_rounded,
+                  isDark: isDark,
+                  color: const Color(0xFF4F75FF),
+                ),
+                const SizedBox(width: 8),
+                _StatPill(
+                  label: '$totalGoals Target',
+                  icon: Icons.flag_rounded,
+                  isDark: isDark,
+                  color: const Color(0xFF22C55E),
+                ),
+                const SizedBox(width: 8),
+                _StatPill(
+                  label: _todayLabel(),
+                  icon: Icons.calendar_month_rounded,
+                  isDark: isDark,
+                  color: const Color(0xFFFACC15),
+                ),
+              ],
             ),
-          ),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
-              fontSize: 30,
-              fontWeight: FontWeight.w900,
-              color: titleStrongColor,
-              letterSpacing: -0.8,
-              height: 1.05,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Jaga ritme kebiasaan harian dan capai target besar kamu secara konsisten.',
-            style: GoogleFonts.inter(
-              fontSize: 13.5,
-              color: subtitleColor,
-              fontWeight: FontWeight.w600,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: <Widget>[
-              _InfoPill(
-                icon: Icons.repeat_rounded,
-                label: '$totalHabits Habit Aktif',
-                isDark: isDark,
-              ),
-              _InfoPill(
-                icon: Icons.flag_outlined,
-                label: '$totalGoals Goal Berjalan',
-                isDark: isDark,
-              ),
-            ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildProgressCircle(int done, int total, bool isDark) {
+    final progress = total == 0 ? 0.0 : done / total;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 58,
+          height: 58,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 6,
+            backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+        ),
+        Icon(
+          Icons.rocket_launch_rounded,
+          color: AppColors.primary,
+          size: 24,
+        ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
+      ],
+    );
+  }
   }
 
   Widget _buildAiSuggestionCard(bool isDark) {
@@ -934,56 +905,17 @@ class _ToolbarIconButton extends StatelessWidget {
   }
 }
 
-class _TopBadge extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isDark;
-  final Color tint;
-
-  const _TopBadge({
-    required this.label,
-    required this.icon,
-    required this.isDark,
-    required this.tint,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: tint.withValues(alpha: isDark ? 0.18 : 0.12),
-        border: Border.all(color: tint.withValues(alpha: 0.24)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: tint),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF334155),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
+class _StatPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isDark;
+  final Color color;
 
-  const _InfoPill({
+  const _StatPill({
     required this.icon,
     required this.label,
     required this.isDark,
+    required this.color,
   });
 
   @override
@@ -991,27 +923,23 @@ class _InfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(16),
+        color: color.withValues(alpha: 0.1),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.09)
-              : const Color(0xFFCBD5E1).withValues(alpha: 0.50),
+          color: color.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 15, color: AppColors.primary),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
         ],

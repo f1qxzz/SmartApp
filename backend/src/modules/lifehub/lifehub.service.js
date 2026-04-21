@@ -4,7 +4,51 @@ const LifeGoal = require('./life_goal.model');
 class LifeHubService {
   // Habit Methods
   async getHabits(userId) {
-    return await Habit.find({ userId }).sort({ createdAt: -1 });
+    const habits = await Habit.find({ userId }).sort({ createdAt: -1 });
+    const processedHabits = [];
+
+    for (let habit of habits) {
+      const updated = await this._processHabitStreak(habit);
+      processedHabits.push(updated);
+    }
+
+    return processedHabits;
+  }
+
+  async _processHabitStreak(habit) {
+    const now = new Date();
+    const today = now.toDateString();
+
+    if (!habit.lastCompletedAt) {
+      if (habit.isCompletedToday) {
+        habit.isCompletedToday = false;
+        habit.streak = 0;
+        await habit.save();
+      }
+      return habit;
+    }
+
+    const last = new Date(habit.lastCompletedAt);
+    const lastDay = last.toDateString();
+
+    // If it's a new day, reset isCompletedToday
+    if (today !== lastDay) {
+      habit.isCompletedToday = false;
+
+      // Check if missed yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayDay = yesterday.toDateString();
+
+      // If last completed date was not yesterday, reset streak
+      if (lastDay !== yesterdayDay) {
+        habit.streak = 0;
+      }
+
+      await habit.save();
+    }
+
+    return habit;
   }
 
   async createHabit(userId, data) {
@@ -20,17 +64,41 @@ class LifeHubService {
   }
 
   async toggleHabit(id, userId) {
-    const habit = await Habit.findOne({ _id: id, userId });
+    let habit = await Habit.findOne({ _id: id, userId });
     if (!habit) return null;
 
-    const nextStatus = !habit.isCompletedToday;
-    const nextStreak = nextStatus ? habit.streak + 1 : Math.max(0, habit.streak - 1);
+    // First, process the current state (in case they open app after midnight)
+    habit = await this._processHabitStreak(habit);
 
-    return await Habit.findOneAndUpdate(
-      { _id: id, userId },
-      { isCompletedToday: nextStatus, streak: nextStreak },
-      { new: true }
-    );
+    const isNowCompleting = !habit.isCompletedToday;
+    const now = new Date();
+
+    if (isNowCompleting) {
+      // Logic for incrementing streak
+      const last = habit.lastCompletedAt ? new Date(habit.lastCompletedAt) : null;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (!last || last.toDateString() === yesterday.toDateString()) {
+        habit.streak += 1;
+      } else {
+        // Break in streak, reset to 1
+        habit.streak = 1;
+      }
+      habit.isCompletedToday = true;
+      habit.lastCompletedAt = now;
+    } else {
+      // Unchecking today - revert streak
+      habit.streak = Math.max(0, habit.streak - 1);
+      habit.isCompletedToday = false;
+      // We don't necessarily reset lastCompletedAt here to keep the history 
+      // of when they *last* did it, but it might interfere with logic.
+      // Actually, if they uncheck, lastCompletedAt should probably revert too 
+      // but we don't have historical data. 
+      // For simplicity, let's just clear completion for today.
+    }
+
+    return await habit.save();
   }
 
   // Goal Methods

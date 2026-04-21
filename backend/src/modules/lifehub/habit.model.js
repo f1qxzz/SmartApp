@@ -12,6 +12,7 @@ const habitSchema = new mongoose.Schema(
     icon: { type: String, default: 'water_drop' },
     streak: { type: Number, default: 0 },
     isCompletedToday: { type: Boolean, default: false },
+    lastCompletedAt: { type: Date },
     frequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
   },
   { timestamps: true }

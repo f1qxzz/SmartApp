@@ -105,9 +105,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         child: _buildSearchBar(isDark)
                             .animate()
                             .fadeIn(duration: 600.ms)
-                            .slideY(begin: -0.1),
+                            .slideY(begin: -0.05),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       _buildQuickActions(isDark)
                           .animate()
