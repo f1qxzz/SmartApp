@@ -69,7 +69,7 @@ class AuthService {
     }
   }
 
-  Future<(UserEntity, String)> register({
+  Future<(UserEntity, String?)> register({
     required String username,
     required String name,
     required String email,
@@ -92,6 +92,13 @@ class AuthService {
           'rememberMe': rememberMe,
         },
       );
+
+      final root = _asMap(response.data);
+      final payload = root['data'] is Map ? _asMap(root['data']) : root;
+      if (payload['requiresVerification'] == true) {
+        final user = UserEntity.fromJson(_asMap(payload['user'] ?? payload));
+        return (user, null);
+      }
 
       return _parseAuthResponse(response);
     } catch (error) {

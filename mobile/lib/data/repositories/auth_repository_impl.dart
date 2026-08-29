@@ -24,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<(UserEntity user, String token)> register({
+  Future<(UserEntity user, String? token)> register({
     required String username,
     required String name,
     required String email,

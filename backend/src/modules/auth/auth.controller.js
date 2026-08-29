@@ -49,6 +49,17 @@ const register = asyncHandler(async (req, res) => {
   }
 
   const data = await authService.register({ username, name, email, password, gender, dateOfBirth });
+
+  if (data.requiresVerification) {
+    return res.status(201).json({
+      success: true,
+      message: 'Registrasi berhasil. Silakan cek email untuk verifikasi akun.',
+      requiresVerification: true,
+      token: null,
+      user: data.user,
+    });
+  }
+
   return sendAuthSuccess(res, 201, 'Register berhasil', data, rememberMe === true);
 });
 
@@ -184,6 +195,31 @@ const getUserPublicProfile = asyncHandler(async (req, res) => {
   });
 });
 
+function renderVerifyPage({ success, message }) {
+  const color = success ? '#1a7f37' : '#cf222e';
+  return `<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartLife - Verifikasi Email</title></head>
+<body style="font-family: sans-serif; background: #f6f8fa; margin: 0; padding: 40px 16px;">
+  <div style="max-width: 480px; margin: 0 auto; background: #fff; border: 1px solid #e1e4e8; border-radius: 12px; padding: 32px; text-align: center; color: #24292e;">
+    <h2 style="color: #4B67D1; margin-top: 0;">SmartLife</h2>
+    <p style="font-size: 16px; color: ${color}; font-weight: bold;">${message}</p>
+    <p style="font-size: 14px; color: #57606a;">Kamu bisa menutup halaman ini dan membuka aplikasi SmartLife.</p>
+  </div>
+</body>
+</html>`;
+}
+
+const verifyEmail = asyncHandler(async (req, res) => {
+  try {
+    const result = await authService.verifyEmail({ token: req.query.token, email: req.query.email });
+    return res.status(200).send(renderVerifyPage({ success: true, message: result.message }));
+  } catch (error) {
+    return res.status(400).send(renderVerifyPage({ success: false, message: error.message || 'Verifikasi gagal' }));
+  }
+});
+
 module.exports = {
   register,
   login,
@@ -191,6 +227,7 @@ module.exports = {
   socialLogin,
   forgotPassword,
   resetPassword,
+  verifyEmail,
   me,
   updateProfile,
   getUserPublicProfile,

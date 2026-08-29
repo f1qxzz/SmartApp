@@ -21,6 +21,11 @@ function normalizeKeyword(value) {
   return String(value || '').trim();
 }
 
+function escapeRegex(str) {
+  // ponytail: user input feeds $regex — escape metachars + cap length to stop ReDoS
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 50);
+}
+
 function toChatUser(user) {
   const lastSeen = getUserLastSeen(String(user._id));
   return {
@@ -174,7 +179,7 @@ async function searchUsers(currentUserId, keyword) {
   };
 
   if (normalizedKeyword) {
-    query.username = { $regex: normalizedKeyword, $options: 'i' };
+    query.username = { $regex: escapeRegex(normalizedKeyword), $options: 'i' };
   }
 
   const users = await User.find(query)

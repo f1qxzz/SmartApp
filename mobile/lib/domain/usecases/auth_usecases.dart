@@ -19,7 +19,7 @@ class AuthUseCases {
     );
   }
 
-  Future<(UserEntity, String)> register(
+  Future<(UserEntity, String?)> register(
       {required String username,
       required String name,
       required String email,

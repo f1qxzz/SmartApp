@@ -2,13 +2,28 @@ const asyncHandler = require('../../middleware/asyncHandler');
 const User = require('../auth/user.model');
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({})
-    .select('-password -__v')
-    .sort({ createdAt: -1 });
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const skip = (page - 1) * limit;
+
+  const [users, total] = await Promise.all([
+    User.find({})
+      .select('-password -__v -email -resetPasswordToken -resetPasswordExpires -tokenVersion -providerId')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    User.countDocuments({}),
+  ]);
 
   res.status(200).json({
     success: true,
     data: users,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   });
 });
 

@@ -22,9 +22,25 @@ function toUserId(value) {
 }
 
 function initSocketServer(server) {
+  // ponytail: mirror HTTP CORS origins instead of reflecting '*'.
+  // Native socket clients send no Origin header, so they still connect.
+  const defaultClientOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+  ];
+  const configuredOrigins = String(process.env.CLIENT_URL || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const allowedSocketOrigins = [...new Set([...defaultClientOrigins, ...configuredOrigins])];
+
   const io = new Server(server, {
     cors: {
-      origin: '*',
+      origin: allowedSocketOrigins,
       methods: ['GET', 'POST'],
     },
   });

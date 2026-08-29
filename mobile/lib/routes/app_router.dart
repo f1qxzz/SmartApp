@@ -12,8 +12,12 @@ class AppRouter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final bool isLoading = authState.status == AuthStatus.initial ||
-        authState.status == AuthStatus.loading;
+    // Only show the boot/loading view on the very first app load. While a
+    // login/register/reset request is in flight (status == loading) we must
+    // keep the AuthScreen mounted (same key) so its current step is preserved
+    // and any error alert appears on the same screen instead of bouncing back
+    // to the intro.
+    final bool isLoading = authState.status == AuthStatus.initial;
     final bool isAuthenticated = authState.isAuthenticated;
 
     final Widget child;

@@ -15,6 +15,8 @@ const lifehubRoutes = require('./modules/lifehub/lifehub.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
+// ponytail: behind ngrok/proxy so req.ip reflects the real client, not the proxy
+app.set('trust proxy', 1);
 const defaultClientOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
@@ -30,7 +32,8 @@ const configuredOrigins = String(process.env.CLIENT_URL || '')
   .filter(Boolean);
 
 const allowedOrigins = new Set([...defaultClientOrigins, ...configuredOrigins]);
-const allowAnyOrigin = configuredOrigins.length === 0 && process.env.NODE_ENV !== 'production';
+// ponytail: never reflect "*" with credentials unless explicitly opted in
+const allowAnyOrigin = process.env.ALLOW_ANY_ORIGIN === 'true';
 
 app.use(helmet());
 app.use(
@@ -59,10 +62,7 @@ app.get('/health', (_, res) => {
   res.status(200).json({ success: true, message: 'SmartLife API healthy' });
 });
 
-app.post('/login', authController.login);
-app.post('/register', authController.register);
 app.use('/auth', authRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/', chatRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/ai', aiRoutes);

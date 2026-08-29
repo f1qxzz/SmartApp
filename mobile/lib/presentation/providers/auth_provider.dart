@@ -255,7 +255,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
         dateOfBirth: dateOfBirth,
         rememberMe: rememberMe,
       );
-      await _useCases.cacheAuth(result.$1, result.$2, rememberMe: rememberMe);
+      final token = result.$2;
+
+      if (token == null || token.isEmpty) {
+        debugPrint('[AUTH] register pending email verification: ${result.$1.email}');
+        state = AuthState(
+          status: AuthStatus.unauthenticated,
+          successMessage:
+              'Registrasi berhasil. Silakan cek email kamu untuk verifikasi akun sebelum login.',
+          rememberMe: rememberMe,
+        );
+        return;
+      }
+
+      await _useCases.cacheAuth(result.$1, token, rememberMe: rememberMe);
       debugPrint('[AUTH] register success: ${result.$1.email}');
       await NotificationService.instance.showAuthSuccess(
         title: 'Registrasi Berhasil',
@@ -265,7 +278,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: result.$1,
-        token: result.$2,
+        token: token,
         successMessage: 'Register berhasil. Selamat datang di SmartLife!',
         rememberMe: rememberMe,
       );

@@ -8,6 +8,11 @@ function createHttpError(statusCode, message) {
   return error;
 }
 
+function escapeRegex(str) {
+  // ponytail: user input feeds $regex in search — escape metachars + cap length to stop ReDoS
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 50);
+}
+
 function normalizeTitle(value) {
   return String(value || '').trim();
 }
@@ -90,7 +95,7 @@ function buildQuery(userId, filters) {
   }
 
   if (filters.search) {
-    const keyword = String(filters.search).trim();
+    const keyword = escapeRegex(String(filters.search));
     if (keyword) {
       query.$or = [
         { title: { $regex: keyword, $options: 'i' } },
@@ -121,10 +126,15 @@ function buildQuery(userId, filters) {
 
 function escapeCsv(value) {
   const text = String(value ?? '');
-  if (text.includes('"') || text.includes(',') || text.includes('\n')) {
-    return `"${text.replace(/"/g, '""')}"`;
+  // ponytail: neutralize CSV/formula injection (Excel executes leading =,+,-,@)
+  let out = text;
+  if (/^[=+\-@\t\r]/.test(out)) {
+    out = `'${out}`;
   }
-  return text;
+  if (out.includes('"') || out.includes(',') || out.includes('\n')) {
+    return `"${out.replace(/"/g, '""')}"`;
+  }
+  return out;
 }
 
 async function listFinance(userId, filters = {}) {

@@ -327,6 +327,51 @@ function buildResetPasswordLink({ email, rawToken }) {
   )}`;
 }
 
+function buildVerificationLink({ email, rawToken }) {
+  const base =
+    process.env.CLIENT_VERIFY_EMAIL_URL ||
+    `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email`;
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
+}
+
+async function sendVerificationEmail({ to, name, verifyLink, rawToken }) {
+  const usingMockTransport = !hasValidSmtpConfig();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@smartlife.local';
+  const transporter = getMailTransporter();
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject: 'SmartLife - Verifikasi Email',
+    text: [
+      `Halo ${name || 'SmartLife User'},`,
+      '',
+      'Terima kasih mendaftar di SmartLife. Verifikasi email kamu dengan mengklik tautan berikut:',
+      verifyLink,
+      '',
+      'Tautan ini berlaku selama 24 jam.',
+      'Jika kamu tidak mendaftar akun ini, silakan abaikan email ini.',
+    ].join('\n'),
+    html: [
+      '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 12px; padding: 24px; color: #24292e;">',
+      '  <h2 style="color: #4B67D1; margin-top: 0;">SmartLife</h2>',
+      `  <p>Halo <strong>${name || 'SmartLife User'}</strong>,</p>`,
+      '  <p>Terima kasih mendaftar di SmartLife. Klik tombol di bawah untuk verifikasi email kamu:</p>',
+      '  <div style="text-align: center; margin: 24px 0;">',
+      `    <a href="${verifyLink}" style="background: #4B67D1; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Verifikasi Email</a>`,
+      '  </div>',
+      '  <p style="font-size: 12px; color: #8c959f;">Tautan berlaku 24 jam. Jika kamu tidak mendaftar akun ini, abaikan email ini.</p>',
+      '</div>',
+    ].join(''),
+  });
+
+  if (usingMockTransport) {
+    authLog('register.dev-link', { to, verifyLink });
+  }
+  return { usingMockTransport };
+}
+
 async function sendResetPasswordEmail({ to, name, resetLink, rawToken }) {
   const usingMockTransport = !hasValidSmtpConfig();
   const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@smartlife.local';
@@ -373,7 +418,10 @@ async function sendResetPasswordEmail({ to, name, resetLink, rawToken }) {
 }
 
 function ensureSocialAccountCompatible(user, provider) {
-  if (user.authProvider === 'local' && user.password) {
+  // Accounts originally created via a social provider (have providerId) may
+  // sign in with both the provider and email+password (hybrid). Only block pure
+  // local accounts that collide with a social login attempt.
+  if (user.authProvider === 'local' && user.password && !user.providerId) {
     throw createHttpError(
       409,
       'Email ini sudah terdaftar dengan password. Silakan login dengan username dan password.'
@@ -418,6 +466,12 @@ async function register(payload) {
     throw createHttpError(409, 'Username sudah digunakan');
   }
   if (existingEmail) {
+    if (existingEmail.providerId) {
+      throw createHttpError(
+        409,
+        'Email ini sudah terdaftar via Google. Silakan masuk dengan Google, atau gunakan fitur Lupa Password untuk mengatur password login email.'
+      );
+    }
     throw createHttpError(409, 'Email sudah terdaftar');
   }
 
@@ -448,7 +502,26 @@ async function register(payload) {
   }
 
   authLog('register.success', { username, email });
-  return buildAuthResponse(user);
+
+  // ponytail: require email verification before the account can log in
+  const rawVerifyToken = crypto.randomBytes(32).toString('hex');
+  user.emailVerifyToken = crypto.createHash('sha256').update(rawVerifyToken).digest('hex');
+  user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  user.emailVerified = false;
+  await user.save();
+
+  const verifyLink = buildVerificationLink({ email, rawToken: rawVerifyToken });
+  await sendVerificationEmail({
+    to: user.email,
+    name: user.name || user.username,
+    verifyLink,
+    rawToken: rawVerifyToken,
+  });
+
+  const authPayload = buildAuthResponse(user);
+  authPayload.token = null;
+  authPayload.requiresVerification = true;
+  return authPayload;
 }
 
 async function login(payload) {
@@ -477,6 +550,10 @@ async function login(payload) {
   }
 
   await ensureUserHasUsername(user);
+
+  if (user.emailVerified === false) {
+    throw createHttpError(403, 'Email belum diverifikasi. Silakan cek email kamu untuk verifikasi akun.');
+  }
 
   if (!user.password) {
     throw createHttpError(401, 'Akun ini terdaftar melalui Google. Silakan masuk dengan Google.');
@@ -611,6 +688,7 @@ async function loginWithGoogle(payload) {
   }
   user.providerId = googleProfile.providerId;
   user.authProvider = 'google';
+  user.emailVerified = true; // Google already verified the email
   await user.save();
 
   authLog('google.login.success', { username: user.username, email: googleProfile.email });
@@ -627,6 +705,35 @@ async function socialLogin(payload) {
   return loginWithGoogle(payload);
 }
 
+async function verifyEmail(payload) {
+  const email = normalizeEmail(payload.email);
+  const token = String(payload.token || '').trim();
+  ensureValidEmail(email);
+
+  if (!token) {
+    throw createHttpError(400, 'Token verifikasi wajib diisi');
+  }
+
+  const hashed = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    email,
+    emailVerifyToken: hashed,
+    emailVerifyExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw createHttpError(400, 'Token verifikasi tidak valid atau sudah kedaluwarsa');
+  }
+
+  user.emailVerified = true;
+  user.emailVerifyToken = '';
+  user.emailVerifyExpires = null;
+  await user.save();
+
+  authLog('verify-email.success', { email });
+  return { message: 'Email berhasil diverifikasi. Silakan login.' };
+}
+
 async function forgotPassword(payload) {
   const email = normalizeEmail(payload.email);
   ensureValidEmail(email);
@@ -640,7 +747,8 @@ async function forgotPassword(payload) {
     };
   }
 
-  const rawToken = Math.floor(100000 + Math.random() * 900000).toString();
+  // ponytail: 32-byte random token (was 6-digit numeric, brute-forceable)
+  const rawToken = crypto.randomBytes(32).toString('hex');
   const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
   const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -699,7 +807,12 @@ async function resetPassword(payload) {
   await ensureUserHasUsername(user);
 
   user.password = await bcrypt.hash(newPassword, 10);
-  user.authProvider = 'local';
+  // Social accounts keep their provider so they can still sign in with Google
+  // and additionally with email + password (hybrid login). Pure local accounts
+  // are marked explicitly.
+  if (!user.providerId) {
+    user.authProvider = 'local';
+  }
   user.resetPasswordToken = '';
   user.resetPasswordExpires = null;
   await user.save();
@@ -739,7 +852,8 @@ async function updateProfile(userId, payload) {
     }
   }
 
-  if (nextEmail !== user.email) {
+  const emailChanged = nextEmail !== user.email;
+  if (emailChanged) {
     const existingEmail = await User.exists({
       _id: { $ne: user._id },
       email: nextEmail,
@@ -777,7 +891,26 @@ async function updateProfile(userId, payload) {
     }
   });
 
+  // ponytail: changing email must re-verify, else a verified user could claim an unowned address
+  let rawToken = null;
+  if (emailChanged) {
+    user.emailVerified = false;
+    rawToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerifyToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  }
+
   await user.save();
+
+  if (emailChanged && rawToken) {
+    const verifyLink = buildVerificationLink({ email: user.email, rawToken });
+    await sendVerificationEmail({
+      to: user.email,
+      name: user.name || user.username,
+      verifyLink,
+      rawToken,
+    });
+  }
 
   return {
     id: String(user._id),
@@ -849,6 +982,7 @@ module.exports = {
   login,
   loginWithGoogle,
   socialLogin,
+  verifyEmail,
   forgotPassword,
   resetPassword,
   issueSession,

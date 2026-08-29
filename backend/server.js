@@ -10,6 +10,14 @@ async function bootstrap() {
   await connectDatabase();
 
   const server = http.createServer(app);
+  // ponytail: bound socket/request lifetime to mitigate slowloris-style hangs
+  server.timeout = 30000;
+  if ('requestTimeout' in server) {
+    server.requestTimeout = 30000;
+  }
+  if ('headersTimeout' in server) {
+    server.headersTimeout = 35000;
+  }
   initSocketServer(server);
 
   server.listen(PORT, () => {

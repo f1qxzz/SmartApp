@@ -2,6 +2,11 @@ module.exports = function errorHandler(err, req, res, next) {
   let status = err.statusCode || 500;
   let message = err.message || 'Internal server error';
 
+  // ponytail: never leak internal error text for 5xx in production
+  if (status >= 500 && process.env.NODE_ENV === 'production') {
+    message = 'Internal server error';
+  }
+
   if (err && err.code === 11000) {
     status = 409;
     const duplicateField = Object.keys(err.keyPattern || {})[0];
